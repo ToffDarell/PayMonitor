@@ -1,0 +1,303 @@
+/* ============================================================
+   PayMonitor Design System
+   ============================================================
+   Shared variables, resets, and utilities used across all pages.
+   This file is the core design token layer.
+   ============================================================ */
+
+/* ─── Design Tokens ─── */
+:root {
+    color-scheme: dark;
+
+    /* Backgrounds */
+    --pm-bg:            #060B18;
+    --pm-bg-sidebar:    #0A1628;
+    --pm-bg-card:       rgba(255,255,255,0.03);
+    --pm-bg-card-hover: rgba(255,255,255,0.06);
+    --pm-bg-modal:      #0F1729;
+
+    /* Borders */
+    --pm-border:        rgba(255,255,255,0.08);
+    --pm-border-hover:  rgba(255,255,255,0.15);
+
+    /* Accent */
+    --pm-emerald:       #10B981;
+    --pm-emerald-dark:  #059669;
+    --pm-emerald-glow:  rgba(16,185,129,0.15);
+    --pm-amber:         #F59E0B;
+    --pm-amber-glow:    rgba(245,158,11,0.12);
+
+    /* Text */
+    --pm-text:          #F1F5F9;
+    --pm-text-secondary:#94A3B8;
+    --pm-text-muted:    #64748B;
+
+    /* Fonts */
+    --pm-font-heading:  'Plus Jakarta Sans', sans-serif;
+    --pm-font-body:     'Inter', sans-serif;
+}
+
+/* ─── Base ─── */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--pm-font-body);
+    background: var(--pm-bg);
+    color: var(--pm-text);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+[x-cloak] { display: none !important; }
+
+/* ─── Animated Background Orbs ─── */
+.pm-orbs {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.pm-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.35;
+    animation: pm-orb-float 20s ease-in-out infinite;
+}
+
+.pm-orb--emerald {
+    background: var(--pm-emerald-glow);
+}
+
+.pm-orb--amber {
+    background: var(--pm-amber-glow);
+}
+
+.pm-orb--indigo {
+    background: rgba(99,102,241,0.08);
+}
+
+@keyframes pm-orb-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(30px, -40px) scale(1.05); }
+    66%      { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* ─── Grid Pattern Overlay ─── */
+.pm-grid-pattern {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+}
+
+/* ─── Utility: Container ─── */
+.pm-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ─── Utility: Buttons ─── */
+.pm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 32px;
+    border-radius: 12px;
+    font-family: var(--pm-font-heading);
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: none;
+}
+
+.pm-btn--primary {
+    background: linear-gradient(135deg, var(--pm-emerald), var(--pm-emerald-dark));
+    color: #fff;
+    box-shadow: 0 0 20px var(--pm-emerald-glow), 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.pm-btn--primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 40px rgba(16,185,129,0.3), 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.pm-btn--ghost {
+    background: var(--pm-bg-card);
+    color: var(--pm-text);
+    border: 1px solid var(--pm-border);
+}
+
+.pm-btn--ghost:hover {
+    background: var(--pm-bg-card-hover);
+    border-color: var(--pm-border-hover);
+    transform: translateY(-2px);
+}
+
+/* ─── Utility: Cards ─── */
+.pm-card {
+    padding: 32px;
+    border-radius: 16px;
+    border: 1px solid var(--pm-border);
+    background: var(--pm-bg-card);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.pm-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, transparent 40%, var(--pm-emerald-glow));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+
+.pm-card:hover::before {
+    opacity: 1;
+}
+
+.pm-card:hover {
+    background: var(--pm-bg-card-hover);
+    transform: translateY(-4px);
+}
+
+/* ─── Utility: Section ─── */
+.pm-section {
+    position: relative;
+    z-index: 1;
+    padding: 100px 24px;
+}
+
+.pm-section-label {
+    font-family: var(--pm-font-heading);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--pm-emerald);
+    margin-bottom: 16px;
+}
+
+.pm-section-title {
+    font-family: var(--pm-font-heading);
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: #fff;
+    max-width: 560px;
+}
+
+.pm-section-desc {
+    font-size: 16px;
+    color: var(--pm-text-secondary);
+    max-width: 500px;
+    margin-top: 16px;
+    line-height: 1.7;
+}
+
+/* ─── Utility: Feature Icon ─── */
+.pm-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.pm-icon--emerald { background: var(--pm-emerald-glow); color: var(--pm-emerald); }
+.pm-icon--amber   { background: var(--pm-amber-glow);   color: var(--pm-amber); }
+.pm-icon--indigo  { background: rgba(99,102,241,0.12);  color: #818CF8; }
+
+/* ─── Utility: Scroll Reveal ─── */
+.pm-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+        opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pm-reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.pm-reveal-d1 { transition-delay: 0.1s; }
+.pm-reveal-d2 { transition-delay: 0.2s; }
+.pm-reveal-d3 { transition-delay: 0.3s; }
+.pm-reveal-d4 { transition-delay: 0.4s; }
+.pm-reveal-d5 { transition-delay: 0.5s; }
+
+/* ─── Auth: Input Styles ─── */
+.pm-input {
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+    color: var(--pm-text);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.pm-input:focus {
+    border-color: var(--pm-emerald);
+    box-shadow: 0 0 0 3px var(--pm-emerald-glow);
+    outline: none;
+}
+
+.pm-input::placeholder {
+    color: var(--pm-text-muted);
+}
+
+.pm-check {
+    accent-color: var(--pm-emerald);
+}
+
+/* ─── Auth: Gradient Text ─── */
+.pm-gradient-text {
+    background: linear-gradient(135deg, var(--pm-emerald) 0%, #34D399 40%, var(--pm-amber) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ─── Pulsing Dot ─── */
+.pm-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pm-emerald);
+    animation: pm-pulse-dot 2s infinite;
+}
+
+@keyframes pm-pulse-dot {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+}
