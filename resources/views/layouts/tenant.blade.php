@@ -56,6 +56,320 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @stack('styles')
+    <style>
+        :root {
+            --pm-page-bg: #0d1117;
+            --pm-card-bg: #161b22;
+            --pm-surface-bg: #0f1319;
+            --pm-border: #21262d;
+            --pm-border-hover: #30363d;
+            --pm-text-primary: #ffffff;
+            --pm-text-secondary: #e2e8f0;
+            --pm-text-muted: #8b949e;
+            --pm-text-subtle: #52525b;
+            --pm-accent: #22c55e;
+            --pm-accent-hover: #16a34a;
+        }
+
+        .legacy-content {
+            color: var(--pm-text-secondary);
+        }
+
+        .legacy-content .card,
+        .legacy-content .modal-content,
+        .legacy-content .dropdown-menu,
+        .legacy-content .bg-white,
+        .legacy-content .bg-light,
+        .legacy-content .bg-gray-50,
+        .legacy-content .bg-gray-100,
+        .legacy-content .bg-slate-50,
+        .legacy-content .bg-slate-100 {
+            background-color: var(--pm-card-bg) !important;
+            color: var(--pm-text-secondary);
+            border-color: var(--pm-border) !important;
+        }
+
+        .legacy-content .card,
+        .legacy-content .modal-content {
+            border-radius: 1rem;
+            box-shadow: 0 20px 45px rgba(2, 6, 23, 0.2) !important;
+        }
+
+        .legacy-content .card.border-0 {
+            border: 1px solid var(--pm-border) !important;
+        }
+
+        .legacy-content .card-header,
+        .legacy-content .card-footer,
+        .legacy-content .table-light,
+        .legacy-content .table-light > :not(caption) > * > * {
+            background-color: var(--pm-card-bg) !important;
+            color: var(--pm-text-muted) !important;
+            border-color: var(--pm-border) !important;
+        }
+
+        .legacy-content .border,
+        .legacy-content .border-top,
+        .legacy-content .border-end,
+        .legacy-content .border-bottom,
+        .legacy-content .border-start,
+        .legacy-content .border-gray-200,
+        .legacy-content .border-gray-300,
+        .legacy-content .border-slate-200 {
+            border-color: var(--pm-border) !important;
+        }
+
+        .legacy-content .card .border.rounded-3,
+        .legacy-content .card .border.rounded-4,
+        .legacy-content .card .border.rounded-xl,
+        .legacy-content .card .form-check.border {
+            background-color: var(--pm-surface-bg) !important;
+            border-color: var(--pm-border) !important;
+        }
+
+        .legacy-content .text-muted,
+        .legacy-content .text-gray-500,
+        .legacy-content .text-gray-600,
+        .legacy-content .text-slate-500,
+        .legacy-content .text-slate-600,
+        .legacy-content .text-slate-400 {
+            color: var(--pm-text-muted) !important;
+        }
+
+        .legacy-content .text-gray-400 {
+            color: #71717a !important;
+        }
+
+        .legacy-content .text-gray-700,
+        .legacy-content .text-slate-700 {
+            color: var(--pm-text-secondary) !important;
+        }
+
+        .legacy-content .text-gray-800,
+        .legacy-content .text-gray-900,
+        .legacy-content .text-slate-900 {
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content a:not(.btn):not(.badge):not(.dropdown-item) {
+            color: #93c5fd;
+        }
+
+        .legacy-content a:not(.btn):not(.badge):not(.dropdown-item):hover {
+            color: #bfdbfe;
+        }
+
+        .legacy-content label,
+        .legacy-content .form-label {
+            color: var(--pm-text-secondary);
+        }
+
+        .legacy-content input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+        .legacy-content select,
+        .legacy-content textarea,
+        .legacy-content .form-control,
+        .legacy-content .form-select,
+        .legacy-content .input-group-text {
+            background-color: var(--pm-surface-bg) !important;
+            border-color: var(--pm-border) !important;
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content select option {
+            background-color: var(--pm-surface-bg);
+            color: var(--pm-text-primary);
+        }
+
+        .legacy-content input:not([type='hidden']):not([type='checkbox']):not([type='radio'])::placeholder,
+        .legacy-content textarea::placeholder,
+        .legacy-content .placeholder-gray-400::placeholder,
+        .legacy-content .placeholder-slate-400::placeholder {
+            color: var(--pm-text-subtle) !important;
+        }
+
+        .legacy-content input:not([type='hidden']):not([type='checkbox']):not([type='radio']):focus,
+        .legacy-content select:focus,
+        .legacy-content textarea:focus,
+        .legacy-content .form-control:focus,
+        .legacy-content .form-select:focus,
+        .legacy-content .focus\:border-blue-500:focus {
+            background-color: var(--pm-surface-bg) !important;
+            border-color: var(--pm-accent) !important;
+            color: var(--pm-text-primary) !important;
+            box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.18) !important;
+        }
+
+        .legacy-content .form-check-input {
+            background-color: var(--pm-surface-bg);
+            border-color: var(--pm-border);
+        }
+
+        .legacy-content .form-check-input:checked {
+            background-color: var(--pm-accent);
+            border-color: var(--pm-accent);
+        }
+
+        .legacy-content .form-check-input:focus {
+            border-color: var(--pm-accent);
+            box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.18);
+        }
+
+        .legacy-content .input-group-text {
+            color: var(--pm-text-muted) !important;
+        }
+
+        .legacy-content .btn {
+            border-radius: 0.75rem;
+            font-weight: 500;
+        }
+
+        .legacy-content .btn-primary {
+            background-color: var(--pm-accent) !important;
+            border-color: var(--pm-accent) !important;
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content .btn-primary:hover,
+        .legacy-content .btn-primary:focus,
+        .legacy-content .btn-primary:active {
+            background-color: var(--pm-accent-hover) !important;
+            border-color: var(--pm-accent-hover) !important;
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content .btn-outline-secondary,
+        .legacy-content .btn-outline-success,
+        .legacy-content .btn-outline-info {
+            background-color: transparent !important;
+            border-color: var(--pm-border) !important;
+            color: var(--pm-text-muted) !important;
+        }
+
+        .legacy-content .btn-outline-secondary:hover,
+        .legacy-content .btn-outline-secondary:focus,
+        .legacy-content .btn-outline-success:hover,
+        .legacy-content .btn-outline-success:focus,
+        .legacy-content .btn-outline-info:hover,
+        .legacy-content .btn-outline-info:focus {
+            background-color: rgba(34, 197, 94, 0.1) !important;
+            border-color: var(--pm-accent) !important;
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content .btn-light,
+        .legacy-content .btn-light.border,
+        .legacy-content form .btn-outline-primary {
+            background-color: var(--pm-border) !important;
+            border-color: var(--pm-border-hover) !important;
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content .btn-light:hover,
+        .legacy-content .btn-light:focus,
+        .legacy-content form .btn-outline-primary:hover,
+        .legacy-content form .btn-outline-primary:focus {
+            background-color: var(--pm-border-hover) !important;
+            border-color: var(--pm-border-hover) !important;
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content .btn-outline-primary {
+            background-color: transparent;
+            border-color: var(--pm-border) !important;
+            color: var(--pm-text-muted) !important;
+        }
+
+        .legacy-content .btn-outline-primary:hover,
+        .legacy-content .btn-outline-primary:focus {
+            background-color: rgba(34, 197, 94, 0.1);
+            border-color: var(--pm-accent) !important;
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content .btn-outline-danger {
+            background-color: transparent !important;
+            border-color: rgba(248, 113, 113, 0.35) !important;
+            color: #fca5a5 !important;
+        }
+
+        .legacy-content .btn-outline-danger:hover,
+        .legacy-content .btn-outline-danger:focus {
+            background-color: rgba(239, 68, 68, 0.12) !important;
+            border-color: rgba(248, 113, 113, 0.55) !important;
+            color: #fecaca !important;
+        }
+
+        .legacy-content table {
+            color: var(--pm-text-secondary);
+            border-color: var(--pm-border);
+        }
+
+        .legacy-content .table {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--pm-text-secondary);
+            --bs-table-striped-bg: #11161d;
+            --bs-table-striped-color: var(--pm-text-secondary);
+            --bs-table-hover-bg: #1f2937;
+            --bs-table-hover-color: var(--pm-text-primary);
+            --bs-table-border-color: var(--pm-border);
+            margin-bottom: 0;
+        }
+
+        .legacy-content .table > :not(caption) > * > * {
+            background-color: transparent;
+            border-bottom-color: var(--pm-border);
+            color: inherit;
+        }
+
+        .legacy-content table thead,
+        .legacy-content table thead tr,
+        .legacy-content table thead th {
+            background-color: var(--pm-card-bg) !important;
+            color: var(--pm-text-muted) !important;
+            border-color: var(--pm-border) !important;
+        }
+
+        .legacy-content table tbody tr {
+            border-color: var(--pm-border) !important;
+            transition: background-color 0.2s ease;
+        }
+
+        .legacy-content table tbody tr:hover {
+            background-color: #1f2937 !important;
+        }
+
+        .legacy-content .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+        .legacy-content .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+            border-color: var(--pm-border) !important;
+        }
+
+        .legacy-content .badge.bg-light,
+        .legacy-content .badge.text-dark {
+            background-color: rgba(139, 148, 158, 0.12) !important;
+            border: 1px solid var(--pm-border);
+            color: var(--pm-text-secondary) !important;
+        }
+
+        .legacy-content .shadow,
+        .legacy-content .shadow-sm {
+            box-shadow: 0 20px 45px rgba(2, 6, 23, 0.18) !important;
+        }
+
+        .legacy-content .pagination {
+            --bs-pagination-bg: var(--pm-card-bg);
+            --bs-pagination-border-color: var(--pm-border);
+            --bs-pagination-color: var(--pm-text-muted);
+            --bs-pagination-hover-color: var(--pm-text-primary);
+            --bs-pagination-hover-bg: var(--pm-border-hover);
+            --bs-pagination-hover-border-color: var(--pm-border-hover);
+            --bs-pagination-active-bg: var(--pm-accent);
+            --bs-pagination-active-border-color: var(--pm-accent);
+            --bs-pagination-active-color: var(--pm-text-primary);
+            --bs-pagination-disabled-bg: var(--pm-card-bg);
+            --bs-pagination-disabled-color: var(--pm-text-subtle);
+            --bs-pagination-disabled-border-color: var(--pm-border);
+        }
+    </style>
 
     @vite(['resources/css/paymonitor.css', 'resources/js/paymonitor-dashboard.js'])
 </head>
@@ -183,7 +497,7 @@
                 </div>
             </header>
 
-            <main class="px-4 pb-8 pt-24 sm:px-6 lg:px-8">
+            <main class="min-h-screen bg-[#0d1117] px-4 pb-8 pt-24 sm:px-6 lg:px-8">
                 @if($flashMessages->isNotEmpty())
                     <div class="space-y-3">
                         @foreach($flashMessages as $flash)

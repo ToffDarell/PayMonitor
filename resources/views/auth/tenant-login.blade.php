@@ -1,6 +1,6 @@
 @php
-    $tenantName = tenant()?->name ?? 'Cooperative';
-    $tenantHost = request()->getHost();
+    $tenantName = $tenantName ?? tenant()?->name ?? 'Cooperative';
+    $tenantHost = $tenantHost ?? request()->getHost();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -45,8 +45,8 @@
         <!-- Left panel -->
         <aside class="relative hidden overflow-hidden border-r border-white/5 bg-[#0A1628] md:flex">
             <div class="pm-auth-grid absolute inset-0 opacity-60"></div>
-            <div class="pm-orb pm-orb--emerald" style="width:500px;height:500px;top:-10%;right:-5%"></div>
-            <div class="pm-orb pm-orb--amber" style="width:400px;height:400px;bottom:15%;left:-10%;animation-delay:-7s"></div>
+            <div class="pm-orb pm-orb--emerald" style="width:500px;height:500px;top:-10%;left:-5%"></div>
+            <div class="pm-orb pm-orb--amber" style="width:400px;height:400px;bottom:10%;right:-10%;animation-delay:-7s"></div>
 
             <div class="relative flex min-h-screen w-full flex-col justify-between px-10 py-10 lg:px-14">
                 <div></div>
@@ -56,12 +56,13 @@
                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-500/20">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         </div>
-                        <span class="font-heading text-lg font-bold text-slate-400 tracking-tight">PayMonitor</span>
+                        <span class="font-heading text-2xl font-extrabold text-white tracking-tight">PayMonitor</span>
                     </div>
-                    <p class="font-heading text-3xl font-bold tracking-tight text-white lg:text-4xl leading-tight">{{ $tenantName }}</p>
-                    <p class="mt-3 text-sm font-medium uppercase tracking-[0.16em] text-emerald-400/70">{{ $tenantHost }}</p>
-                    <p class="mt-5 max-w-sm text-base leading-7 text-slate-400">
-                        Welcome back to your cooperative portal
+                    <p class="font-heading text-3xl font-bold tracking-tight text-white lg:text-4xl leading-tight">
+                        {{ $tenantName }}<br><span class="pm-gradient-text">Portal</span>
+                    </p>
+                    <p class="mt-4 max-w-sm text-base leading-7 text-slate-400">
+                        Welcome back to your cooperative portal.
                     </p>
 
                     <div class="mt-10 space-y-4">
@@ -87,7 +88,7 @@
                 </div>
 
                 <div class="text-sm text-slate-600">
-                    Secure cooperative workspace
+                    &copy; 2026 {{ $tenantName }} Portal
                 </div>
             </div>
         </aside>
@@ -96,7 +97,7 @@
         <main class="flex min-h-screen items-center justify-center bg-[#0B1120] px-5 py-10 sm:px-8">
             <div class="w-full max-w-md rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur sm:p-8" x-data="{ showPassword: false }">
                 <div>
-                    <p class="font-heading text-sm font-semibold uppercase tracking-[0.16em] text-emerald-400">{{ $tenantHost }}</p>
+                    <p class="font-heading max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs font-semibold uppercase tracking-[0.12em] text-emerald-400 sm:text-sm sm:tracking-[0.16em]">{{ strtoupper($tenantHost) }}</p>
                     <h1 class="font-heading mt-4 text-2xl font-bold tracking-tight text-white">{{ $tenantName }} Portal</h1>
                     <p class="mt-2 text-sm leading-6 text-slate-400">Sign in to manage loans and members.</p>
                 </div>
@@ -106,7 +107,7 @@
 
                     <div>
                         <label for="email" class="mb-2 block text-sm font-medium text-slate-200">Email</label>
-                        <input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="username" required autofocus placeholder="name@{{ $tenantHost }}" class="pm-input block w-full rounded-xl px-4 py-3 text-sm">
+                        <input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="username" required autofocus placeholder="{{ 'name@' . $tenantHost }}" class="pm-input block w-full rounded-xl px-4 py-3 text-sm">
                         @error('email')
                             <p class="mt-2 text-sm text-red-400">{{ $message }}</p>
                         @enderror

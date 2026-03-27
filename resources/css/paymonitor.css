@@ -260,10 +260,15 @@ body {
 
 /* ─── Auth: Input Styles ─── */
 .pm-input {
+    appearance: none;
+    -webkit-appearance: none;
     border: 1px solid rgba(255,255,255,0.1);
     background: rgba(255,255,255,0.03);
+    background-color: rgba(255,255,255,0.03);
+    background-clip: padding-box;
     color: var(--pm-text);
-    transition: border-color 200ms ease, box-shadow 200ms ease;
+    caret-color: var(--pm-text);
+    transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
 }
 
 .pm-input:focus {
@@ -274,6 +279,20 @@ body {
 
 .pm-input::placeholder {
     color: var(--pm-text-muted);
+}
+
+/* Fix browser autofill styling for dark mode */
+.pm-input:-webkit-autofill,
+.pm-input:-webkit-autofill:hover, 
+.pm-input:-webkit-autofill:focus, 
+.pm-input:-webkit-autofill:active {
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    background-color: #111827 !important;
+    -webkit-box-shadow: 0 0 0 1000px #111827 inset !important;
+    box-shadow: 0 0 0 1000px #111827 inset !important;
+    -webkit-text-fill-color: var(--pm-text) !important;
+    caret-color: var(--pm-text) !important;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 .pm-check {

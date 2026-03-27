@@ -32,14 +32,14 @@
 
 <div class="row g-4 mb-4">
     <div class="col-md-6 col-xl-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
+            <div class="p-6">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-muted text-uppercase small fw-semibold mb-2">Active Loans</div>
-                        <div class="display-6 fw-bold text-primary mb-0">{{ number_format($activeLoansCount) }}</div>
+                        <div class="text-[#8b949e] text-sm fw-semibold text-uppercase tracking-[0.16em]">Active Loans</div>
+                        <div class="mt-3 text-3xl font-bold text-white">{{ number_format($activeLoansCount) }}</div>
                     </div>
-                    <span class="bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <span class="d-inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 text-blue-400">
                         <i class="bi bi-cash-stack fs-4"></i>
                     </span>
                 </div>
@@ -47,14 +47,14 @@
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
+            <div class="p-6">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-muted text-uppercase small fw-semibold mb-2">Outstanding Balance</div>
-                        <div class="h3 fw-bold text-danger mb-0">P{{ number_format($totalOutstandingBalance, 2) }}</div>
+                        <div class="text-[#8b949e] text-sm fw-semibold text-uppercase tracking-[0.16em]">Outstanding Balance</div>
+                        <div class="mt-3 text-3xl font-bold text-white">P{{ number_format($totalOutstandingBalance, 2) }}</div>
                     </div>
-                    <span class="bg-danger-subtle text-danger rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <span class="d-inline-flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-400">
                         <i class="bi bi-bank2 fs-4"></i>
                     </span>
                 </div>
@@ -62,14 +62,14 @@
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
+            <div class="p-6">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-muted text-uppercase small fw-semibold mb-2">Overdue Loans</div>
-                        <div class="display-6 fw-bold text-warning mb-0">{{ number_format($overdueLoansCount) }}</div>
+                        <div class="text-[#8b949e] text-sm fw-semibold text-uppercase tracking-[0.16em]">Overdue Loans</div>
+                        <div class="mt-3 text-3xl font-bold text-white">{{ number_format($overdueLoansCount) }}</div>
                     </div>
-                    <span class="bg-warning-subtle text-warning rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <span class="d-inline-flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/10 text-yellow-400">
                         <i class="bi bi-exclamation-triangle fs-4"></i>
                     </span>
                 </div>
@@ -77,14 +77,14 @@
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
+            <div class="p-6">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-muted text-uppercase small fw-semibold mb-2">Members Count</div>
-                        <div class="display-6 fw-bold text-success mb-0">{{ number_format($totalMembersCount) }}</div>
+                        <div class="text-[#8b949e] text-sm fw-semibold text-uppercase tracking-[0.16em]">Members Count</div>
+                        <div class="mt-3 text-3xl font-bold text-white">{{ number_format($totalMembersCount) }}</div>
                     </div>
-                    <span class="bg-success-subtle text-success rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <span class="d-inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 text-green-400">
                         <i class="bi bi-people-fill fs-4"></i>
                     </span>
                 </div>
@@ -95,14 +95,14 @@
 
 <div class="row g-4 mb-4">
     <div class="col-lg-6">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
+            <div class="p-6">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-muted text-uppercase small fw-semibold mb-2">Total Collections This Month</div>
-                        <div class="h2 fw-bold text-success mb-0">P{{ number_format($totalPaymentsThisMonth, 2) }}</div>
+                        <div class="text-[#8b949e] text-sm fw-semibold text-uppercase tracking-[0.16em]">Total Collections This Month</div>
+                        <div class="mt-3 text-3xl font-bold text-white">P{{ number_format($totalPaymentsThisMonth, 2) }}</div>
                     </div>
-                    <span class="bg-success-subtle text-success rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <span class="d-inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 text-green-400">
                         <i class="bi bi-wallet2 fs-4"></i>
                     </span>
                 </div>
@@ -110,14 +110,14 @@
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
+            <div class="p-6">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-muted text-uppercase small fw-semibold mb-2">Loan Types Available</div>
-                        <div class="h2 fw-bold text-info mb-0">{{ number_format($loanTypesCount) }}</div>
+                        <div class="text-[#8b949e] text-sm fw-semibold text-uppercase tracking-[0.16em]">Loan Types Available</div>
+                        <div class="mt-3 text-3xl font-bold text-white">{{ number_format($loanTypesCount) }}</div>
                     </div>
-                    <span class="bg-info-subtle text-info rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <span class="d-inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 text-blue-400">
                         <i class="bi bi-journal-bookmark fs-4"></i>
                     </span>
                 </div>
@@ -128,8 +128,8 @@
 
 <div class="row g-4">
     <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3">
+        <div class="card rounded-xl border border-[#21262d] bg-[#161b22]">
+            <div class="card-header border-bottom border-[#21262d] bg-[#161b22] py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <h2 class="h5 mb-0 fw-bold">Recent Loans</h2>
                     <a href="{{ route('loans.index', $tenantParameter) }}" class="btn btn-outline-primary btn-sm">
@@ -181,8 +181,8 @@
     </div>
 
     <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3">
+        <div class="card rounded-xl border border-[#21262d] bg-[#161b22]">
+            <div class="card-header border-bottom border-[#21262d] bg-[#161b22] py-3">
                 <h2 class="h5 mb-0 fw-bold">Overdue Loans</h2>
             </div>
             <div class="table-responsive">
