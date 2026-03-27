@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\TenantSetting;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
@@ -67,6 +68,7 @@ class TenancyServiceProvider extends ServiceProvider
                 function (Events\DatabaseMigrated $event): void {
                     $event->tenant->run(function (): void {
                         $this->seedTenantRoles();
+                        $this->seedTenantSettings();
                     });
                 },
             ],
@@ -128,5 +130,14 @@ class TenancyServiceProvider extends ServiceProvider
         ] as $role) {
             $roleModelClass::findOrCreate($role, 'web');
         }
+    }
+
+    protected function seedTenantSettings(): void
+    {
+        if (! Schema::hasTable('tenant_settings')) {
+            return;
+        }
+
+        TenantSetting::ensureDefaults();
     }
 }

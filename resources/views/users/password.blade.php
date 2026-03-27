@@ -7,6 +7,12 @@
     <div class="card-body">
         <h5 class="fw-bold mb-3">User created successfully</h5>
         <p class="text-muted">Copy these credentials now. The temporary password is shown only once.</p>
+        @if(! empty($credentialsEmailed))
+            <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-envelope-check-fill me-2"></i>
+                <div>Login credentials have also been sent to {{ $user->email }}.</div>
+            </div>
+        @endif
         <dl class="row mb-4">
             <dt class="col-sm-3">Name</dt>
             <dd class="col-sm-9">{{ $user->name }}</dd>

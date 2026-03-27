@@ -413,6 +413,14 @@
                                 <svg class="h-5 w-5 {{ $navIconClass($plansActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 5.25h12A1.5 1.5 0 0 1 19.5 6.75v10.5A1.5 1.5 0 0 1 18 18.75H6A1.5 1.5 0 0 1 4.5 17.25V6.75A1.5 1.5 0 0 1 6 5.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9h7.5M8.25 12h7.5M8.25 15h4.5"/></svg>
                                 <span>Plans</span>
                             </a>
+                            @php($versionsActive = request()->routeIs('central.versions.*'))
+                            <a href="{{ route('central.versions.index', absolute: false) }}" class="{{ $navItemClass($versionsActive) }}">
+                                <svg class="h-5 w-5 {{ $navIconClass($versionsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 4.5h9A1.5 1.5 0 0 1 18 6v12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18V6A1.5 1.5 0 0 1 7.5 4.5Z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 9h6M9 12h6M9 15h3.75"/>
+                                </svg>
+                                <span>App Versions</span>
+                            </a>
                             @php($paymentsActive = request()->routeIs('central.payments.*'))
                             <a href="{{ route('central.payments.index', absolute: false) }}" class="{{ $navItemClass($paymentsActive) }}">
                                 <svg class="h-5 w-5 {{ $navIconClass($paymentsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-12 4.5h3"/></svg>
@@ -422,11 +430,9 @@
                     </div>
                 </div>
 
-                <div class="mt-auto rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-                    <p class="text-sm font-medium text-white">{{ $user?->name ?? 'Super Admin' }}</p>
-                    <p class="mt-1 truncate text-sm text-zinc-500">{{ $user?->email ?? 'admin@paymonitor.com' }}</p>
-                    <a href="{{ route('central.logout', absolute: false) }}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/10 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
+                <div class="mt-4 shrink-0 border-t border-white/[0.1] pt-4">
+                    <a href="{{ route('central.logout', absolute: false) }}" class="group flex w-full items-center gap-3 rounded-md border-l-[3px] border-transparent px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white">
+                        <svg class="h-5 w-5 text-slate-500 transition group-hover:text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
                         <span>Logout</span>
                     </a>
                 </div>
@@ -451,10 +457,6 @@
                             <p class="text-sm font-medium text-white">{{ $user?->name ?? 'Super Admin' }}</p>
                             <p class="text-xs text-zinc-500">Administrator</p>
                         </div>
-                        <a href="{{ route('central.logout', absolute: false) }}" class="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
-                            <span class="hidden sm:inline">Logout</span>
-                        </a>
                     </div>
                 </div>
             </header>

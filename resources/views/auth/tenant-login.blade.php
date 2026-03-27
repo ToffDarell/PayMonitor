@@ -1,6 +1,10 @@
 @php
     $tenantName = $tenantName ?? tenant()?->name ?? 'Cooperative';
     $tenantHost = $tenantHost ?? request()->getHost();
+    $tenantLogoPath = \App\Models\TenantSetting::get('logo_path');
+    $tenantFaviconUrl = filled($tenantLogoPath)
+        ? route('stancl.tenancy.asset', ['path' => ltrim((string) $tenantLogoPath, '/')], false).'?v='.rawurlencode((string) $tenantLogoPath)
+        : asset('favicon.ico');
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -9,6 +13,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $tenantName }} Portal | PayMonitor</title>
+    <link rel="icon" href="{{ $tenantFaviconUrl }}">
+    <link rel="apple-touch-icon" href="{{ $tenantFaviconUrl }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

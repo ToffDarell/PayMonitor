@@ -12,6 +12,8 @@ class Plan extends Model
 {
     use HasFactory;
 
+    public const DEFAULT_DESCRIPTION = "Secure cooperative portal access\nLoan and member management\nCentralized reporting tools";
+
     protected $fillable = [
         'name',
         'price',
@@ -30,5 +32,10 @@ class Plan extends Model
     public function tenants(): HasMany
     {
         return $this->hasMany(Tenant::class);
+    }
+
+    public static function defaultDescription(): string
+    {
+        return self::DEFAULT_DESCRIPTION;
     }
 }

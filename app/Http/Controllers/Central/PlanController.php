@@ -38,7 +38,13 @@ class PlanController extends Controller
 
     public function store(StorePlanRequest $request): RedirectResponse
     {
-        Plan::query()->create($request->validated());
+        $data = $request->validated();
+
+        if (blank($data['description'] ?? null)) {
+            $data['description'] = Plan::defaultDescription();
+        }
+
+        Plan::query()->create($data);
 
         return redirect('/central/plans')->with('success', 'Plan created successfully.');
     }
@@ -50,7 +56,13 @@ class PlanController extends Controller
 
     public function update(StorePlanRequest $request, Plan $plan): RedirectResponse
     {
-        $plan->update($request->validated());
+        $data = $request->validated();
+
+        if (blank($data['description'] ?? null)) {
+            $data['description'] = Plan::defaultDescription();
+        }
+
+        $plan->update($data);
 
         return redirect('/central/plans')->with('success', 'Plan updated successfully.');
     }

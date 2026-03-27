@@ -16,6 +16,7 @@ use App\Services\LoanService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -235,6 +236,7 @@ test('branch pages render for authorized tenant users', function (): void {
 test('tenant user store creates staff account and shows generated password', function (): void {
     $tenant = provisionTenant('staffing');
     $user = createTenantUser($tenant, 'tenant_admin');
+    Mail::fake();
 
     $branch = $tenant->run(static function (): Branch {
         return Branch::query()->create([
@@ -258,7 +260,9 @@ test('tenant user store creates staff account and shows generated password', fun
         'generated_password' => 'TEMP123ABC',
         'role' => 'cashier',
         'branch_id' => $branch->id,
-    ])->assertOk()->assertSee('TEMP123ABC');
+    ])->assertOk()
+        ->assertSee('TEMP123ABC')
+        ->assertSee('Login credentials have also been sent to cashier@example.com.');
 
     $tenant->run(static function (): void {
         $createdUser = User::query()->where('email', 'cashier@example.com')->firstOrFail();
@@ -266,6 +270,14 @@ test('tenant user store creates staff account and shows generated password', fun
         expect($createdUser->branch_id)->not->toBeNull();
         expect($createdUser->hasRole('cashier'))->toBeTrue();
         expect(Hash::check('TEMP123ABC', $createdUser->password))->toBeTrue();
+    });
+
+    Mail::assertSent(\App\Mail\TenantWelcomeMail::class, function ($mail) use ($tenant): bool {
+        return $mail->hasTo('cashier@example.com')
+            && $mail->email === 'cashier@example.com'
+            && $mail->password === 'TEMP123ABC'
+            && $mail->tenant->is($tenant)
+            && str_contains($mail->loginUrl, 'http://staffing.localhost/login');
     });
 
     $createdUserId = $tenant->run(static fn (): int => User::query()->where('email', 'cashier@example.com')->value('id'));

@@ -76,7 +76,7 @@ return [
             'public' => '%storage_path%/app/public/',
         ],
         'suffix_storage_path' => true,
-        'asset_helper_tenancy' => true,
+        'asset_helper_tenancy' => false,
     ],
 
     'redis' => [

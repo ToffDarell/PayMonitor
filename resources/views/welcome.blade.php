@@ -229,6 +229,11 @@
 
     <!-- Pricing -->
     <section id="pricing" class="bg-[#0f1523] py-24">
+        @php
+            $featuredPlan = $plans->first(fn ($plan) => strtolower($plan->name) === 'standard')
+                ?? $plans->values()->get(1)
+                ?? $plans->first();
+        @endphp
         <div class="mx-auto max-w-7xl px-6">
             <div class="text-center mb-16">
                 <div class="mb-3 text-sm font-semibold uppercase tracking-widest text-emerald-400">PRICING</div>
@@ -236,132 +241,86 @@
                 <p class="text-navy-muted">Choose the plan that fits your cooperative.</p>
             </div>
 
-            <div class="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
-                <!-- Basic Plan -->
-                <div class="rounded-3xl border border-navy-border bg-navy-surface p-8 backdrop-blur-sm">
-                    <div class="mb-2 text-sm font-medium uppercase tracking-wide text-navy-muted">Basic</div>
-                    <div class="font-heading text-4xl font-black text-white">₱499<span class="text-lg font-normal text-navy-muted">/mo</span></div>
-                    <hr class="my-6 border-navy-border" />
-                    <ul class="space-y-4">
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            2 Branches
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            10 Staff Users
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Loan Management
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Payment Tracking
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Email Support
-                        </li>
-                    </ul>
-                    <a href="/apply?plan=basic" class="mt-8 block w-full rounded-xl border border-navy-border bg-white/[0.02] py-3 text-center font-medium text-white transition-colors hover:bg-white/5">Apply for Basic</a>
-                </div>
+            @if ($plans->isNotEmpty())
+                <div class="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    @foreach ($plans as $plan)
+                        @php
+                            $isFeatured = $featuredPlan?->is($plan) ?? false;
+                            $priceLabel = rtrim(rtrim(number_format((float) $plan->price, 2), '0'), '.');
+                            $descriptionItems = collect(preg_split('/\r\n|\r|\n/', (string) $plan->description))
+                                ->map(fn ($item) => trim($item))
+                                ->filter();
+                            $limitItems = collect([
+                                $plan->max_branches === 0
+                                    ? 'Unlimited Branches'
+                                    : number_format($plan->max_branches) . ' ' . \Illuminate\Support\Str::plural('Branch', $plan->max_branches),
+                                $plan->max_users === 0
+                                    ? 'Unlimited Staff Users'
+                                    : number_format($plan->max_users) . ' Staff ' . \Illuminate\Support\Str::plural('User', $plan->max_users),
+                            ]);
+                            $baseItems = collect(preg_split('/\r\n|\r|\n/', \App\Models\Plan::defaultDescription()))
+                                ->map(fn ($item) => trim((string) $item))
+                                ->filter();
+                            $customDescriptionItems = $descriptionItems
+                                ->reject(fn ($item) => $baseItems->contains($item));
+                            $featureItems = $limitItems
+                                ->concat($baseItems)
+                                ->concat($customDescriptionItems)
+                                ->unique()
+                                ->values();
+                        @endphp
 
-                <!-- Standard Plan -->
-                <div class="relative rounded-3xl border border-emerald-500/50 bg-[#0A1628] p-8 shadow-[0_0_40px_rgba(16,185,129,0.1)]">
-                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-500 px-4 py-1 text-xs font-semibold text-white shadow-lg shadow-emerald-500/20">Most Popular</div>
-                    <div class="mb-2 text-sm font-medium uppercase tracking-wide text-emerald-400">Standard</div>
-                    <div class="font-heading text-4xl font-black text-white">₱999<span class="text-lg font-normal text-navy-muted">/mo</span></div>
-                    <hr class="my-6 border-navy-border" />
-                    <ul class="space-y-4">
-                        <li class="flex items-center gap-3 text-sm text-slate-200">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            5 Branches
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-200">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            30 Staff Users
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-200">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Everything in Basic
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-200">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Reports & Analytics
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-200">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Priority Support
-                        </li>
-                    </ul>
-                    <a href="/apply?plan=standard" class="mt-8 block w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-center font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 hover:brightness-110">Apply for Standard</a>
-                </div>
+                        <div @class([
+                            'rounded-3xl border p-8 backdrop-blur-sm',
+                            'border-navy-border bg-navy-surface' => ! $isFeatured,
+                            'relative border-emerald-500/50 bg-[#0A1628] shadow-[0_0_40px_rgba(16,185,129,0.1)]' => $isFeatured,
+                        ])>
+                            @if ($isFeatured)
+                                <div class="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-500 px-4 py-1 text-xs font-semibold text-white shadow-lg shadow-emerald-500/20">Most Popular</div>
+                            @endif
 
-                <!-- Premium Plan -->
-                <div class="rounded-3xl border border-navy-border bg-navy-surface p-8 backdrop-blur-sm">
-                    <div class="mb-2 text-sm font-medium uppercase tracking-wide text-navy-muted">Premium</div>
-                    <div class="font-heading text-4xl font-black text-white">₱1,999<span class="text-lg font-normal text-navy-muted">/mo</span></div>
-                    <hr class="my-6 border-navy-border" />
-                    <ul class="space-y-4">
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Unlimited Branches
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Unlimited Users
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Everything in Standard
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Audit Logs
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-slate-300">
-                            <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
-                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
-                            </span>
-                            Dedicated Support
-                        </li>
-                    </ul>
-                    <a href="/apply?plan=premium" class="mt-8 block w-full rounded-xl border border-navy-border bg-white/[0.02] py-3 text-center font-medium text-white transition-colors hover:bg-white/5">Apply for Premium</a>
-                </div>
-            </div>
+                            <div @class([
+                                'mb-2 text-sm font-medium uppercase tracking-wide',
+                                'text-navy-muted' => ! $isFeatured,
+                                'text-emerald-400' => $isFeatured,
+                            ])>{{ $plan->name }}</div>
 
-            <div class="mt-8 text-center text-sm text-navy-muted">
-                30-day free trial included upon approval — no credit card required.
-            </div>
+                            <div class="font-heading text-4xl font-black text-white">&#8369;{{ $priceLabel }}<span class="text-lg font-normal text-navy-muted">/mo</span></div>
+                            <hr class="my-6 border-navy-border" />
+
+                            <ul class="space-y-4">
+                                @foreach ($featureItems as $feature)
+                                    <li @class([
+                                        'flex items-center gap-3 text-sm',
+                                        'text-slate-300' => ! $isFeatured,
+                                        'text-slate-200' => $isFeatured,
+                                    ])>
+                                        <span @class([
+                                            'mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-emerald-400',
+                                            'bg-emerald-500/15' => ! $isFeatured,
+                                            'bg-emerald-500/20' => $isFeatured,
+                                        ])>
+                                            <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
+                                        </span>
+                                        {{ $feature }}
+                                    </li>
+                                @endforeach
+                            </ul>
+
+                            <a href="{{ route('apply.create', ['plan' => $plan->id], false) }}" @class([
+                                'mt-8 block w-full rounded-xl py-3 text-center transition-colors',
+                                'border border-navy-border bg-white/[0.02] font-medium text-white hover:bg-white/5' => ! $isFeatured,
+                                'bg-gradient-to-r from-emerald-500 to-emerald-600 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 hover:brightness-110' => $isFeatured,
+                            ])>Apply for {{ $plan->name }}</a>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="mx-auto max-w-3xl rounded-3xl border border-navy-border bg-navy-surface p-10 text-center text-navy-muted">
+                    Pricing plans will appear here once they are added in the central admin.
+                </div>
+            @endif
+
         </div>
     </section>
 

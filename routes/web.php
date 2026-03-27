@@ -8,13 +8,22 @@ use App\Http\Controllers\Central\PaymentController as CentralPaymentController;
 use App\Http\Controllers\Central\PlanController as CentralPlanController;
 use App\Http\Controllers\Central\TenantController as CentralTenantController;
 use App\Http\Controllers\Central\ApplicationController as CentralApplicationController;
+use App\Http\Controllers\Central\VersionController as CentralVersionController;
 use App\Http\Controllers\ApplicationController;
+use App\Models\Plan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 
 foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
     Route::domain($domain)->group(function (): void {
-        Route::view('/', 'welcome')->name('welcome');
+        Route::get('/', static function () {
+            $plans = Plan::query()
+                ->orderBy('price')
+                ->orderBy('name')
+                ->get();
+
+            return view('welcome', compact('plans'));
+        })->name('welcome');
 
         Route::get('/apply', [ApplicationController::class, 'create'])->name('apply.create');
         Route::post('/apply', [ApplicationController::class, 'store'])->name('apply.store');
@@ -47,10 +56,10 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::resource('tenants', CentralTenantController::class);
 
                 Route::resource('plans', CentralPlanController::class)->except('show');
+                Route::resource('versions', CentralVersionController::class)->only(['index', 'create', 'store']);
 
                 Route::get('/payments', [CentralPaymentController::class, 'index'])->name('payments.index');
                 Route::post('/payments/{tenant}/mark-paid', [CentralPaymentController::class, 'markPaid'])->name('payments.mark-paid');
             });
     });
 }
-

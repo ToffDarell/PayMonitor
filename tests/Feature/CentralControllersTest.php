@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Domain;
 use App\Models\Plan;
+use App\Models\AppVersion;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TenantService;
@@ -21,13 +22,17 @@ function createCentralAdmin(): User
 {
     Role::findOrCreate('super_admin', 'web');
 
-    $user = User::query()->create([
-        'name' => 'Central Admin',
-        'email' => 'central@example.com',
-        'password' => 'password123',
-    ]);
+    $user = User::query()->firstOrCreate(
+        ['email' => 'central@example.com'],
+        [
+            'name' => 'Central Admin',
+            'password' => 'password123',
+        ],
+    );
 
-    $user->assignRole('super_admin');
+    if (! $user->hasRole('super_admin')) {
+        $user->assignRole('super_admin');
+    }
 
     return $user;
 }
@@ -200,7 +205,7 @@ test('tenant show loads plan domain and usage', function (): void {
         ->assertSee('38');
 });
 
-test('tenant update persists central fields', function (): void {
+test('tenant update persists central fields and subscription changes', function (): void {
     $firstPlan = Plan::query()->create([
         'name' => 'Basic',
         'price' => 499,
@@ -235,9 +240,13 @@ test('tenant update persists central fields', function (): void {
 
     $response->assertRedirect('/central/tenants');
 
-    expect($tenant->fresh()->name)->toBe('Alpha Lending Cooperative');
-    expect($tenant->fresh()->plan_id)->toBe($nextPlan->id);
-    expect($tenant->fresh()->status)->toBe('inactive');
+    $updatedTenant = $tenant->fresh();
+
+    expect($updatedTenant->name)->toBe('Alpha Lending Cooperative');
+    expect($updatedTenant->address)->toBe('Updated Address');
+    expect($updatedTenant->plan_id)->toBe($nextPlan->id);
+    expect($updatedTenant->subscription_due_at?->toDateString())->toBe(today()->addDays(20)->toDateString());
+    expect($updatedTenant->status)->toBe('inactive');
 });
 
 test('tenant destroy removes domains before deleting tenant', function (): void {
@@ -248,16 +257,16 @@ test('tenant destroy removes domains before deleting tenant', function (): void 
         'max_users' => 5,
     ]);
 
-    $tenant = createCentralTenant([
-        'id' => 'alpha',
-        'name' => 'Alpha Cooperative',
-        'email' => 'alpha@example.com',
+    $tenant = Tenant::query()->create([
+        'id' => 'deletealpha',
+        'name' => 'Delete Alpha Cooperative',
+        'email' => 'deletealpha@example.com',
         'plan_id' => $plan->id,
         'status' => 'active',
     ]);
 
     Domain::query()->create([
-        'domain' => 'alpha.paymonitor.com',
+        'domain' => 'deletealpha.paymonitor.com',
         'tenant_id' => $tenant->id,
     ]);
 
@@ -329,11 +338,18 @@ test('plan controller lists counts creates updates and guards deletion', functio
         ->assertOk()
         ->assertViewHas('plans', fn ($plans): bool => $plans->firstWhere('id', $plan->id)?->tenants_count === 1);
 
+    $this->withServerVariables(centralHost())->get('/central/plans/'.$plan->id.'/edit')
+        ->assertOk()
+        ->assertSee('Secure cooperative portal access')
+        ->assertSee('Loan and member management')
+        ->assertSee('Centralized reporting tools');
+
     $this->withServerVariables(centralHost())->post('/central/plans', [
         'name' => 'Growth',
         'price' => 1200,
         'max_branches' => 5,
         'max_users' => 20,
+        'description' => "5 Branches\n20 Staff Users",
     ])->assertRedirect('/central/plans');
 
     $createdPlan = Plan::query()->where('name', 'Growth')->firstOrFail();
@@ -343,13 +359,70 @@ test('plan controller lists counts creates updates and guards deletion', functio
         'price' => 1400,
         'max_branches' => 8,
         'max_users' => 25,
+        'description' => "8 Branches\n25 Staff Users\nPriority onboarding",
     ])->assertRedirect('/central/plans');
 
     expect($createdPlan->fresh()->name)->toBe('Growth Plus');
+    expect($createdPlan->fresh()->description)->toBe("8 Branches\n25 Staff Users\nPriority onboarding");
+
+    $this->withServerVariables(centralHost())->post('/central/plans', [
+        'name' => 'Foundation',
+        'price' => 700,
+        'max_branches' => 3,
+        'max_users' => 12,
+        'description' => '',
+    ])->assertRedirect('/central/plans');
+
+    expect(Plan::query()->where('name', 'Foundation')->firstOrFail()->description)->toBe(Plan::defaultDescription());
 
     $this->withServerVariables(centralHost())->delete('/central/plans/'.$plan->id)
         ->assertRedirect('/central/plans')
         ->assertSessionHas('error', 'Cannot delete plan with active tenants');
+});
+
+test('public pricing and application form load plans dynamically', function (): void {
+    Plan::query()->create([
+        'name' => 'Starter',
+        'price' => 499,
+        'max_branches' => 2,
+        'max_users' => 10,
+        'description' => "Short-term lending tools\nEmail support",
+    ]);
+
+    $customPlan = Plan::query()->create([
+        'name' => 'Ultra Pro Max',
+        'price' => 2000,
+        'max_branches' => 100,
+        'max_users' => 0,
+        'description' => "100 Branches\nUnlimited Staff Users\nCustom onboarding",
+    ]);
+
+    $this->withServerVariables(centralHost())->get('/')
+        ->assertOk()
+        ->assertSee('Starter')
+        ->assertSee('Ultra Pro Max')
+        ->assertSee('/apply?plan='.$customPlan->id, false);
+
+    $this->withServerVariables(centralHost())->get('/apply?plan='.$customPlan->id)
+        ->assertOk()
+        ->assertSee('Ultra Pro Max Plan')
+        ->assertSee('value="'.$customPlan->id.'"', false);
+
+    $this->withServerVariables(centralHost())->post('/apply', [
+        'cooperative_name' => 'North Star Cooperative',
+        'cda_registration_number' => 'CDA-2026-0001',
+        'first_name' => 'Nova',
+        'last_name' => 'Santos',
+        'email' => 'nova@example.com',
+        'phone' => '+639171234567',
+        'plan' => $customPlan->id,
+    ])->assertRedirect('/apply/thank-you');
+
+    $application = \App\Models\TenantApplication::query()
+        ->where('email', 'nova@example.com')
+        ->firstOrFail();
+
+    expect($application->plan_id)->toBe($customPlan->id);
 });
 
 test('payment controller classifies statuses and mark paid extends from the later date', function (): void {
@@ -416,4 +489,34 @@ test('payment controller classifies statuses and mark paid extends from the late
 
     expect($currentTenant->fresh()->subscription_due_at?->toDateString())->toBe('2026-04-27');
     expect($currentTenant->fresh()->status)->toBe('active');
+});
+
+test('version store publishes a new active release and deactivates the old one', function (): void {
+    AppVersion::query()->create([
+        'version_number' => '1.1.0',
+        'title' => 'Previous Release',
+        'changelog' => "Existing change\nExisting improvement",
+        'is_active' => true,
+        'released_at' => now()->subMonth(),
+    ]);
+
+    actingAs(createCentralAdmin());
+
+    $response = $this->withServerVariables(centralHost())->post('/central/versions', [
+        'version_number' => '1.2.0',
+        'title' => 'March Update',
+        'changelog' => "Added tenant updates\nAdded tenant settings",
+        'released_at' => today()->toDateString(),
+        'is_active' => '1',
+    ]);
+
+    $response->assertRedirect('/central/versions')
+        ->assertSessionHas('success', 'App version published successfully.');
+
+    $newVersion = AppVersion::query()->where('version_number', '1.2.0')->firstOrFail();
+    $oldVersion = AppVersion::query()->where('version_number', '1.1.0')->firstOrFail();
+
+    expect($newVersion->is_active)->toBeTrue();
+    expect($newVersion->title)->toBe('March Update');
+    expect($oldVersion->is_active)->toBeFalse();
 });

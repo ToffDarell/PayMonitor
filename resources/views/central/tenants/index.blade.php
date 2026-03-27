@@ -157,8 +157,8 @@
                                 </div>
                             </div>
 
-                            <div x-show="showDelete" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" style="display:none;">
-                                <div class="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0F1729] p-6 shadow-2xl">
+                            <div x-cloak x-show="showDelete" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 text-left whitespace-normal backdrop-blur-sm" style="display:none;">
+                                <div class="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0F1729] p-6 text-left whitespace-normal shadow-2xl">
                                     <h3 class="font-heading text-lg font-bold text-white">Delete Tenant</h3>
                                     <p class="mt-2 text-sm text-slate-400">Are you sure you want to delete <span class="font-semibold text-white">{{ $tenant->name }}</span>? This action cannot be undone.</p>
                                     <div class="mt-5 flex justify-end gap-3">

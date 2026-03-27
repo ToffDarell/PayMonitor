@@ -10,6 +10,7 @@ use App\Http\Controllers\Tenant\LoanPaymentController;
 use App\Http\Controllers\Tenant\LoanTypeController;
 use App\Http\Controllers\Tenant\MemberController;
 use App\Http\Controllers\Tenant\ReportController;
+use App\Http\Controllers\Tenant\SettingsController;
 use App\Http\Controllers\Tenant\UserController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,10 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::resource('loans', LoanController::class);
                     Route::resource('loan-payments', LoanPaymentController::class)->only(['index', 'create', 'store']);
                     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+                    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+                    Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+                    Route::get('/settings/updates', [SettingsController::class, 'updates'])->name('settings.updates');
+                    Route::post('/settings/updates/{version}/acknowledge', [SettingsController::class, 'acknowledge'])->name('settings.acknowledge');
                 });
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.active', 'role:tenant_admin'])->group(function (): void {

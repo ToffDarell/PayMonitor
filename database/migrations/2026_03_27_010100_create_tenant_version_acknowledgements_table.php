@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('tenant_version_acknowledgements', function (Blueprint $table) {
+            $table->id();
+            $table->string('tenant_id');
+            $table->foreignId('version_id')
+                ->constrained('app_versions')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
+            $table->timestamp('acknowledged_at');
+            $table->timestamps();
+
+            $table->foreign('tenant_id')
+                ->references('id')
+                ->on('tenants')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete();
+
+            $table->unique(['tenant_id', 'version_id'], 'tenant_version_ack_unique');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('tenant_version_acknowledgements');
+    }
+};

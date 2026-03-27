@@ -7,8 +7,11 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\StoreUserRequest;
 use App\Http\Requests\Tenant\UpdateUserRequest;
+use App\Mail\TenantWelcomeMail;
 use App\Models\Branch;
+use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -69,7 +72,22 @@ class UserController extends Controller
 
         $user->assignRole($validated['role']);
 
-        return view('users.password', compact('user', 'password'));
+        $currentTenant = tenant();
+
+        if ($currentTenant instanceof Tenant) {
+            Mail::to($user->email)->send(new TenantWelcomeMail(
+                $currentTenant,
+                $user->email,
+                $password,
+                rtrim($currentTenant->getFullDomain(), '/').'/login',
+            ));
+        }
+
+        return view('users.password', [
+            'user' => $user,
+            'password' => $password,
+            'credentialsEmailed' => true,
+        ]);
     }
 
     public function show(string $tenant, User $user): View

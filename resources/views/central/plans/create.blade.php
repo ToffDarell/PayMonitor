@@ -46,7 +46,7 @@
             <div class="sm:col-span-2">
                 <label for="description" class="mb-2 block text-sm font-medium text-slate-200">Description</label>
                 <textarea id="description" name="description" rows="4"
-                    class="block w-full rounded-xl border @error('description') border-red-500/50 @else border-white/10 @enderror bg-white/[0.03] px-4 py-3 text-sm text-slate-100 placeholder-slate-500 transition focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">{{ old('description') }}</textarea>
+                    class="block w-full rounded-xl border @error('description') border-red-500/50 @else border-white/10 @enderror bg-white/[0.03] px-4 py-3 text-sm text-slate-100 placeholder-slate-500 transition focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">{{ old('description', \App\Models\Plan::defaultDescription()) }}</textarea>
                 @error('description') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
             </div>
 

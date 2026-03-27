@@ -26,6 +26,7 @@ class StorePlanRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:0'],
             'max_branches' => ['required', 'integer', 'min:0'],
             'max_users' => ['required', 'integer', 'min:0'],
+            'description' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }
