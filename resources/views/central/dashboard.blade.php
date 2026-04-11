@@ -3,7 +3,7 @@
 @section('title', 'Central Dashboard')
 
 @section('content')
-<div class="mb-6">
+<div class="mb-5">
     <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Central Dashboard</h2>
     <p class="mt-1 text-sm text-slate-400">Overview of tenant health, billing, and recent onboardings.</p>
 </div>
@@ -14,7 +14,7 @@
     <div class="rounded-xl border border-white/[0.05] border-l-4 border-l-indigo-500 bg-white/[0.02] p-4">
         <div class="flex items-center gap-2 mb-1">
             <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
-            <span class="text-sm font-medium text-slate-400">Total Tenants</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Total Tenants</span>
         </div>
         <div class="font-heading text-2xl font-bold text-white">{{ number_format($totalTenants) }}</div>
     </div>
@@ -22,7 +22,7 @@
     <div class="rounded-xl border border-white/[0.05] border-l-4 border-l-emerald-500 bg-white/[0.02] p-4">
         <div class="flex items-center gap-2 mb-1">
             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-            <span class="text-sm font-medium text-slate-400">Active</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Active</span>
         </div>
         <div class="font-heading text-2xl font-bold text-white">{{ number_format($activeTenants) }}</div>
     </div>
@@ -30,7 +30,7 @@
     <div class="rounded-xl border border-white/[0.05] border-l-4 border-l-red-500 bg-white/[0.02] p-4">
         <div class="flex items-center gap-2 mb-1">
             <span class="h-2 w-2 rounded-full bg-red-500"></span>
-            <span class="text-sm font-medium text-slate-400">Overdue</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Overdue</span>
         </div>
         <div class="font-heading text-2xl font-bold text-white">{{ number_format($overdueTenants) }}</div>
     </div>
@@ -38,7 +38,7 @@
     <div class="rounded-xl border border-white/[0.05] border-l-4 border-l-yellow-500 bg-white/[0.02] p-4">
         <div class="flex items-center gap-2 mb-1">
             <span class="h-2 w-2 rounded-full bg-yellow-500"></span>
-            <span class="text-sm font-medium text-slate-400">Suspended</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Suspended</span>
         </div>
         <div class="font-heading text-2xl font-bold text-white">{{ number_format($suspendedTenants) }}</div>
     </div>
@@ -46,7 +46,7 @@
     <div class="rounded-xl border border-white/[0.05] border-l-4 border-l-slate-500 bg-white/[0.02] p-4">
         <div class="flex items-center gap-2 mb-1">
             <span class="h-2 w-2 rounded-full bg-slate-500"></span>
-            <span class="text-sm font-medium text-slate-400">Inactive</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Inactive</span>
         </div>
         <div class="font-heading text-2xl font-bold text-white">{{ number_format($inactiveTenants) }}</div>
     </div>
@@ -54,7 +54,7 @@
     <div class="rounded-xl border border-white/[0.05] border-l-4 border-l-emerald-400 bg-white/[0.02] p-4">
         <div class="flex items-center gap-2 mb-1">
             <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
-            <span class="text-sm font-medium text-slate-400">Monthly Revenue</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Monthly Revenue</span>
         </div>
         <div class="font-heading text-2xl font-bold text-emerald-300">&#8369;{{ number_format($monthlyRevenue, 2) }}</div>
     </div>

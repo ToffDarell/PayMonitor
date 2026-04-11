@@ -12,11 +12,11 @@
         <h1 class="h3 fw-bold mb-1">Loan Types</h1>
         <p class="text-muted mb-0">Configure loan products, rates, and lending limits.</p>
     </div>
-    @role('tenant_admin')
+    @can('create', \App\Models\LoanType::class)
         <a href="{{ route('loan-types.create', $tenantParameter) }}" class="btn btn-primary">
             <i class="bi bi-plus-circle me-2"></i>Add Loan Type
         </a>
-    @endrole
+    @endcan
 </div>
 
 <div class="card border-0 shadow-sm">

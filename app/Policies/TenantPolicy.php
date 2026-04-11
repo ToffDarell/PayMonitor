@@ -6,12 +6,13 @@ namespace App\Policies;
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\TenantPermissions;
 
 class TenantPolicy
 {
     public function viewDashboard(User $user, Tenant $tenant): bool
     {
-        return $user->hasAnyRole([
+        return $user->hasTenantPermission(TenantPermissions::DASHBOARD_VIEW, [
             'tenant_admin',
             'branch_manager',
             'loan_officer',
@@ -22,7 +23,7 @@ class TenantPolicy
 
     public function viewReports(User $user, Tenant $tenant): bool
     {
-        return $user->hasAnyRole([
+        return $user->hasTenantPermission(TenantPermissions::REPORTS_VIEW, [
             'tenant_admin',
             'branch_manager',
             'loan_officer',

@@ -22,6 +22,7 @@ test('tenant database migrations create the lending cooperative tables', functio
     expect(Schema::hasTable('loans'))->toBeTrue();
     expect(Schema::hasTable('loan_payments'))->toBeTrue();
     expect(Schema::hasTable('loan_schedules'))->toBeTrue();
+    expect(Schema::hasTable('password_reset_tokens'))->toBeTrue();
     expect(Schema::hasTable('audit_logs'))->toBeTrue();
     expect(Schema::hasTable('roles'))->toBeTrue();
     expect(Schema::hasTable('permissions'))->toBeTrue();
@@ -34,6 +35,18 @@ test('tenant database migrations create the lending cooperative tables', functio
         'name',
         'address',
         'is_active',
+        'created_at',
+        'updated_at',
+    ]);
+
+    expect(Schema::getColumnListing('users'))->toEqualCanonicalizing([
+        'id',
+        'name',
+        'email',
+        'password',
+        'branch_id',
+        'is_active',
+        'remember_token',
         'created_at',
         'updated_at',
     ]);

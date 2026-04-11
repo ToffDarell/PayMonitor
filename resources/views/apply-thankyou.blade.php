@@ -71,7 +71,7 @@
             
             <h1 class="font-heading text-4xl font-bold text-white mb-4">Application Received</h1>
             <p class="text-lg text-navy-muted mb-8 leading-relaxed">
-                Thank you for applying to PayMonitor! Our team will review your application and get back to you within 24 hours. Keep an eye on your email for the next steps.
+                Thank you for applying to PayMonitor. Your application and proof of payment have been received. Our team will verify the payment, review your request, and email you the next steps.
             </p>
 
             <a href="/" class="inline-flex rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-8 py-3.5 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 hover:brightness-110">

@@ -26,6 +26,8 @@ class TenantSetting extends Model
             'address' => '',
             'logo_path' => null,
             'accent_color' => 'green',
+            'theme_mode' => 'dark',
+            'font_scale' => 'comfortable',
             'show_member_photos' => '0',
             'currency_symbol' => '₱',
             'date_format' => 'M d, Y',

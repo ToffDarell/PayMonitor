@@ -15,6 +15,8 @@
     ];
 @endphp
 
+@include('users._tabs')
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="h3 fw-bold mb-1">User Profile</h1>
@@ -24,6 +26,12 @@
         <a href="{{ route('users.index', $tenantParameter) }}" class="btn btn-light border">
             <i class="bi bi-arrow-left me-2"></i>Back
         </a>
+        <form action="{{ route('users.resend-credentials', [...$tenantParameter, 'user' => $user]) }}" method="POST">
+            @csrf
+            <button type="submit" class="btn btn-outline-info" onclick="return confirm('Resend credentials to this user?')">
+                <i class="bi bi-envelope me-2"></i>Resend Credentials
+            </button>
+        </form>
         <a href="{{ route('users.edit', [...$tenantParameter, 'user' => $user]) }}" class="btn btn-primary">
             <i class="bi bi-pencil-square me-2"></i>Edit
         </a>
@@ -34,8 +42,9 @@
     <div class="card-body p-4">
         <h2 class="h3 fw-bold mb-2">{{ $user->name }}</h2>
         <div class="d-flex flex-wrap gap-2 mb-4">
-            <span class="badge bg-{{ $roleBadgeClasses[$roleName] ?? 'secondary' }}">{{ str_replace('_', ' ', $roleName) }}</span>
+            <span class="badge bg-{{ $roleBadgeClasses[$roleName] ?? (\App\Support\TenantPermissions::isSystemRole($roleName) ? 'secondary' : 'info text-dark') }}">{{ \App\Support\TenantPermissions::displayRoleName($roleName) }}</span>
             <span class="badge bg-light text-dark">{{ $user->branch?->name ?? 'Unassigned Branch' }}</span>
+            <span class="badge bg-{{ $user->is_active ? 'success' : 'secondary' }}">{{ $user->is_active ? 'Active' : 'Inactive' }}</span>
         </div>
 
         <div class="row g-4">
@@ -49,11 +58,29 @@
             </div>
             <div class="col-md-6">
                 <div class="text-muted small text-uppercase fw-semibold">Role</div>
-                <div>{{ str_replace('_', ' ', $roleName) }}</div>
+                <div>{{ \App\Support\TenantPermissions::displayRoleName($roleName) }}</div>
             </div>
             <div class="col-md-6">
                 <div class="text-muted small text-uppercase fw-semibold">Branch</div>
                 <div>{{ $user->branch?->name ?? 'Unassigned' }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small text-uppercase fw-semibold">Status</div>
+                <div>{{ $user->is_active ? 'Active' : 'Inactive' }}</div>
+            </div>
+            <div class="col-12">
+                <div class="text-muted small text-uppercase fw-semibold">Permission Mode</div>
+                <div>{{ $usesCustomPermissions ? 'Custom user permissions' : 'Role defaults' }}</div>
+            </div>
+            <div class="col-12">
+                <div class="text-muted small text-uppercase fw-semibold mb-2">Effective Permissions</div>
+                <div class="d-flex flex-wrap gap-2">
+                    @forelse($selectedPermissions as $permission)
+                        <span class="badge bg-light text-dark">{{ $permissionLabels[$permission] ?? $permission }}</span>
+                    @empty
+                        <span class="text-muted">No permissions assigned.</span>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>

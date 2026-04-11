@@ -14,6 +14,8 @@
     ];
 @endphp
 
+@include('users._tabs')
+
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
         <h1 class="h3 fw-bold mb-1">Users</h1>
@@ -27,22 +29,30 @@
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
         <form method="GET" action="{{ route('users.index', $tenantParameter) }}" class="row g-3 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="role" class="form-label fw-semibold">Role</label>
                 <select name="role" id="role" class="form-select">
                     <option value="">All Roles</option>
-                    @foreach(['tenant_admin', 'branch_manager', 'loan_officer', 'cashier', 'viewer'] as $role)
-                        <option value="{{ $role }}" @selected(($filters['role'] ?? '') === $role)>{{ str_replace('_', ' ', $role) }}</option>
+                    @foreach($roles as $role)
+                        <option value="{{ $role->name }}" @selected(($filters['role'] ?? '') === $role->name)>{{ \App\Support\TenantPermissions::displayRoleName($role->name) }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="branch_id" class="form-label fw-semibold">Branch</label>
                 <select name="branch_id" id="branch_id" class="form-select">
                     <option value="">All Branches</option>
                     @foreach($branches as $branch)
                         <option value="{{ $branch->id }}" @selected((string) ($filters['branch_id'] ?? '') === (string) $branch->id)>{{ $branch->name }}</option>
                     @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label fw-semibold">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="active" @selected(($filters['status'] ?? '') === 'active')>Active</option>
+                    <option value="inactive" @selected(($filters['status'] ?? '') === 'inactive')>Inactive</option>
                 </select>
             </div>
             <div class="col-md-2 d-grid">
@@ -67,6 +77,7 @@
                     <th>Email</th>
                     <th>Role</th>
                     <th>Branch</th>
+                    <th>Status</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -82,11 +93,16 @@
                         </td>
                         <td>{{ $user->email }}</td>
                         <td>
-                            <span class="badge bg-{{ $roleBadgeClasses[$roleName] ?? 'secondary' }}">
-                                {{ str_replace('_', ' ', $roleName) }}
+                            <span class="badge bg-{{ $roleBadgeClasses[$roleName] ?? (\App\Support\TenantPermissions::isSystemRole($roleName) ? 'secondary' : 'info text-dark') }}">
+                                {{ \App\Support\TenantPermissions::displayRoleName($roleName) }}
                             </span>
                         </td>
                         <td>{{ $user->branch?->name ?? 'Unassigned' }}</td>
+                        <td>
+                            <span class="badge bg-{{ $user->is_active ? 'success' : 'secondary' }}">
+                                {{ $user->is_active ? 'Active' : 'Inactive' }}
+                            </span>
+                        </td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ route('users.show', [...$tenantParameter, 'user' => $user]) }}" class="btn btn-outline-primary">
@@ -95,6 +111,12 @@
                                 <a href="{{ route('users.edit', [...$tenantParameter, 'user' => $user]) }}" class="btn btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                <form action="{{ route('users.resend-credentials', [...$tenantParameter, 'user' => $user]) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline-info" onclick="return confirm('Resend credentials to this user?')">
+                                        <i class="bi bi-envelope"></i>
+                                    </button>
+                                </form>
                                 <form action="{{ route('users.destroy', [...$tenantParameter, 'user' => $user]) }}" method="POST">
                                     @csrf
                                     @method('DELETE')
@@ -107,7 +129,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-5">No users found for the selected filters.</td>
+                        <td colspan="7" class="text-center text-muted py-5">No users found for the selected filters.</td>
                     </tr>
                 @endforelse
             </tbody>

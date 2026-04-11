@@ -18,7 +18,7 @@
                     </tr>
                     <tr>
                         <td style="padding: 32px;">
-                            <p style="margin: 0 0 20px; font-size: 18px; line-height: 1.6;">Your PayMonitor lending system account is ready.</p>
+                            <p style="margin: 0 0 20px; font-size: 18px; line-height: 1.6;">Your application has been approved and your PayMonitor account is now ready.</p>
                             <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.6;">Login URL:</p>
                             <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; font-weight: 700;">
                                 <a href="{{ $loginUrl }}" style="color: #0f766e; text-decoration: none;">{{ $loginUrl }}</a>

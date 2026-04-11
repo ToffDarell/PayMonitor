@@ -18,6 +18,54 @@
     $accentHex = $accentConfig['hex'];
     $accentHover = $accentConfig['hover'];
     $accentRgb = $accentConfig['rgb'];
+    $themeMode = $tenantSettings['theme_mode'] ?? 'dark';
+    $fontScale = $tenantSettings['font_scale'] ?? 'comfortable';
+    $fontScaleBase = match ($fontScale) {
+        'compact' => 14,
+        'large' => 18,
+        default => 16,
+    };
+    $themePalette = [
+        'dark' => [
+            'shell_bg' => '#060B18',
+            'page_bg' => '#0d1117',
+            'card_bg' => '#161b22',
+            'surface_bg' => '#0f1319',
+            'sidebar_bg' => '#0A1628',
+            'header_bg' => 'rgba(6, 11, 24, 0.82)',
+            'border' => '#21262d',
+            'border_hover' => '#30363d',
+            'text_primary' => '#ffffff',
+            'text_secondary' => '#e2e8f0',
+            'text_muted' => '#8b949e',
+            'text_subtle' => '#52525b',
+            'panel_bg' => 'rgba(255,255,255,0.02)',
+            'panel_border' => 'rgba(255,255,255,0.07)',
+            'nav_text' => '#94a3b8',
+            'nav_hover_bg' => 'rgba(255,255,255,0.04)',
+            'nav_hover_text' => '#ffffff',
+        ],
+        'light' => [
+            'shell_bg' => '#e5edf5',
+            'page_bg' => '#f8fafc',
+            'card_bg' => '#ffffff',
+            'surface_bg' => '#f1f5f9',
+            'sidebar_bg' => '#ffffff',
+            'header_bg' => 'rgba(248, 250, 252, 0.9)',
+            'border' => '#dbe4ee',
+            'border_hover' => '#cbd5e1',
+            'text_primary' => '#0f172a',
+            'text_secondary' => '#1e293b',
+            'text_muted' => '#64748b',
+            'text_subtle' => '#94a3b8',
+            'panel_bg' => '#ffffff',
+            'panel_border' => 'rgba(148,163,184,0.28)',
+            'nav_text' => '#475569',
+            'nav_hover_bg' => 'rgba(15,23,42,0.05)',
+            'nav_hover_text' => '#0f172a',
+        ],
+    ];
+    $themeConfig = $themePalette[$themeMode] ?? $themePalette['dark'];
     $tagline = $tenantSettings['cooperative_tagline'] ?? '';
     $logoPath = $tenantSettings['logo_path'] ?? null;
     $logoUrl = filled($logoPath)
@@ -57,11 +105,11 @@
     };
     $navItemClass = static function (bool $active): string {
         return $active
-            ? 'tenant-nav-item-active group flex items-center gap-3 rounded-md border-l-[3px] px-4 py-3 text-sm font-medium text-white'
-            : 'group flex items-center gap-3 rounded-md border-l-[3px] border-transparent px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white';
+            ? 'tenant-nav-item tenant-nav-item-active group flex items-center gap-3 rounded-md border-l-[3px] px-3 py-2 text-sm font-medium'
+            : 'tenant-nav-item group flex items-center gap-3 rounded-md border-l-[3px] border-transparent px-3 py-2 text-sm font-medium transition';
     };
     $navIconClass = static function (bool $active): string {
-        return $active ? 'tenant-nav-icon-active' : 'text-slate-500 transition group-hover:text-slate-300';
+        return $active ? 'tenant-nav-icon tenant-nav-icon-active' : 'tenant-nav-icon transition';
     };
     $flashMessages = collect([
         ['key' => 'success', 'message' => session('success')],
@@ -69,6 +117,56 @@
         ['key' => 'warning', 'message' => session('warning')],
         ['key' => 'success', 'message' => session('status')],
     ])->filter(fn (array $flash): bool => filled($flash['message']))->values();
+
+    $billingUnpaidCount = 0;
+
+    if ($tenantModel !== null) {
+        try {
+            $billingUnpaidCount = \App\Models\BillingInvoice::query()
+                ->where('tenant_id', (string) $tenantModel->id)
+                ->whereIn('status', ['unpaid', 'overdue'])
+                ->count();
+        } catch (\Throwable) {
+            $billingUnpaidCount = 0;
+        }
+    }
+
+    $subscriptionAlert = null;
+
+    if ($tenantModel?->subscription_due_at !== null) {
+        $dueDate = $tenantModel->subscription_due_at instanceof \Carbon\CarbonInterface
+            ? $tenantModel->subscription_due_at->copy()
+            : \Illuminate\Support\Carbon::parse((string) $tenantModel->subscription_due_at);
+
+        if ($dueDate->lt(today())) {
+            $daysPastDue = $dueDate->diffInDays(today());
+            $subscriptionAlert = [
+                'tone' => 'danger',
+                'title' => 'Subscription overdue',
+                'message' => "Your subscription passed its due date {$daysPastDue} day(s) ago. Please coordinate payment immediately to avoid interruption.",
+            ];
+        } elseif ($dueDate->isToday()) {
+            $subscriptionAlert = [
+                'tone' => 'danger',
+                'title' => 'Subscription ends today',
+                'message' => 'Your subscription is due today. Please settle your payment to keep your portal active.',
+            ];
+        } elseif ($dueDate->lte(today()->copy()->addDays(3))) {
+            $daysLeft = today()->diffInDays($dueDate);
+            $subscriptionAlert = [
+                'tone' => 'warning',
+                'title' => "Subscription ends in {$daysLeft} day(s)",
+                'message' => 'Your subscription is close to expiry. Please coordinate payment as soon as possible.',
+            ];
+        } elseif ($dueDate->lte(today()->copy()->addDays(7))) {
+            $daysLeft = today()->diffInDays($dueDate);
+            $subscriptionAlert = [
+                'tone' => 'info',
+                'title' => "Subscription ends in {$daysLeft} day(s)",
+                'message' => 'Your subscription is approaching its due date. Please prepare payment to avoid service interruption.',
+            ];
+        }
+    }
 ?>
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -102,27 +200,89 @@
     @stack('styles')
     <style>
         :root {
-            --pm-page-bg: #0d1117;
-            --pm-card-bg: #161b22;
-            --pm-surface-bg: #0f1319;
-            --pm-border: #21262d;
-            --pm-border-hover: #30363d;
-            --pm-text-primary: #ffffff;
-            --pm-text-secondary: #e2e8f0;
-            --pm-text-muted: #8b949e;
-            --pm-text-subtle: #52525b;
+            --pm-shell-bg: {{ $themeConfig['shell_bg'] }};
+            --pm-page-bg: {{ $themeConfig['page_bg'] }};
+            --pm-card-bg: {{ $themeConfig['card_bg'] }};
+            --pm-surface-bg: {{ $themeConfig['surface_bg'] }};
+            --pm-sidebar-bg: {{ $themeConfig['sidebar_bg'] }};
+            --pm-header-bg: {{ $themeConfig['header_bg'] }};
+            --pm-border: {{ $themeConfig['border'] }};
+            --pm-border-hover: {{ $themeConfig['border_hover'] }};
+            --pm-text-primary: {{ $themeConfig['text_primary'] }};
+            --pm-text-secondary: {{ $themeConfig['text_secondary'] }};
+            --pm-text-muted: {{ $themeConfig['text_muted'] }};
+            --pm-text-subtle: {{ $themeConfig['text_subtle'] }};
+            --pm-panel-bg: {{ $themeConfig['panel_bg'] }};
+            --pm-panel-border: {{ $themeConfig['panel_border'] }};
+            --pm-nav-text: {{ $themeConfig['nav_text'] }};
+            --pm-nav-hover-bg: {{ $themeConfig['nav_hover_bg'] }};
+            --pm-nav-hover-text: {{ $themeConfig['nav_hover_text'] }};
             --pm-accent: {{ $accentHex }};
             --pm-accent-hover: {{ $accentHover }};
             --pm-accent-rgb: {{ $accentRgb }};
         }
 
+        html {
+            font-size: {{ $fontScaleBase }}px;
+        }
+
+        body {
+            background-color: var(--pm-shell-bg);
+            color: var(--pm-text-secondary);
+        }
+
+        .tenant-sidebar-surface {
+            background-color: var(--pm-sidebar-bg);
+            border-color: rgba(15, 23, 42, 0.08);
+        }
+
+        .tenant-topbar-surface {
+            background-color: var(--pm-header-bg);
+            border-color: rgba(15, 23, 42, 0.08);
+        }
+
+        .tenant-main-surface {
+            background-color: var(--pm-page-bg);
+        }
+
+        .tenant-panel {
+            background-color: var(--pm-panel-bg);
+            border-color: var(--pm-panel-border);
+        }
+
+        .tenant-heading {
+            color: var(--pm-text-primary);
+        }
+
+        .tenant-muted {
+            color: var(--pm-text-muted);
+        }
+
+        .tenant-subtle {
+            color: var(--pm-text-subtle);
+        }
+
+        .tenant-nav-item {
+            color: var(--pm-nav-text);
+        }
+
+        .tenant-nav-item:hover {
+            background-color: var(--pm-nav-hover-bg);
+            color: var(--pm-nav-hover-text);
+        }
+
         .tenant-nav-item-active {
             border-left-color: var(--pm-accent);
             background-color: rgba(var(--pm-accent-rgb), 0.12);
+            color: var(--pm-nav-hover-text);
         }
 
         .tenant-nav-item-active:hover {
             background-color: rgba(var(--pm-accent-rgb), 0.16);
+        }
+
+        .tenant-nav-icon {
+            color: var(--pm-text-muted);
         }
 
         .tenant-nav-icon-active {
@@ -200,6 +360,24 @@
         .legacy-content .modal-content {
             border-radius: 1rem;
             box-shadow: 0 20px 45px rgba(2, 6, 23, 0.2) !important;
+        }
+
+        .legacy-content h1,
+        .legacy-content .h1 {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+        }
+
+        .legacy-content h2,
+        .legacy-content .h2 {
+            font-size: 1.125rem !important;
+            font-weight: 600 !important;
+        }
+
+        .legacy-content h3,
+        .legacy-content .h3 {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
         }
 
         .legacy-content .card.border-0 {
@@ -456,8 +634,8 @@
             background-color: transparent;
             border-bottom-color: var(--pm-border);
             color: inherit;
-            padding: 0.95rem 1rem;
-            font-size: 0.95rem;
+            padding: 0.75rem 0.875rem;
+            font-size: 0.875rem;
             line-height: 1.45;
             white-space: nowrap;
             vertical-align: middle;
@@ -532,14 +710,14 @@
 
     @vite(['resources/css/paymonitor.css', 'resources/js/paymonitor-dashboard.js'])
 </head>
-<body class="min-h-screen bg-[#060B18] text-[#F1F5F9] antialiased" x-data="{ sidebarOpen: false }">
+<body class="tenant-theme-{{ $themeMode }} min-h-screen antialiased" x-data="{ sidebarOpen: false }">
     <div class="relative min-h-screen">
         <div x-cloak x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-black/70 md:hidden" x-on:click="sidebarOpen = false"></div>
 
-        <aside class="fixed inset-y-0 left-0 z-50 w-56 overflow-hidden border-r border-white/[0.06] bg-[#0A1628] px-4 py-6 transition-transform duration-200 md:translate-x-0" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+        <aside class="tenant-sidebar-surface fixed inset-y-0 left-0 z-50 w-56 overflow-hidden border-r px-4 py-6 transition-transform duration-200 md:translate-x-0" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
             <div class="flex h-full min-h-0 flex-col">
                 <div class="tenant-sidebar-scroll min-h-0 flex-1 pr-2">
-                    <div class="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                    <div class="tenant-panel rounded-2xl border p-3.5">
                         <div class="flex items-center gap-3">
                             @if($logoUrl)
                                 <img src="{{ $logoUrl }}" alt="{{ $tenantName }} logo" class="h-9 w-9 rounded-xl object-cover ring-1 ring-white/10 flex-shrink-0">
@@ -549,98 +727,124 @@
                                 </div>
                             @endif
                             <div class="min-w-0 flex-1">
-                                <p class="font-heading text-[15px] font-bold tracking-tight text-white leading-tight" title="{{ $tenantName }}">{{ $tenantName }}</p>
+                                <p class="tenant-heading font-heading text-base font-bold tracking-tight leading-tight" title="{{ $tenantName }}">{{ $tenantName }}</p>
                                 <p class="truncate text-[10px] uppercase tracking-[0.16em] accent-text" style="opacity: 0.72;" title="{{ $tenantHost }}">{{ $tenantHost }}</p>
                                 @if(filled($tagline))
-                                    <p class="mt-1 text-[11px] leading-5 text-slate-500">{{ $tagline }}</p>
+                                    <p class="tenant-muted mt-1 text-[11px] leading-5">{{ $tagline }}</p>
                                 @endif
                             </div>
                         </div>
                     </div>
 
                     <div class="mt-8">
-                        <p class="px-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Overview</p>
+                        <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Overview</p>
                         <nav class="mt-3 space-y-1.5">
-                            @php($dashboardActive = request()->routeIs('dashboard'))
-                            <a href="{{ route('dashboard', $tenantParameter, false) }}" class="{{ $navItemClass($dashboardActive) }}">
-                                <svg class="h-5 w-5 {{ $navIconClass($dashboardActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12a8.25 8.25 0 1 1 16.5 0v6.75a1.5 1.5 0 0 1-1.5 1.5h-3.75v-6h-6v6H5.25a1.5 1.5 0 0 1-1.5-1.5V12Z"/></svg>
-                                <span>Dashboard</span>
+                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::DASHBOARD_VIEW))
+                                @php($dashboardActive = request()->routeIs('dashboard'))
+                                <a href="{{ route('dashboard', $tenantParameter, false) }}" class="{{ $navItemClass($dashboardActive) }}">
+                                    <svg class="h-5 w-5 {{ $navIconClass($dashboardActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12a8.25 8.25 0 1 1 16.5 0v6.75a1.5 1.5 0 0 1-1.5 1.5h-3.75v-6h-6v6H5.25a1.5 1.5 0 0 1-1.5-1.5V12Z"/></svg>
+                                    <span>Dashboard</span>
+                                </a>
+                            @endif
+                            @php($billingActive = request()->routeIs('billing.*'))
+                            <a href="{{ route('billing.index', $tenantParameter, false) }}" class="{{ $navItemClass($billingActive) }}">
+                                <svg class="h-5 w-5 {{ $navIconClass($billingActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5m-16.5 6h2.25m2.25 0h2.25m-7.5 6h15a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25h-15A2.25 2.25 0 0 0 2.25 6V18a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                                <span>Billing</span>
+                                @if($billingUnpaidCount > 0)
+                                    <span class="ml-auto inline-flex min-w-[1.2rem] items-center justify-center rounded-full bg-red-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-red-300">{{ $billingUnpaidCount }}</span>
+                                @endif
                             </a>
                         </nav>
                     </div>
 
                     <div class="mt-6">
-                                        <p class="px-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Lending</p>
+                                        <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Lending</p>
                         <nav class="mt-3 space-y-1.5">
-                            @php($membersActive = request()->routeIs('members.*'))
-                            <a href="{{ route('members.index', $tenantParameter, false) }}" class="{{ $navItemClass($membersActive) }}">
-                                <svg class="h-5 w-5 {{ $navIconClass($membersActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 7.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5.25 18a5.25 5.25 0 0 1 10.5 0"/></svg>
-                                <span>Members</span>
-                            </a>
-                            @php($loansActive = request()->routeIs('loans.*'))
-                            <a href="{{ route('loans.index', $tenantParameter, false) }}" class="{{ $navItemClass($loansActive) }}">
-                                <svg class="h-5 w-5 {{ $navIconClass($loansActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
-                                <span>Loans</span>
-                            </a>
-                            @php($loanTypesActive = request()->routeIs('loan-types.*'))
-                            <a href="{{ route('loan-types.index', $tenantParameter, false) }}" class="{{ $navItemClass($loanTypesActive) }}">
-                                <svg class="h-5 w-5 {{ $navIconClass($loanTypesActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 4.5h9A1.5 1.5 0 0 1 18 6v12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18V6A1.5 1.5 0 0 1 7.5 4.5Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 9h6M9 12h6M9 15h3.75"/></svg>
-                                <span>Loan Types</span>
-                            </a>
-                            @php($paymentsActive = request()->routeIs('loan-payments.*'))
-                            <a href="{{ route('loan-payments.index', $tenantParameter, false) }}" class="{{ $navItemClass($paymentsActive) }}">
-                                <svg class="h-5 w-5 {{ $navIconClass($paymentsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-12 4.5h3"/></svg>
-                                <span>Payments</span>
-                            </a>
+                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::MEMBERS_VIEW))
+                                @php($membersActive = request()->routeIs('members.*'))
+                                <a href="{{ route('members.index', $tenantParameter, false) }}" class="{{ $navItemClass($membersActive) }}">
+                                    <svg class="h-5 w-5 {{ $navIconClass($membersActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 7.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5.25 18a5.25 5.25 0 0 1 10.5 0"/></svg>
+                                    <span>Members</span>
+                                </a>
+                            @endif
+                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::LOANS_VIEW))
+                                @php($loansActive = request()->routeIs('loans.*'))
+                                <a href="{{ route('loans.index', $tenantParameter, false) }}" class="{{ $navItemClass($loansActive) }}">
+                                    <svg class="h-5 w-5 {{ $navIconClass($loansActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
+                                    <span>Loans</span>
+                                </a>
+                            @endif
+                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::LOAN_TYPES_VIEW))
+                                @php($loanTypesActive = request()->routeIs('loan-types.*'))
+                                <a href="{{ route('loan-types.index', $tenantParameter, false) }}" class="{{ $navItemClass($loanTypesActive) }}">
+                                    <svg class="h-5 w-5 {{ $navIconClass($loanTypesActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 4.5h9A1.5 1.5 0 0 1 18 6v12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18V6A1.5 1.5 0 0 1 7.5 4.5Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 9h6M9 12h6M9 15h3.75"/></svg>
+                                    <span>Loan Types</span>
+                                </a>
+                            @endif
+                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::LOAN_PAYMENTS_VIEW))
+                                @php($paymentsActive = request()->routeIs('loan-payments.*'))
+                                <a href="{{ route('loan-payments.index', $tenantParameter, false) }}" class="{{ $navItemClass($paymentsActive) }}">
+                                    <svg class="h-5 w-5 {{ $navIconClass($paymentsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-12 4.5h3"/></svg>
+                                    <span>Payments</span>
+                                </a>
+                            @endif
                         </nav>
                     </div>
 
-                    @role('tenant_admin')
+                    @if($user?->hasAnyTenantPermission([\App\Support\TenantPermissions::BRANCHES_VIEW, \App\Support\TenantPermissions::USERS_VIEW]))
                         <div class="mt-6">
-                            <p class="px-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Management</p>
+                            <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Management</p>
                             <nav class="mt-3 space-y-1.5">
-                                @php($branchesActive = request()->routeIs('branches.*'))
-                                <a href="{{ route('branches.index', $tenantParameter, false) }}" class="{{ $navItemClass($branchesActive) }}">
-                                    <svg class="h-5 w-5 {{ $navIconClass($branchesActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h4.5v4.5H4.5v-4.5Zm0 6h4.5v4.5H4.5v-4.5Zm10.5-6h4.5v4.5H15v-4.5Zm0 6h4.5v4.5H15v-4.5Z"/></svg>
-                                    <span>Branches</span>
-                                </a>
-                                @php($usersActive = request()->routeIs('users.*'))
-                                <a href="{{ route('users.index', $tenantParameter, false) }}" class="{{ $navItemClass($usersActive) }}">
-                                    <svg class="h-5 w-5 {{ $navIconClass($usersActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 7.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5.25 18a5.25 5.25 0 0 1 10.5 0"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 8.25h3m-1.5-1.5v3"/></svg>
-                                    <span>Users</span>
-                                </a>
+                                @if($user?->hasTenantPermission(\App\Support\TenantPermissions::BRANCHES_VIEW))
+                                    @php($branchesActive = request()->routeIs('branches.*'))
+                                    <a href="{{ route('branches.index', $tenantParameter, false) }}" class="{{ $navItemClass($branchesActive) }}">
+                                        <svg class="h-5 w-5 {{ $navIconClass($branchesActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h4.5v4.5H4.5v-4.5Zm0 6h4.5v4.5H4.5v-4.5Zm10.5-6h4.5v4.5H15v-4.5Zm0 6h4.5v4.5H15v-4.5Z"/></svg>
+                                        <span>Branches</span>
+                                    </a>
+                                @endif
+                                @if($user?->hasTenantPermission(\App\Support\TenantPermissions::USERS_VIEW))
+                                    @php($usersActive = request()->routeIs('users.*'))
+                                    <a href="{{ route('users.index', $tenantParameter, false) }}" class="{{ $navItemClass($usersActive) }}">
+                                        <svg class="h-5 w-5 {{ $navIconClass($usersActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 7.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5.25 18a5.25 5.25 0 0 1 10.5 0"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 8.25h3m-1.5-1.5v3"/></svg>
+                                        <span>Users</span>
+                                    </a>
+                                @endif
                             </nav>
                         </div>
-                    @endrole
+                    @endif
 
                     <div class="mt-6">
-                        <p class="px-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Insights</p>
+                        <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Insights</p>
                         <nav class="mt-3 space-y-1.5">
-                            @php($reportsActive = request()->routeIs('reports.*'))
-                            <a href="{{ route('reports.index', $tenantParameter, false) }}" class="{{ $navItemClass($reportsActive) }}">
-                                <svg class="h-5 w-5 {{ $navIconClass($reportsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5h15"/><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 16.5v-4.5M12 16.5V9M16.5 16.5V6"/></svg>
-                                <span>Reports</span>
-                            </a>
+                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::REPORTS_VIEW))
+                                @php($reportsActive = request()->routeIs('reports.*'))
+                                <a href="{{ route('reports.index', $tenantParameter, false) }}" class="{{ $navItemClass($reportsActive) }}">
+                                    <svg class="h-5 w-5 {{ $navIconClass($reportsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5h15"/><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 16.5v-4.5M12 16.5V9M16.5 16.5V6"/></svg>
+                                    <span>Reports</span>
+                                </a>
+                            @endif
                         </nav>
                     </div>
 
                     <div class="mt-6 border-t border-white/[0.06] pt-6">
-                        <p class="px-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Workspace</p>
+                        <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Workspace</p>
                         <nav class="mt-3 space-y-1.5">
                             @php($settingsActive = request()->routeIs('settings.*'))
-                            <a href="{{ route('settings.index', $tenantParameter, false) }}" class="{{ $navItemClass($settingsActive) }}">
-                                <svg class="h-5 w-5 {{ $navIconClass($settingsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h3m-7.72 1.22 2.12-2.12m8.64 0 2.12 2.12M18 10.5v3m-1.22 7.72-2.12-2.12m-8.64 0-2.12 2.12M6 13.5v-3m6 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
-                                </svg>
-                                <span>Settings</span>
-                            </a>
+                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_VIEW))
+                                <a href="{{ route('settings.index', $tenantParameter, false) }}" class="{{ $navItemClass($settingsActive) }}">
+                                    <svg class="h-5 w-5 {{ $navIconClass($settingsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h3m-7.72 1.22 2.12-2.12m8.64 0 2.12 2.12M18 10.5v3m-1.22 7.72-2.12-2.12m-8.64 0-2.12 2.12M6 13.5v-3m6 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
+                                    </svg>
+                                    <span>Settings</span>
+                                </a>
+                            @endif
                         </nav>
                     </div>
                 </div>
 
-                <div class="mt-4 shrink-0 border-t border-white/[0.1] pt-4">
-                    <a href="{{ route('tenant.logout', $tenantParameter, false) }}" class="group flex w-full items-center gap-3 rounded-md border-l-[3px] border-transparent px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white">
-                        <svg class="h-5 w-5 text-slate-500 transition group-hover:text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
+                <div class="mt-4 shrink-0 border-t pt-4" style="border-color: rgba(148, 163, 184, 0.16);">
+                    <a href="{{ route('tenant.logout', $tenantParameter, false) }}" class="tenant-nav-item group flex w-full items-center gap-3 rounded-md border-l-[3px] border-transparent px-3 py-2 text-sm font-medium transition">
+                        <svg class="tenant-nav-icon h-5 w-5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
                         <span>Logout</span>
                     </a>
                 </div>
@@ -648,34 +852,34 @@
         </aside>
 
         <div class="md:pl-56">
-            <header class="fixed left-0 right-0 top-0 z-30 border-b border-white/[0.06] bg-[#060B18]/80 backdrop-blur md:left-56">
+            <header class="tenant-topbar-surface fixed left-0 right-0 top-0 z-30 border-b backdrop-blur md:left-56">
                 <div class="flex h-16 items-center justify-between px-6">
                     <div class="flex items-center gap-3">
-                        <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.04] md:hidden" x-on:click="sidebarOpen = true">
+                        <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border transition md:hidden" style="border-color: rgba(148, 163, 184, 0.2); color: var(--pm-text-secondary);" x-on:click="sidebarOpen = true">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
                         </button>
                         <div>
-                            <h1 class="font-heading text-xl font-bold tracking-tight text-white">{{ $pageTitle }}</h1>
+                            <h1 class="tenant-heading font-heading text-xl font-bold tracking-tight">{{ $pageTitle }}</h1>
                         </div>
                     </div>
 
                     <div class="flex items-center gap-3">
                         <div class="hidden text-right sm:block">
-                            <p class="text-sm font-medium text-white">{{ $user?->name ?? 'Tenant User' }}</p>
-                            <p class="text-xs text-zinc-500">{{ $roleDisplay }}</p>
+                            <p class="tenant-heading text-sm font-medium">{{ $user?->name ?? 'Tenant User' }}</p>
+                            <p class="tenant-muted text-xs">{{ $roleDisplay }}</p>
                         </div>
                         <span class="hidden rounded-full px-3 py-1 text-xs font-medium sm:inline-flex" style="border: 1px solid rgba(var(--pm-accent-rgb), 0.28); background-color: rgba(var(--pm-accent-rgb), 0.12); color: var(--pm-accent);" title="{{ $tenantName }}">{{ $tenantName }}</span>
                     </div>
                 </div>
             </header>
 
-            <main class="min-h-screen bg-[#0d1117] p-6 pt-24">
+            <main class="tenant-main-surface min-h-screen p-6 pt-24">
                 @if($latestVersion && ! $latestVersionAcknowledged)
                     <div x-data="{ showChangelog: false }" class="mb-6">
                         <div class="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-4 text-indigo-200">
                             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                                 <div>
-                                    <p class="text-sm font-semibold">New update available: v{{ $latestVersion->version_number }} — {{ $latestVersion->title }}</p>
+                                    <p class="text-sm font-semibold">New update available: v{{ $latestVersion->version_number }} - {{ $latestVersion->title }}</p>
                                     <p class="mt-1 text-sm text-indigo-200/80">Review the changelog and mark it as updated once your tenant has acknowledged the release.</p>
                                 </div>
                                 <div class="flex flex-wrap gap-2">
@@ -697,7 +901,7 @@
                                 <div class="flex items-start justify-between gap-4 border-b border-white/[0.06] px-6 py-5">
                                     <div>
                                         <p class="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-300">Update Notice</p>
-                                        <h2 class="mt-2 font-heading text-2xl font-bold text-white">v{{ $latestVersion->version_number }} — {{ $latestVersion->title }}</h2>
+                                        <h2 class="mt-2 font-heading text-xl font-bold text-white">v{{ $latestVersion->version_number }} - {{ $latestVersion->title }}</h2>
                                         <p class="mt-1 text-sm text-slate-500">Released {{ $latestVersion->released_at?->format('M d, Y') ?? 'Not scheduled' }}</p>
                                     </div>
                                     <button type="button" x-on:click="showChangelog = false" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
@@ -715,6 +919,36 @@
                                         @endforeach
                                     </ul>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @if($subscriptionAlert !== null)
+                    <?php
+                        $subscriptionAlertStyles = match ($subscriptionAlert['tone']) {
+                            'danger' => [
+                                'container' => 'border-red-500/40 bg-red-500/10 text-red-100',
+                                'icon' => 'text-red-300',
+                            ],
+                            'warning' => [
+                                'container' => 'border-amber-400/40 bg-amber-500/10 text-amber-100',
+                                'icon' => 'text-amber-300',
+                            ],
+                            default => [
+                                'container' => 'border-sky-400/40 bg-sky-500/10 text-sky-100',
+                                'icon' => 'text-sky-300',
+                            ],
+                        };
+                    ?>
+                    <div class="mb-6 rounded-xl border px-4 py-4 {{ $subscriptionAlertStyles['container'] }}">
+                        <div class="flex items-start gap-3">
+                            <span class="mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-current/30 {{ $subscriptionAlertStyles['icon'] }}">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+                            </span>
+                            <div>
+                                <p class="text-sm font-semibold">{{ $subscriptionAlert['title'] }}</p>
+                                <p class="mt-1 text-sm text-white/80">{{ $subscriptionAlert['message'] }}</p>
                             </div>
                         </div>
                     </div>

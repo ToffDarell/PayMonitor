@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -53,9 +54,25 @@ class AuthenticatedSessionController extends Controller
             ])->onlyInput('email');
         }
 
+        $user = Auth::user();
+
+        if ($user instanceof User && ! $user->is_active) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'This user account is inactive. Contact your tenant administrator.',
+            ])->onlyInput('email');
+        }
+
         $request->session()->regenerate();
 
-        return redirect()->intended('/dashboard');
+        $landingPath = $user instanceof User
+            ? $user->preferredTenantLandingPath()
+            : '/dashboard';
+
+        return redirect()->intended($landingPath);
     }
 
     public function destroy(Request $request): RedirectResponse

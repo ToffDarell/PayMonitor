@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Middleware\EnsureTenantIsActive;
+use App\Http\Middleware\TenantPermissionMiddleware;
 use App\Http\Middleware\SetTenantContext;
+use App\Http\Middleware\TenantRoleMiddleware;
 use App\Providers\AuthServiceProvider;
 use App\Providers\TenancyServiceProvider;
 use Illuminate\Foundation\Application;
@@ -25,7 +27,12 @@ return Application::configure(basePath: dirname(__DIR__))
             if (in_array($request->getHost(), $centralDomains)) {
                 return '/central/dashboard';
             }
-            return '/dashboard';
+
+            $user = $request->user();
+
+            return $user !== null && method_exists($user, 'preferredTenantLandingPath')
+                ? $user->preferredTenantLandingPath()
+                : '/dashboard';
         });
 
         $middleware->redirectGuestsTo(function (Illuminate\Http\Request $request) {
@@ -42,6 +49,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant.context' => SetTenantContext::class,
             'tenant.active' => EnsureTenantIsActive::class,
+            'tenant.role' => TenantRoleMiddleware::class,
+            'tenant.permission' => TenantPermissionMiddleware::class,
             'role' => RoleMiddleware::class,
         ]);
     })

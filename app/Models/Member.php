@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\Encrypted;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,8 @@ class Member extends Model
     {
         return [
             'birthdate' => 'date',
+            'address' => Encrypted::class,
+            'occupation' => Encrypted::class,
             'joined_at' => 'date',
             'is_active' => 'boolean',
         ];

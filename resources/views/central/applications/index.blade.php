@@ -52,6 +52,7 @@
                             <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">Contact</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Plan</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Submitted</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Payment</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                             <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6 text-right"><span class="sr-only">Actions</span></th>
                         </tr>
@@ -66,7 +67,7 @@
                                         </div>
                                         <div class="ml-4">
                                             <div class="font-medium text-white">{{ $app->cooperative_name }}</div>
-                                            <div class="text-xs text-gray-500 hidden sm:block mt-0.5">{{ $app->domain }}.{{ config('tenancy.central_domains')[0] ?? 'localhost' }}</div>
+                                            <div class="text-xs text-gray-500 hidden sm:block mt-0.5">{{ $app->domain }}.{{ config('tenancy.tenant_base_domain', 'localhost') }}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -86,6 +87,24 @@
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                     {{ $app->created_at->format('M j, Y') }}
                                     <div class="text-xs">{{ $app->created_at->diffForHumans() }}</div>
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                    @if($app->payment_status === 'verified')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                            Verified
+                                        </span>
+                                    @elseif($app->payment_status === 'rejected')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                                            Rejected
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-400/10 text-yellow-500 border border-yellow-400/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-yellow-500"></span>
+                                            Pending
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm">
                                     @if($app->status === 'pending')
@@ -113,7 +132,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center">
+                                <td colspan="7" class="px-6 py-12 text-center">
                                     <svg class="mx-auto h-12 w-12 text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>

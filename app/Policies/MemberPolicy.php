@@ -6,12 +6,13 @@ namespace App\Policies;
 
 use App\Models\Member;
 use App\Models\User;
+use App\Support\TenantPermissions;
 
 class MemberPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole([
+        return $user->hasTenantPermission(TenantPermissions::MEMBERS_VIEW, [
             'tenant_admin',
             'branch_manager',
             'loan_officer',
@@ -27,16 +28,16 @@ class MemberPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['tenant_admin', 'branch_manager', 'loan_officer']);
+        return $user->hasTenantPermission(TenantPermissions::MEMBERS_CREATE, ['tenant_admin', 'branch_manager', 'loan_officer']);
     }
 
     public function update(User $user, Member $member): bool
     {
-        return $user->hasAnyRole(['tenant_admin', 'branch_manager', 'loan_officer']);
+        return $user->hasTenantPermission(TenantPermissions::MEMBERS_UPDATE, ['tenant_admin', 'branch_manager', 'loan_officer']);
     }
 
     public function delete(User $user, Member $member): bool
     {
-        return $user->hasRole('tenant_admin');
+        return $user->hasTenantPermission(TenantPermissions::MEMBERS_DELETE, ['tenant_admin']);
     }
 }

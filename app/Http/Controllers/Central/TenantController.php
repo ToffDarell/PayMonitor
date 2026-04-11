@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Central;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Central\StoreTenantRequest;
 use App\Http\Requests\Central\UpdateTenantRequest;
+use App\Models\BillingInvoice;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Services\TenantService;
@@ -33,6 +34,7 @@ class TenantController extends Controller
 
         $tenants->setCollection($tenants->getCollection()->map(function (Tenant $tenant): Tenant {
             $tenant->setAttribute('usage', $this->tenantService->getTenantUsage($tenant));
+            $tenant->setAttribute('db_size', $this->tenantService->getTenantDatabaseSize($tenant));
 
             return $tenant;
         }));
@@ -77,6 +79,12 @@ class TenantController extends Controller
     public function update(UpdateTenantRequest $request, Tenant $tenant): RedirectResponse
     {
         $tenant->update($request->validated());
+        $tenant->refresh()->loadMissing('plan');
+
+        BillingInvoice::syncOpenInvoiceForTenant(
+            $tenant,
+            'Synced from tenant subscription update.',
+        );
 
         return redirect('/central/tenants')->with('success', 'Tenant updated successfully.');
     }

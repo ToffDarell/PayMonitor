@@ -6,12 +6,13 @@ namespace App\Policies;
 
 use App\Models\Loan;
 use App\Models\User;
+use App\Support\TenantPermissions;
 
 class LoanPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole([
+        return $user->hasTenantPermission(TenantPermissions::LOANS_VIEW, [
             'tenant_admin',
             'branch_manager',
             'loan_officer',
@@ -27,21 +28,21 @@ class LoanPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['tenant_admin', 'branch_manager', 'loan_officer']);
+        return $user->hasTenantPermission(TenantPermissions::LOANS_CREATE, ['tenant_admin', 'branch_manager', 'loan_officer']);
     }
 
     public function update(User $user, Loan $loan): bool
     {
-        return $user->hasAnyRole(['tenant_admin', 'branch_manager']);
+        return $user->hasTenantPermission(TenantPermissions::LOANS_UPDATE, ['tenant_admin', 'branch_manager']);
     }
 
     public function delete(User $user, Loan $loan): bool
     {
-        return $user->hasRole('tenant_admin');
+        return $user->hasTenantPermission(TenantPermissions::LOANS_DELETE, ['tenant_admin']);
     }
 
     public function computePreview(User $user): bool
     {
-        return $user->hasAnyRole(['tenant_admin', 'branch_manager', 'loan_officer']);
+        return $user->hasTenantPermission(TenantPermissions::LOANS_COMPUTE, ['tenant_admin', 'branch_manager', 'loan_officer']);
     }
 }

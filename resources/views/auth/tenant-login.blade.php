@@ -108,6 +108,12 @@
                     <p class="mt-2 text-sm leading-6 text-slate-400">Sign in to manage loans and members.</p>
                 </div>
 
+                @if (session('status'))
+                    <div class="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                        {{ session('status') }}
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ url('/login') }}" class="mt-8 space-y-5">
                     @csrf
 
@@ -136,6 +142,10 @@
                         <input id="remember" name="remember" type="checkbox" value="1" @checked(old('remember')) class="pm-check h-4 w-4 rounded border-white/10">
                         <span>Remember me</span>
                     </label>
+
+                    <div class="flex justify-end">
+                        <a href="{{ route('tenant.password.request', ['tenant' => request()->route('tenant')], false) }}" class="text-sm text-slate-400 transition hover:text-white">Forgot password?</a>
+                    </div>
 
                     <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:shadow-emerald-500/30 hover:brightness-110">
                         Log In

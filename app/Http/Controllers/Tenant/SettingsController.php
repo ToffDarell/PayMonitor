@@ -6,12 +6,15 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppVersion;
+use App\Models\SupportRequest;
 use App\Models\TenantVersionAcknowledgement;
 use App\Models\TenantSetting;
+use App\Mail\TenantSupportRequestMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -27,11 +30,13 @@ class SettingsController extends Controller
         $settings = TenantSetting::allKeyed();
         $activeTab = (string) ($request->query('tab', $request->routeIs('settings.updates') ? 'updates' : 'general'));
         $updateData = $this->resolveUpdateData();
+        $supportData = $this->resolveSupportData($request);
 
         return view('settings.index', [
             'settings' => $settings,
-            'activeTab' => in_array($activeTab, ['general', 'appearance', 'updates'], true) ? $activeTab : 'general',
+            'activeTab' => in_array($activeTab, ['general', 'appearance', 'updates', 'support'], true) ? $activeTab : 'general',
             ...$updateData,
+            ...$supportData,
         ]);
     }
 
@@ -45,6 +50,7 @@ class SettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         TenantSetting::ensureDefaults();
+        $currentSettings = TenantSetting::allKeyed();
 
         $validated = $request->validate([
             'cooperative_tagline' => ['nullable', 'string', 'max:255'],
@@ -55,6 +61,8 @@ class SettingsController extends Controller
             'date_format' => ['required', Rule::in(['M d, Y', 'd/m/Y', 'Y-m-d'])],
             'items_per_page' => ['required', 'integer', Rule::in([10, 15, 25, 50])],
             'accent_color' => ['required', Rule::in(['green', 'blue', 'indigo', 'purple', 'teal'])],
+            'theme_mode' => ['required', Rule::in(['dark', 'light'])],
+            'font_scale' => ['required', Rule::in(['compact', 'comfortable', 'large'])],
             'show_member_photos' => ['nullable', 'boolean'],
             'logo' => ['nullable', 'image', 'max:2048'],
         ]);
@@ -106,16 +114,58 @@ class SettingsController extends Controller
             'currency_symbol',
             'date_format',
             'accent_color',
+            'theme_mode',
+            'font_scale',
         ] as $key) {
-            TenantSetting::set($key, (string) ($validated[$key] ?? ''));
+            TenantSetting::set($key, (string) ($validated[$key] ?? ($currentSettings[$key] ?? '')));
         }
 
-        TenantSetting::set('items_per_page', (string) $validated['items_per_page']);
-        TenantSetting::set('show_member_photos', $request->boolean('show_member_photos') ? '1' : '0');
+        TenantSetting::set('items_per_page', (string) ($validated['items_per_page'] ?? ($currentSettings['items_per_page'] ?? '15')));
+        TenantSetting::set(
+            'show_member_photos',
+            array_key_exists('show_member_photos', $validated)
+                ? ($request->boolean('show_member_photos') ? '1' : '0')
+                : ($currentSettings['show_member_photos'] ?? '0')
+        );
 
         $activeTab = (string) $request->input('active_tab', 'general');
 
         return redirect('/settings?tab='.urlencode($activeTab))->with('success', 'Settings updated successfully.');
+    }
+
+    public function submitSupport(Request $request): RedirectResponse
+    {
+        abort_unless($this->supportRequestsTableExists(), 404);
+
+        $validated = $request->validate([
+            'subject' => ['required', 'string', 'max:255'],
+            'category' => ['required', Rule::in(['general', 'technical', 'billing', 'account', 'feature'])],
+            'message' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $tenantModel = tenant();
+        $user = $request->user();
+
+        $supportRequest = SupportRequest::query()->create([
+            'tenant_id' => (string) ($tenantModel?->id ?? request()->route('tenant')),
+            'tenant_name' => (string) ($tenantModel?->name ?? 'Tenant Workspace'),
+            'requester_name' => (string) ($user?->name ?? ($tenantModel?->admin_name ?? 'Tenant User')),
+            'requester_email' => (string) ($user?->email ?? ($tenantModel?->email ?? config('mail.from.address', 'support@paymonitor.test'))),
+            'category' => $validated['category'],
+            'subject' => trim((string) $validated['subject']),
+            'message' => trim((string) $validated['message']),
+            'status' => 'open',
+        ]);
+
+        $supportEmail = (string) config('mail.from.address', 'support@paymonitor.test');
+
+        try {
+            Mail::to($supportEmail)->send(new TenantSupportRequestMail($supportRequest, $tenantModel, $user));
+        } catch (\Throwable) {
+            // Keep the support request saved even if the mail transport is unavailable.
+        }
+
+        return redirect('/settings?tab=support')->with('success', 'Support request submitted successfully.');
     }
 
     public function acknowledge(Request $request, string $tenant, AppVersion $version): RedirectResponse
@@ -187,11 +237,52 @@ class SettingsController extends Controller
         ];
     }
 
+    /**
+     * @return array{
+     *     supportRequests: Collection<int, SupportRequest>,
+     *     supportContact: array{email: string, phone: string, hours: string}
+     * }
+     */
+    protected function resolveSupportData(Request $request): array
+    {
+        $supportContact = [
+            'email' => (string) config('mail.from.address', 'support@paymonitor.test'),
+            'phone' => (string) config('app.support_phone', '+63 917 000 0000'),
+            'hours' => (string) config('app.support_hours', 'Mon-Fri, 8:00 AM - 5:00 PM'),
+        ];
+
+        if (! $this->supportRequestsTableExists()) {
+            return [
+                'supportRequests' => collect(),
+                'supportContact' => $supportContact,
+            ];
+        }
+
+        $tenantModel = tenant();
+        $tenantId = (string) ($tenantModel?->id ?? $request->route('tenant'));
+
+        return [
+            'supportRequests' => SupportRequest::query()
+                ->where('tenant_id', $tenantId)
+                ->latest()
+                ->limit(10)
+                ->get(),
+            'supportContact' => $supportContact,
+        ];
+    }
+
     protected function versionTablesExist(): bool
     {
         $centralConnection = config('tenancy.database.central_connection');
 
         return Schema::connection($centralConnection)->hasTable('app_versions')
             && Schema::connection($centralConnection)->hasTable('tenant_version_acknowledgements');
+    }
+
+    protected function supportRequestsTableExists(): bool
+    {
+        $centralConnection = config('tenancy.database.central_connection');
+
+        return Schema::connection($centralConnection)->hasTable('support_requests');
     }
 }

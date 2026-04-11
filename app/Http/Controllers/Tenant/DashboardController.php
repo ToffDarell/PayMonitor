@@ -9,13 +9,26 @@ use App\Models\Loan;
 use App\Models\LoanPayment;
 use App\Models\LoanType;
 use App\Models\Member;
+use App\Models\User;
+use App\Support\TenantPermissions;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(): View|RedirectResponse
     {
-        $this->authorize('viewDashboard', tenant());
+        $user = auth()->user();
+
+        if ($user instanceof User && ! $user->hasTenantPermission(TenantPermissions::DASHBOARD_VIEW)) {
+            $fallbackPath = $user->preferredTenantLandingPath();
+
+            if ($fallbackPath !== '/dashboard') {
+                return redirect($fallbackPath);
+            }
+
+            abort(403, 'This action is unauthorized.');
+        }
 
         $activeLoansCount = Loan::query()
             ->where('status', 'active')

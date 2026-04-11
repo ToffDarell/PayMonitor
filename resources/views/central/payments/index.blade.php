@@ -18,11 +18,14 @@
     $overdueSum = $allTenantsForStats->filter(fn($t) => !$t->subscription_due_at || $t->subscription_due_at->lt(today()))->sum(fn($t) => (float)($t->plan?->price ?? 0));
 @endphp
 
-<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+<div class="mb-5 flex flex-wrap items-center justify-between gap-4">
     <div>
         <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Payments</h2>
         <p class="mt-1 text-sm text-slate-400">Track current subscriptions, due accounts, and mark tenant payments.</p>
     </div>
+    <a href="{{ route('central.billing.index', absolute: false) }}" class="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
+        Open Billing Ledger
+    </a>
 </div>
 
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
@@ -57,7 +60,8 @@
 
 <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
     {{-- Filter bar --}}
-    <div class="border-b border-white/[0.07] px-6 py-4 flex flex-wrap items-center justify-end gap-3">
+    <div class="border-b border-white/[0.07] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Payments overview</p>
         <div class="flex items-center gap-2">
             <label for="paymentStatusFilter" class="text-xs font-medium text-slate-400">Filter by status</label>
             <select id="paymentStatusFilter" class="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 transition focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
@@ -113,16 +117,21 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 @if($tenant->payment_status === 'overdue') text-red-400 font-semibold @else text-slate-500 @endif">
-                        {{ $tenant->payment_status === 'overdue' ? number_format($daysOverdue) : '—' }}
+                        {{ $tenant->payment_status === 'overdue' ? number_format($daysOverdue) : '-' }}
                     </td>
                     <td class="px-4 py-3 text-right">
-                        <form method="POST" action="{{ route('central.payments.mark-paid', $tenant, false) }}">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-500">
-                                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                Mark Paid
-                            </button>
-                        </form>
+                        <div class="inline-flex items-center gap-2">
+                            <a href="{{ route('central.billing.index', ['tenant_id' => $tenant->id], false) }}" class="inline-flex items-center rounded-md border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
+                                View Billing
+                            </a>
+                            <form method="POST" action="{{ route('central.payments.mark-paid', $tenant, false) }}">
+                                @csrf
+                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-500">
+                                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Mark Paid
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @empty

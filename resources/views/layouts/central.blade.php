@@ -3,8 +3,8 @@
     $user = auth()->user();
     $navItemClass = static function (bool $active): string {
         return $active
-            ? 'group flex items-center gap-3 rounded-md border-l-[3px] border-emerald-500 bg-emerald-500/[0.08] px-4 py-3 text-sm font-medium text-white'
-            : 'group flex items-center gap-3 rounded-md border-l-[3px] border-transparent px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white';
+            ? 'group flex items-center gap-3 rounded-md border-l-[3px] border-emerald-500 bg-emerald-500/[0.08] px-3 py-2 text-sm font-medium text-white'
+            : 'group flex items-center gap-3 rounded-md border-l-[3px] border-transparent px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white';
     };
     $navIconClass = static function (bool $active): string {
         return $active ? 'text-emerald-400' : 'text-slate-500 transition group-hover:text-slate-300';
@@ -81,6 +81,24 @@
         .legacy-content .modal-content {
             border-radius: 1rem;
             box-shadow: 0 20px 45px rgba(2, 6, 23, 0.2) !important;
+        }
+
+        .legacy-content h1,
+        .legacy-content .h1 {
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+        }
+
+        .legacy-content h2,
+        .legacy-content .h2 {
+            font-size: 1.125rem !important;
+            font-weight: 600 !important;
+        }
+
+        .legacy-content h3,
+        .legacy-content .h3 {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
         }
 
         .legacy-content .card.border-0 {
@@ -307,6 +325,9 @@
             background-color: transparent;
             border-bottom-color: var(--pm-border);
             color: inherit;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            line-height: 1.45;
         }
 
         .legacy-content table thead,
@@ -368,13 +389,13 @@
         <aside class="fixed inset-y-0 left-0 z-50 w-56 border-r border-white/[0.06] bg-[#0A1628] px-4 py-6 transition-transform duration-200 md:translate-x-0" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
             <div class="flex h-full flex-col">
                 <div>
-                    <div class="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-3.5">
+                    <div class="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-3">
                         <div class="flex items-center gap-2.5">
                             <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-500/20">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="font-heading text-[15px] font-bold tracking-tight text-white leading-tight">PayMonitor</p>
+                                <p class="font-heading text-base font-bold tracking-tight text-white leading-tight">PayMonitor</p>
                                 <div class="mt-1">
                                     <span class="inline-flex shrink-0 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-300">Central</span>
                                 </div>
@@ -413,6 +434,16 @@
                                 <svg class="h-5 w-5 {{ $navIconClass($plansActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 5.25h12A1.5 1.5 0 0 1 19.5 6.75v10.5A1.5 1.5 0 0 1 18 18.75H6A1.5 1.5 0 0 1 4.5 17.25V6.75A1.5 1.5 0 0 1 6 5.25Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9h7.5M8.25 12h7.5M8.25 15h4.5"/></svg>
                                 <span>Plans</span>
                             </a>
+                            @php($paymentsActive = request()->routeIs('central.payments.*'))
+                            <a href="{{ route('central.payments.index', absolute: false) }}" class="{{ $navItemClass($paymentsActive) }}">
+                                <svg class="h-5 w-5 {{ $navIconClass($paymentsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-12 4.5h3"/></svg>
+                                <span>Payments</span>
+                            </a>
+                            @php($billingActive = request()->routeIs('central.billing.*'))
+                            <a href="{{ route('central.billing.index', absolute: false) }}" class="{{ $navItemClass($billingActive) }}">
+                                <svg class="h-5 w-5 {{ $navIconClass($billingActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 4.5h9A1.5 1.5 0 0 1 18 6v12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18V6A1.5 1.5 0 0 1 7.5 4.5Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9h7.5M8.25 12h7.5M8.25 15h4.5"/></svg>
+                                <span>Billing</span>
+                            </a>
                             @php($versionsActive = request()->routeIs('central.versions.*'))
                             <a href="{{ route('central.versions.index', absolute: false) }}" class="{{ $navItemClass($versionsActive) }}">
                                 <svg class="h-5 w-5 {{ $navIconClass($versionsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -421,17 +452,12 @@
                                 </svg>
                                 <span>App Versions</span>
                             </a>
-                            @php($paymentsActive = request()->routeIs('central.payments.*'))
-                            <a href="{{ route('central.payments.index', absolute: false) }}" class="{{ $navItemClass($paymentsActive) }}">
-                                <svg class="h-5 w-5 {{ $navIconClass($paymentsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-12 4.5h3"/></svg>
-                                <span>Payments</span>
-                            </a>
                         </nav>
                     </div>
                 </div>
 
                 <div class="mt-4 shrink-0 border-t border-white/[0.1] pt-4">
-                    <a href="{{ route('central.logout', absolute: false) }}" class="group flex w-full items-center gap-3 rounded-md border-l-[3px] border-transparent px-4 py-3 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white">
+                    <a href="{{ route('central.logout', absolute: false) }}" class="group flex w-full items-center gap-3 rounded-md border-l-[3px] border-transparent px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white">
                         <svg class="h-5 w-5 text-slate-500 transition group-hover:text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
                         <span>Logout</span>
                     </a>

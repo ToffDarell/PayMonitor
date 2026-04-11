@@ -6,18 +6,13 @@ namespace App\Policies;
 
 use App\Models\Branch;
 use App\Models\User;
+use App\Support\TenantPermissions;
 
 class BranchPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole([
-            'tenant_admin',
-            'branch_manager',
-            'loan_officer',
-            'cashier',
-            'viewer',
-        ]);
+        return $user->hasTenantPermission(TenantPermissions::BRANCHES_VIEW, ['tenant_admin']);
     }
 
     public function view(User $user, Branch $branch): bool
@@ -27,16 +22,16 @@ class BranchPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole('tenant_admin');
+        return $user->hasTenantPermission(TenantPermissions::BRANCHES_CREATE, ['tenant_admin']);
     }
 
     public function update(User $user, Branch $branch): bool
     {
-        return $user->hasRole('tenant_admin');
+        return $user->hasTenantPermission(TenantPermissions::BRANCHES_UPDATE, ['tenant_admin']);
     }
 
     public function delete(User $user, Branch $branch): bool
     {
-        return $user->hasRole('tenant_admin');
+        return $user->hasTenantPermission(TenantPermissions::BRANCHES_DELETE, ['tenant_admin']);
     }
 }

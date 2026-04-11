@@ -10,6 +10,9 @@
         : null;
     $currentVersionLabel = $currentVersion?->version_number ? 'v'.$currentVersion->version_number : 'Not acknowledged yet';
     $latestVersionLabel = $latestVersion?->version_number ? 'v'.$latestVersion->version_number : 'No active release';
+    $supportEmail = $supportContact['email'] ?? config('mail.from.address', 'support@paymonitor.test');
+    $supportPhone = $supportContact['phone'] ?? '+63 917 000 0000';
+    $supportHours = $supportContact['hours'] ?? 'Mon-Fri, 8:00 AM - 5:00 PM';
 @endphp
 
 @push('styles')
@@ -21,6 +24,12 @@
         background-color: rgba(var(--pm-accent-rgb), 0.12);
         color: #fff;
     }
+
+    .settings-support-status-open {
+        border-color: rgba(59, 130, 246, 0.3);
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #bfdbfe;
+    }
 </style>
 @endpush
 
@@ -30,6 +39,7 @@
         activeTab: @js($activeTab),
         logoPreview: @js($logoUrl),
         selectedAccent: @js($settings['accent_color'] ?? 'green'),
+        selectedThemeMode: @js(old('theme_mode', $settings['theme_mode'] ?? 'dark')),
         handleLogoChange(event) {
             const [file] = event.target.files;
             if (!file) {
@@ -44,7 +54,7 @@
             reader.readAsDataURL(file);
         }
     }"
-    class="space-y-6"
+    class="settings-shell space-y-6"
 >
     <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
@@ -55,6 +65,7 @@
             <button type="button" x-on:click="activeTab = 'general'" x-bind:class="activeTab === 'general' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">General</button>
             <button type="button" x-on:click="activeTab = 'appearance'" x-bind:class="activeTab === 'appearance' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Appearance</button>
             <button type="button" x-on:click="activeTab = 'updates'" x-bind:class="activeTab === 'updates' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Updates</button>
+            <button type="button" x-on:click="activeTab = 'support'" x-bind:class="activeTab === 'support' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Support</button>
         </div>
     </div>
 
@@ -63,6 +74,8 @@
             @csrf
             <input type="hidden" name="active_tab" value="general">
             <input type="hidden" name="accent_color" value="{{ old('accent_color', $settings['accent_color'] ?? 'green') }}">
+            <input type="hidden" name="theme_mode" value="{{ old('theme_mode', $settings['theme_mode'] ?? 'dark') }}">
+            <input type="hidden" name="font_scale" value="{{ old('font_scale', $settings['font_scale'] ?? 'comfortable') }}">
             <input type="hidden" name="show_member_photos" value="{{ old('show_member_photos', $settings['show_member_photos'] ?? '0') }}">
 
             <div class="grid gap-6 md:grid-cols-2">
@@ -134,6 +147,8 @@
             <input type="hidden" name="currency_symbol" value="{{ old('currency_symbol', $settings['currency_symbol'] ?? '₱') }}">
             <input type="hidden" name="date_format" value="{{ old('date_format', $settings['date_format'] ?? 'M d, Y') }}">
             <input type="hidden" name="items_per_page" value="{{ old('items_per_page', $settings['items_per_page'] ?? 15) }}">
+            <input type="hidden" name="theme_mode" value="{{ old('theme_mode', $settings['theme_mode'] ?? 'dark') }}">
+            <input type="hidden" name="font_scale" value="{{ old('font_scale', $settings['font_scale'] ?? 'comfortable') }}">
 
             <div class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
                 <div class="space-y-6">
@@ -183,6 +198,38 @@
                 </div>
 
                 <div class="space-y-4">
+                    <div class="rounded-2xl border border-white/[0.07] bg-[#0f1319] p-5">
+                        <p class="text-sm font-semibold text-white">Display Preferences</p>
+                        <p class="mt-1 text-sm text-slate-500">Choose how your tenant portal feels for your staff.</p>
+
+                        <div class="mt-5 space-y-5">
+                            <div>
+                                <p class="text-sm font-medium text-white">Theme Mode</p>
+                                <div class="mt-3 grid grid-cols-2 gap-3">
+                                    @foreach(['dark' => 'Dark Mode', 'light' => 'Light Mode'] as $mode => $label)
+                                        <label class="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition" x-bind:class="selectedThemeMode === '{{ $mode }}' ? 'border-white/25 ring-2 ring-white/20 bg-white/[0.06]' : 'hover:border-white/20'">
+                                            <input type="radio" name="theme_mode" value="{{ $mode }}" class="hidden" x-model="selectedThemeMode" @checked(old('theme_mode', $settings['theme_mode'] ?? 'dark') === $mode)>
+                                            <span class="block text-sm font-semibold text-white">{{ $label }}</span>
+                                            <span class="mt-1 block text-xs text-slate-500">{{ $mode === 'dark' ? 'Keeps the current dark workspace look.' : 'Uses a brighter portal shell for daytime use.' }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @error('theme_mode') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label for="font_scale" class="mb-2 block text-sm font-medium text-white">Font Size</label>
+                                <select id="font_scale" name="font_scale" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
+                                    <option value="compact" @selected(old('font_scale', $settings['font_scale'] ?? 'comfortable') === 'compact')>Compact</option>
+                                    <option value="comfortable" @selected(old('font_scale', $settings['font_scale'] ?? 'comfortable') === 'comfortable')>Comfortable</option>
+                                    <option value="large" @selected(old('font_scale', $settings['font_scale'] ?? 'comfortable') === 'large')>Large</option>
+                                </select>
+                                <p class="mt-2 text-sm text-slate-500">This changes the overall font scale used across the tenant portal.</p>
+                                @error('font_scale') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="rounded-2xl border border-white/[0.07] bg-[#0f1319] p-5">
                         <p class="text-sm font-semibold text-white">Portal Preview</p>
                         <p class="mt-1 text-sm text-slate-500">This gives a quick idea of how your sidebar identity will look.</p>
@@ -311,6 +358,124 @@
                             <p class="text-sm text-slate-500">No version history available yet.</p>
                         </div>
                     @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div x-cloak x-show="activeTab === 'support'" class="space-y-6">
+        <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+            <div class="space-y-6">
+                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Contact Support</p>
+                    <h3 class="mt-2 font-heading text-2xl font-bold text-white">Need help from PayMonitor?</h3>
+                    <p class="mt-2 text-sm text-slate-400">Use the details below for account, billing, technical, or update-related concerns.</p>
+
+                    <div class="mt-6 space-y-4">
+                        <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Support Email</p>
+                            <p class="mt-2 text-sm font-semibold text-white">{{ $supportEmail }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Support Phone</p>
+                            <p class="mt-2 text-sm font-semibold text-white">{{ $supportPhone }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Support Hours</p>
+                            <p class="mt-2 text-sm font-semibold text-white">{{ $supportHours }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Updates Included</p>
+                    <h3 class="mt-2 font-heading text-xl font-bold text-white">Support and Updates</h3>
+                    <ul class="mt-4 space-y-3 text-sm text-slate-300">
+                        <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Version announcements and changelog tracking</span></li>
+                        <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Tenant update acknowledgement history</span></li>
+                        <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Billing and account assistance through support requests</span></li>
+                        <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Technical issue reporting for portal and access concerns</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Submit Request</p>
+                    <h3 class="mt-2 font-heading text-xl font-bold text-white">Send a support request</h3>
+                    <p class="mt-2 text-sm text-slate-400">This request is saved in the central app and emailed to the support contact.</p>
+
+                    <form method="POST" action="{{ route('settings.support', $tenantParameter, false) }}" class="mt-6 space-y-5">
+                        @csrf
+                        <div class="grid gap-5 md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <label for="subject" class="mb-2 block text-sm font-medium text-slate-200">Subject</label>
+                                <input id="subject" name="subject" type="text" value="{{ old('subject') }}" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]" placeholder="Describe your concern" required>
+                                @error('subject') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label for="category" class="mb-2 block text-sm font-medium text-slate-200">Category</label>
+                                <select id="category" name="category" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
+                                    @foreach(['general' => 'General', 'technical' => 'Technical', 'billing' => 'Billing', 'account' => 'Account', 'feature' => 'Feature Request'] as $value => $label)
+                                        <option value="{{ $value }}" @selected(old('category', 'general') === $value)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @error('category') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="rounded-2xl border border-white/10 bg-[#0f1319] px-4 py-3">
+                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Requester</p>
+                                <p class="mt-2 text-sm font-semibold text-white">{{ auth()->user()?->name ?? tenant()?->admin_name ?? tenant()?->name }}</p>
+                                <p class="mt-1 text-sm text-slate-500">{{ auth()->user()?->email ?? tenant()?->email }}</p>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label for="message" class="mb-2 block text-sm font-medium text-slate-200">Message</label>
+                                <textarea id="message" name="message" rows="6" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]" placeholder="Explain the issue, what happened, and what you need help with." required>{{ old('message') }}</textarea>
+                                @error('message') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
+                            Submit Support Request
+                        </button>
+                    </form>
+                </div>
+
+                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+                    <div class="border-b border-white/[0.06] pb-5">
+                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Request History</p>
+                        <h3 class="mt-2 font-heading text-xl font-bold text-white">Recent support requests</h3>
+                        <p class="mt-2 text-sm text-slate-400">Track the concerns this tenant has already submitted.</p>
+                    </div>
+
+                    <div class="mt-5 space-y-4">
+                        @forelse($supportRequests as $supportRequest)
+                            <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-4">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-sm font-semibold text-white">{{ $supportRequest->subject }}</p>
+                                        <p class="mt-1 text-sm text-slate-400">{{ ucfirst($supportRequest->category) }} request from {{ $supportRequest->requester_name }}</p>
+                                    </div>
+                                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] {{ $supportRequest->status === 'open' ? 'settings-support-status-open' : 'border border-white/10 bg-white/[0.03] text-slate-400' }}">
+                                        {{ $supportRequest->status }}
+                                    </span>
+                                </div>
+                                <p class="mt-3 text-sm leading-6 text-slate-300">{{ \Illuminate\Support\Str::limit($supportRequest->message, 220) }}</p>
+                                <div class="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+                                    <span>Submitted {{ $supportRequest->created_at?->format('M d, Y h:i A') }}</span>
+                                    @if($supportRequest->resolved_at)
+                                        <span>Resolved {{ $supportRequest->resolved_at->format('M d, Y h:i A') }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <div class="rounded-2xl border border-dashed border-white/[0.08] bg-[#0f1319] px-5 py-10 text-center">
+                                <p class="text-sm text-slate-500">No support requests submitted yet.</p>
+                            </div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>

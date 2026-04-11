@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Central;
 use App\Http\Controllers\Controller;
 use App\Models\TenantApplication;
 use App\Services\TenantService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ApplicationController extends Controller
 {
@@ -25,19 +28,23 @@ class ApplicationController extends Controller
 
     public function show(TenantApplication $application)
     {
-        $application->load('plan', 'reviewer');
+        $application->load('plan', 'reviewer', 'paymentVerifier');
         $pendingCount = TenantApplication::where('status', 'pending')->count();
         return view('central.applications.show', compact('application', 'pendingCount'));
     }
 
-    public function approve(TenantApplication $application, TenantService $tenantService)
+    public function approve(TenantApplication $application, TenantService $tenantService): RedirectResponse
     {
         if ($application->status !== 'pending') {
             return back()->with('error', 'Only pending applications can be approved.');
         }
 
+        if ($application->payment_status !== 'verified') {
+            return back()->with('error', 'Verify the payment proof before approving this application.');
+        }
+
         // Setup domain name based on cooperative name
-        $domainStr = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '', $application->cooperative_name));
+        $domainStr = $application->domain;
 
         // Let's create the tenant
         $tenantService->createTenant([
@@ -55,10 +62,10 @@ class ApplicationController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return back()->with('success', "Application approved. Credentials sent to {$application->admin_email}");
+        return back()->with('success', "Application approved. Approval email sent to {$application->admin_email}");
     }
 
-    public function reject(TenantApplication $application)
+    public function reject(TenantApplication $application): RedirectResponse
     {
         if ($application->status !== 'pending') {
             return back()->with('error', 'Only pending applications can be rejected.');
@@ -71,5 +78,43 @@ class ApplicationController extends Controller
         ]);
 
         return back()->with('success', 'Application has been rejected.');
+    }
+
+    public function verifyPayment(TenantApplication $application): RedirectResponse
+    {
+        if ($application->status !== 'pending') {
+            return back()->with('error', 'Only pending applications can have their payment verified.');
+        }
+
+        $application->update([
+            'payment_status' => 'verified',
+            'payment_verified_by' => auth()->id(),
+            'payment_verified_at' => now(),
+        ]);
+
+        return back()->with('success', 'Payment proof verified. You can now approve this application.');
+    }
+
+    public function rejectPayment(TenantApplication $application): RedirectResponse
+    {
+        if ($application->status !== 'pending') {
+            return back()->with('error', 'Only pending applications can have their payment review updated.');
+        }
+
+        $application->update([
+            'payment_status' => 'rejected',
+            'payment_verified_by' => null,
+            'payment_verified_at' => null,
+        ]);
+
+        return back()->with('success', 'Payment proof marked as rejected. The application remains pending until a valid payment is confirmed.');
+    }
+
+    public function paymentProof(TenantApplication $application): BinaryFileResponse
+    {
+        abort_if(blank($application->payment_proof_path), 404);
+        abort_unless(Storage::exists((string) $application->payment_proof_path), 404);
+
+        return response()->file(Storage::path((string) $application->payment_proof_path));
     }
 }

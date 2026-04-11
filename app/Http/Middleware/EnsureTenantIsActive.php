@@ -18,7 +18,27 @@ class EnsureTenantIsActive
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect('/login')->with('error', 'This account has been suspended. Contact support.');
+            $tenantHost = $tenant->domains()->value('domain') ?? $request->getHost();
+            $tenantName = $tenant->name ?? 'Cooperative';
+            $portalStatus = $tenant->status;
+            $statusMessage = match ($portalStatus) {
+                'suspended' => 'This cooperative portal is currently suspended.',
+                'inactive' => 'This cooperative portal is currently inactive.',
+                default => 'This cooperative portal is currently unavailable.',
+            };
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $statusMessage.' Contact your administrator.',
+                ], 423);
+            }
+
+            return response()->view('errors.tenant-suspended', [
+                'tenantName' => $tenantName,
+                'tenantHost' => $tenantHost,
+                'portalStatus' => $portalStatus,
+                'statusMessage' => $statusMessage,
+            ], 423);
         }
 
         return $next($request);

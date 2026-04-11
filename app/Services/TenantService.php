@@ -12,10 +12,11 @@ use App\Models\LoanType;
 use App\Models\Member;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\TenantPermissions;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 use Throwable;
 
 class TenantService
@@ -51,9 +52,7 @@ class TenantService
             $password = Str::random(12);
 
             $tenant->run(function () use ($data, $password): void {
-                foreach (['tenant_admin', 'branch_manager', 'loan_officer', 'cashier', 'viewer'] as $roleName) {
-                    Role::findOrCreate($roleName, 'web');
-                }
+                TenantPermissions::ensureConfigured();
 
                 $tenantAdmin = User::create([
                     'name' => $data['admin_name'],
@@ -150,6 +149,44 @@ class TenantService
                 'loans' => 0,
                 'total' => 0,
             ];
+        }
+    }
+
+    public function getTenantDatabaseSize(Tenant $tenant): array
+    {
+        $fallback = [
+            'size_mb' => 0.0,
+            'total_rows' => 0,
+            'formatted' => '0.00 MB',
+        ];
+
+        try {
+            $connection = DB::connection(config('tenancy.database.central_connection', config('database.default')));
+
+            if ($connection->getDriverName() !== 'mysql') {
+                return $fallback;
+            }
+
+            $databaseName = 'tenant_'.$tenant->id;
+            $size = $connection->selectOne(
+                'SELECT
+                    ROUND(COALESCE(SUM(data_length + index_length), 0) / 1024 / 1024, 2) AS size_mb,
+                    COALESCE(SUM(table_rows), 0) AS total_rows
+                 FROM information_schema.TABLES
+                 WHERE table_schema = ?',
+                [$databaseName],
+            );
+
+            $sizeMb = (float) ($size->size_mb ?? 0);
+            $totalRows = (int) ($size->total_rows ?? 0);
+
+            return [
+                'size_mb' => $sizeMb,
+                'total_rows' => $totalRows,
+                'formatted' => number_format($sizeMb, 2).' MB',
+            ];
+        } catch (Throwable) {
+            return $fallback;
         }
     }
 

@@ -14,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\LoanService;
 use App\Services\TenantService;
+use App\Support\TenantPermissions;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -271,9 +272,7 @@ class DatabaseSeeder extends Seeder
         $loanService = $this->loanService;
 
         $tenant->run(static function () use ($branchName, $loanData, $loanService, $loanTypes, $members): void {
-            foreach (['tenant_admin', 'branch_manager', 'loan_officer', 'cashier', 'viewer'] as $role) {
-                Role::findOrCreate($role, 'web');
-            }
+            TenantPermissions::ensureConfigured();
 
             $branch = Branch::query()->create([
                 'name' => $branchName,

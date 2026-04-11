@@ -3,19 +3,19 @@
 @section('title', 'Tenant Management')
 
 @section('content')
-<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+<div class="mb-5 flex flex-wrap items-center justify-between gap-4">
     <div>
         <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Tenant Management</h2>
         <p class="mt-1 text-sm text-slate-400">Manage cooperative accounts, subscriptions, and provisioning actions.</p>
     </div>
-    <a href="{{ route('central.tenants.create', absolute: false) }}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
+    <a href="{{ route('central.tenants.create', absolute: false) }}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
         Add Tenant
     </a>
 </div>
 
 <div class="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02]">
-    <div class="border-b border-white/[0.07] px-6 py-4">
+    <div class="border-b border-white/[0.07] px-6 py-3.5">
         <div class="relative max-w-md">
             <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
             <input type="search" id="tenantSearch" placeholder="Search tenant list..." class="w-full rounded-xl border border-white/10 bg-white/[0.03] py-2.5 pl-10 pr-4 text-sm text-slate-200 placeholder-slate-500 transition focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
@@ -39,17 +39,17 @@
             </colgroup>
             <thead class="sticky top-0 z-20 bg-[#0F1729]">
                 <tr class="border-b border-white/[0.06]">
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase text-slate-500">#</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Cooperative Name</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Address</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Domain</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Admin Name</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Admin Email</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Plan</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Due Date</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">DB Usage</th>
-                    <th class="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500">Actions</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase text-slate-500">#</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Cooperative Name</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Address</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Domain</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Admin Name</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Admin Email</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Plan</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Due Date</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">DB Usage</th>
+                    <th class="px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-white/[0.04]">
@@ -101,8 +101,8 @@
                             <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium {{ $statusConfig }}">{{ ucfirst($tenant->status) }}</span>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-slate-300">
-                            {{ number_format(data_get($tenant->usage, 'total', 0)) }}
-                            <span class="text-[10px] text-slate-500">rows</span>
+                            <span class="block text-xs font-semibold text-white">{{ data_get($tenant->db_size, 'formatted', '0.00 MB') }}</span>
+                            <span class="mt-1 block text-[11px] text-slate-500">{{ number_format((int) data_get($tenant->db_size, 'total_rows', 0)) }} rows</span>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-center" @click.outside="dropOpen = false">
                             <div class="relative inline-block text-left">

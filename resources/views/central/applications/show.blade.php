@@ -1,7 +1,7 @@
 @extends('layouts.central')
 
 @section('content')
-    <div class="px-4 py-8 max-w-5xl mx-auto sm:px-6 lg:px-8">
+    <div class="px-4 py-8 max-w-5xl mx-auto sm:px-6 lg:px-8" x-data="{ showApproveModal: false, showRejectModal: false }">
         
         <!-- Breadcrumb & Header -->
         <div class="mb-8">
@@ -38,7 +38,7 @@
                     </h2>
                     <div class="mt-1 flex flex-col sm:mt-0 sm:flex-row sm:flex-wrap sm:space-x-6">
                         <div class="mt-2 flex items-center text-sm text-gray-400">
-                            Requested Domain: <strong class="text-emerald-400 ml-1">{{ $application->domain }}.{{ config('tenancy.central_domains')[0] ?? 'localhost' }}</strong>
+                            Requested Domain: <strong class="text-emerald-400 ml-1">{{ $application->domain }}.{{ config('tenancy.tenant_base_domain', 'localhost') }}</strong>
                         </div>
                         <div class="mt-2 flex items-center text-sm text-gray-400">
                             Submitted: {{ $application->created_at->format('F j, Y, g:i a') }}
@@ -63,25 +63,77 @@
                 
                 @if($application->status === 'pending')
                     <div class="mt-4 flex md:ml-4 md:mt-0 space-x-3">
-                        <form action="{{ route('central.applications.reject', $application->id, false) }}" method="POST" onsubmit="return confirm('Are you sure you want to reject this application?');">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-300 shadow-sm ring-1 ring-inset ring-gray-600 hover:bg-gray-700 hover:text-white transition">
-                                Reject
-                            </button>
-                        </form>
-                        <form action="{{ route('central.applications.approve', $application->id, false) }}" method="POST" onsubmit="return confirm('Approving will create the tenant database and super-admin user. Proceed?');">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition">
+                        <button type="button" x-on:click="showRejectModal = true" class="inline-flex items-center rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-300 shadow-sm ring-1 ring-inset ring-gray-600 hover:bg-gray-700 hover:text-white transition">
+                            Reject
+                        </button>
+                        @if($application->payment_status === 'verified')
+                            <button type="button" x-on:click="showApproveModal = true" class="inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition">
                                 <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
                                 Approve & Create Tenant
                             </button>
-                        </form>
+                        @else
+                            <span class="inline-flex items-center rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm font-medium text-yellow-300">
+                                Verify payment before approval
+                            </span>
+                        @endif
                     </div>
                 @endif
             </div>
         </div>
+
+        @if($application->status === 'pending')
+            <div x-cloak x-show="showApproveModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" style="display:none;">
+                <div class="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#111827] p-6 shadow-2xl" x-on:click.outside="showApproveModal = false">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Approve Application</h3>
+                            <p class="mt-2 text-sm leading-6 text-slate-400">Approving will create the tenant database and the initial tenant admin user. This is only available after payment has been verified.</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" x-on:click="showApproveModal = false" class="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
+                            Cancel
+                        </button>
+                        <form action="{{ route('central.applications.approve', $application->id, false) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500">
+                                Approve & Create Tenant
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div x-cloak x-show="showRejectModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" style="display:none;">
+                <div class="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#111827] p-6 shadow-2xl" x-on:click.outside="showRejectModal = false">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Reject Application</h3>
+                            <p class="mt-2 text-sm leading-6 text-slate-400">Are you sure you want to reject this application? This will mark the request as reviewed and rejected.</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" x-on:click="showRejectModal = false" class="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
+                            Cancel
+                        </button>
+                        <form action="{{ route('central.applications.reject', $application->id, false) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500">
+                                Reject Application
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         @if(session('success'))
             <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-lg flex items-center mb-6 shadow-sm">
@@ -207,10 +259,116 @@
                     </div>
                 </div>
 
+                <div class="bg-[#111827] shadow-xl sm:rounded-xl border border-gray-800 overflow-hidden ring-1 ring-white/5">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-800/60 bg-gray-800/30">
+                        <h3 class="text-base font-semibold leading-6 text-white">Payment Verification</h3>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <p class="text-xs text-gray-500">Expected Amount</p>
+                                <p class="text-sm font-medium text-white">
+                                    @if($application->payment_amount !== null)
+                                        &#8369;{{ number_format((float) $application->payment_amount, 2) }}
+                                    @elseif($application->plan)
+                                        &#8369;{{ number_format((float) $application->plan->price, 2) }}
+                                    @else
+                                        Not set
+                                    @endif
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Payment Reference</p>
+                                <p class="text-sm font-medium text-white">{{ $application->payment_reference ?: 'Not provided' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Payment Status</p>
+                                <div class="mt-1">
+                                    @if($application->payment_status === 'verified')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                            Verified
+                                        </span>
+                                    @elseif($application->payment_status === 'rejected')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                                            Rejected
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-400/10 text-yellow-500 border border-yellow-400/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-yellow-500"></span>
+                                            Pending Review
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Verified By</p>
+                                <p class="text-sm font-medium text-white">{{ $application->paymentVerifier?->name ?? 'Not verified yet' }}</p>
+                                @if($application->payment_verified_at)
+                                    <p class="mt-1 text-xs text-gray-500">{{ $application->payment_verified_at->format('M j, Y g:i A') }}</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border border-gray-800 bg-gray-900/40 p-4">
+                            <div class="mb-3 flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-white">Attached Proof of Payment</p>
+                                    <p class="text-xs text-gray-500">Upload submitted by the applicant during the apply flow.</p>
+                                </div>
+                                @if($application->payment_proof_path)
+                                    <a href="{{ route('central.applications.payment-proof', $application, false) }}" target="_blank" rel="noopener" class="inline-flex items-center rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
+                                        Open File
+                                    </a>
+                                @endif
+                            </div>
+
+                            @if($application->payment_proof_path)
+                                @if($application->paymentProofIsImage())
+                                    <img src="{{ route('central.applications.payment-proof', $application, false) }}" alt="Payment proof" class="w-full rounded-xl border border-gray-800 object-cover">
+                                @else
+                                    <div class="rounded-xl border border-dashed border-gray-700 px-4 py-8 text-center">
+                                        <p class="text-sm font-medium text-white">Receipt file uploaded</p>
+                                        <p class="mt-1 text-xs text-gray-500">This proof is a PDF or document file. Use the button above to open it in a new tab.</p>
+                                    </div>
+                                @endif
+                            @else
+                                <div class="rounded-xl border border-dashed border-yellow-500/20 bg-yellow-500/5 px-4 py-6 text-center">
+                                    <p class="text-sm font-medium text-yellow-200">No payment proof was uploaded with this application.</p>
+                                    <p class="mt-1 text-xs text-yellow-200/70">For new applications, require applicants to upload a receipt on the apply page before approval.</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        @if($application->status === 'pending')
+                            <div class="flex flex-wrap gap-3">
+                                @if($application->payment_status !== 'verified')
+                                    <form action="{{ route('central.applications.verify-payment', $application, false) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500">
+                                            Verify Payment
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if($application->payment_status !== 'rejected')
+                                    <form action="{{ route('central.applications.reject-payment', $application, false) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="inline-flex items-center rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/15">
+                                            Reject Payment
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Status Metadata Card -->
                 <div class="bg-[#111827] shadow-xl sm:rounded-xl border border-gray-800 overflow-hidden ring-1 ring-white/5">
                     <div class="px-4 py-5 sm:px-6 border-b border-gray-800/60 bg-gray-800/30">
-                        <h3 class="text-base font-semibold leading-6 text-white">Review Status</h3>
+                        <h3 class="text-base font-semibold leading-6 text-white">Application Status</h3>
                     </div>
                     <div class="p-4">
                         <div class="space-y-4">

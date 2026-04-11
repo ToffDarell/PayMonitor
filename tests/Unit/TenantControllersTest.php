@@ -13,11 +13,13 @@ use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\LoanService;
+use App\Support\TenantPermissions;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 use function Pest\Laravel\actingAs;
@@ -99,9 +101,7 @@ function provisionTenant(string $tenantId = 'alpha', string $status = 'active'):
     ]);
 
     $tenant->run(static function (): void {
-        foreach (['tenant_admin', 'branch_manager', 'loan_officer', 'cashier', 'viewer'] as $role) {
-            Role::findOrCreate($role, 'web');
-        }
+        TenantPermissions::ensureConfigured();
     });
 
     return $tenant;
@@ -133,6 +133,24 @@ test('tenant login rejects suspended accounts', function (): void {
         ])
         ->assertRedirect('/login')
         ->assertSessionHasErrors(['email' => 'This account has been suspended. Contact support.']);
+
+    $this->assertGuest();
+});
+
+test('tenant login rejects inactive users', function (): void {
+    $tenant = provisionTenant('inactive-user');
+    createTenantUser($tenant, 'tenant_admin', [
+        'email' => 'inactive-user@example.com',
+        'is_active' => false,
+    ]);
+
+    $this->from(tenantUrl('inactive-user', '/login'))
+        ->post(tenantUrl('inactive-user', '/login'), [
+            'email' => 'inactive-user@example.com',
+            'password' => 'password123',
+        ])
+        ->assertRedirect('/login')
+        ->assertSessionHasErrors(['email' => 'This user account is inactive. Contact your tenant administrator.']);
 
     $this->assertGuest();
 });
@@ -296,6 +314,107 @@ test('tenant user store creates staff account and shows generated password', fun
         ->assertOk()
         ->assertSee('Edit User')
         ->assertSee('Active / Inactive');
+});
+
+test('tenant user update can change email and active status', function (): void {
+    $tenant = provisionTenant('user-update');
+    $admin = createTenantUser($tenant, 'tenant_admin', ['email' => 'admin@user-update.test']);
+
+    $managedUser = createTenantUser($tenant, 'cashier', [
+        'name' => 'Managed User',
+        'email' => 'managed@example.com',
+        'is_active' => true,
+    ]);
+
+    actingAs($admin);
+
+    $this->put(tenantUrl('user-update', '/users/'.$managedUser->id), [
+        'name' => 'Updated User',
+        'email' => 'updated@example.com',
+        'role' => 'viewer',
+        'branch_id' => '',
+        'is_active' => '0',
+    ])->assertRedirect('/users/'.$managedUser->id);
+
+    $tenant->run(static function () use ($managedUser): void {
+        $updatedUser = User::query()->findOrFail($managedUser->id);
+
+        expect($updatedUser->name)->toBe('Updated User');
+        expect($updatedUser->email)->toBe('updated@example.com');
+        expect($updatedUser->is_active)->toBeFalse();
+        expect($updatedUser->hasRole('viewer'))->toBeTrue();
+    });
+});
+
+test('tenant admin can resend staff credentials', function (): void {
+    $tenant = provisionTenant('resend-staff');
+    $admin = createTenantUser($tenant, 'tenant_admin', ['email' => 'admin@resend-staff.test']);
+    $managedUser = createTenantUser($tenant, 'cashier', ['email' => 'cashier@resend-staff.test']);
+    Mail::fake();
+
+    actingAs($admin);
+
+    $this->post(tenantUrl('resend-staff', '/users/'.$managedUser->id.'/resend-credentials'))
+        ->assertRedirect('/users/'.$managedUser->id)
+        ->assertSessionHas('success', 'Credentials resent to cashier@resend-staff.test.');
+
+    $tenant->run(static function () use ($managedUser): void {
+        $updatedUser = User::query()->findOrFail($managedUser->id);
+
+        expect(Hash::check('password123', $updatedUser->password))->toBeFalse();
+    });
+
+    Mail::assertSent(\App\Mail\TenantWelcomeMail::class, function ($mail) use ($tenant): bool {
+        return $mail->hasTo('cashier@resend-staff.test')
+            && $mail->email === 'cashier@resend-staff.test'
+            && $mail->tenant->is($tenant)
+            && str_contains($mail->loginUrl, 'http://resend-staff.localhost/login');
+    });
+});
+
+test('tenant password reset flow sends link and can reset the password', function (): void {
+    $tenant = provisionTenant('tenant-reset');
+    $user = createTenantUser($tenant, 'tenant_admin', ['email' => 'reset-user@example.com']);
+    Notification::fake();
+
+    $this->get(tenantUrl('tenant-reset', '/forgot-password'))
+        ->assertOk()
+        ->assertSee('Forgot Password');
+
+    $this->post(tenantUrl('tenant-reset', '/forgot-password'), [
+        'email' => 'reset-user@example.com',
+    ])->assertSessionHas('status');
+
+    $tenant->run(static function () use ($user): void {
+        $tenantUser = User::query()->findOrFail($user->id);
+
+        Notification::assertSentTo($tenantUser, \App\Notifications\TenantResetPasswordNotification::class);
+    });
+
+    $token = $tenant->run(static function () use ($user): string {
+        $tenantUser = User::query()->findOrFail($user->id);
+
+        return Password::broker('users')->createToken($tenantUser);
+    });
+
+    $this->get(tenantUrl('tenant-reset', '/reset-password/'.$token.'?email=reset-user@example.com'))
+        ->assertOk()
+        ->assertSee('Reset Password');
+
+    $this->post(tenantUrl('tenant-reset', '/reset-password'), [
+        'token' => $token,
+        'email' => 'reset-user@example.com',
+        'password' => 'NewPassword123!',
+        'password_confirmation' => 'NewPassword123!',
+    ])->assertRedirect('/login')
+        ->assertSessionHas('status');
+
+    $tenant->run(static function () use ($user): void {
+        $tenantUser = User::query()->findOrFail($user->id);
+
+        expect(Hash::check('NewPassword123!', $tenantUser->password))->toBeTrue();
+        expect($tenantUser->is_active)->toBeTrue();
+    });
 });
 
 test('member store generates a membership number', function (): void {

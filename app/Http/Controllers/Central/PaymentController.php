@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Central;
 
 use App\Http\Controllers\Controller;
+use App\Mail\TenantReceiptMail;
+use App\Models\BillingInvoice;
 use App\Models\Tenant;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class PaymentController extends Controller
@@ -39,16 +42,25 @@ class PaymentController extends Controller
 
     public function markPaid(Tenant $tenant): RedirectResponse
     {
-        $baseDate = $tenant->subscription_due_at instanceof CarbonInterface
-            && $tenant->subscription_due_at->greaterThan(today())
-                ? $tenant->subscription_due_at
-                : today();
+        $invoice = BillingInvoice::firstOrCreateForTenantCycle(
+            $tenant->loadMissing('plan'),
+            $tenant->subscription_due_at ?? today(),
+            'Payment recorded from the payments overview.',
+        );
 
-        $tenant->subscription_due_at = $baseDate->copy()->addDays(30);
-        $tenant->status = 'active';
-        $tenant->save();
+        $invoice->markPaidAndRenewTenant();
+        $invoice->loadMissing('tenant.plan');
+        $nextDueDate = $invoice->tenant->subscription_due_at?->format('M d, Y') ?? 'Not set';
 
-        return back()->with('success', 'Payment recorded successfully.');
+        Mail::to($invoice->tenant->email)->send(new TenantReceiptMail(
+            $invoice->tenant,
+            $invoice,
+            $invoice->tenant->subscription_due_at,
+        ));
+
+        return redirect()
+            ->to(route('central.billing.show', $invoice, false))
+            ->with('success', "Payment recorded in billing and receipt sent. New due date: {$nextDueDate}.");
     }
 
     protected function resolvePaymentStatus(?CarbonInterface $dueDate): string

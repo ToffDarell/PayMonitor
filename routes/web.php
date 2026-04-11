@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Auth\Central\AuthenticatedSessionController as CentralAuthenticatedSessionController;
+use App\Http\Controllers\Central\BillingController as CentralBillingController;
 use App\Http\Controllers\Central\DashboardController as CentralDashboardController;
 use App\Http\Controllers\Central\PaymentController as CentralPaymentController;
 use App\Http\Controllers\Central\PlanController as CentralPlanController;
@@ -47,6 +48,9 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
 
                 Route::get('/applications', [CentralApplicationController::class, 'index'])->name('applications.index');
                 Route::get('/applications/{application}', [CentralApplicationController::class, 'show'])->name('applications.show');
+                Route::get('/applications/{application}/payment-proof', [CentralApplicationController::class, 'paymentProof'])->name('applications.payment-proof');
+                Route::post('/applications/{application}/verify-payment', [CentralApplicationController::class, 'verifyPayment'])->name('applications.verify-payment');
+                Route::post('/applications/{application}/reject-payment', [CentralApplicationController::class, 'rejectPayment'])->name('applications.reject-payment');
                 Route::post('/applications/{application}/approve', [CentralApplicationController::class, 'approve'])->name('applications.approve');
                 Route::post('/applications/{application}/reject', [CentralApplicationController::class, 'reject'])->name('applications.reject');
 
@@ -56,10 +60,17 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::resource('tenants', CentralTenantController::class);
 
                 Route::resource('plans', CentralPlanController::class)->except('show');
-                Route::resource('versions', CentralVersionController::class)->only(['index', 'create', 'store']);
 
                 Route::get('/payments', [CentralPaymentController::class, 'index'])->name('payments.index');
                 Route::post('/payments/{tenant}/mark-paid', [CentralPaymentController::class, 'markPaid'])->name('payments.mark-paid');
+
+                Route::get('/billing', [CentralBillingController::class, 'index'])->name('billing.index');
+                Route::get('/billing/{invoice}', [CentralBillingController::class, 'show'])->name('billing.show');
+                Route::post('/billing/{tenant}/send-invoice', [CentralBillingController::class, 'sendInvoice'])->name('billing.send-invoice');
+                Route::post('/billing/{invoice}/mark-paid', [CentralBillingController::class, 'markPaid'])->name('billing.mark-paid');
+                Route::post('/billing/{invoice}/send-receipt', [CentralBillingController::class, 'sendReceipt'])->name('billing.send-receipt');
+
+                Route::resource('versions', CentralVersionController::class)->only(['index', 'create', 'store']);
             });
     });
 }

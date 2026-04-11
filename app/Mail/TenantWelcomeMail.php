@@ -26,7 +26,7 @@ class TenantWelcomeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your PayMonitor Account Has Been Created',
+            subject: 'Application Approved - Your PayMonitor Account Is Ready',
         );
     }
 

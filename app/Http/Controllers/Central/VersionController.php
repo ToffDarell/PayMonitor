@@ -73,7 +73,7 @@ class VersionController extends Controller
             ]);
         });
 
-        return redirect('/central/versions')->with(
+        return redirect('/central/versions')->with( 
             'success',
             $isActive ? 'App version published successfully.' : 'App version saved successfully.',
         );

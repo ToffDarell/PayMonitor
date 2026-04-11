@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
@@ -29,6 +30,10 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         'admin_name',
         'status',
         'subscription_due_at',
+    ];
+
+    protected $hidden = [
+        'data',
     ];
 
     public static function getCustomColumns(): array
@@ -67,6 +72,11 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    public function billingInvoices(): HasMany
+    {
+        return $this->hasMany(BillingInvoice::class);
     }
 
     public function getFullDomain(): string
