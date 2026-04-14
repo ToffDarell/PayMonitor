@@ -48,8 +48,8 @@
             <label for="status" class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Status</label>
             <select id="status" name="status" class="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200">
                 <option value="">All statuses</option>
-                @foreach(['unpaid', 'paid', 'overdue'] as $status)
-                    <option value="{{ $status }}" @selected(request('status') === $status)>{{ ucfirst($status) }}</option>
+                @foreach(['unpaid', 'pending_verification', 'paid', 'overdue'] as $status)
+                    <option value="{{ $status }}" @selected(request('status') === $status)>{{ str($status)->replace('_', ' ')->title() }}</option>
                 @endforeach
             </select>
         </div>
@@ -83,7 +83,7 @@
 
 <div class="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02]">
     <div class="overflow-x-auto">
-        <table class="w-full min-w-[1260px] text-sm">
+        <table class="w-full min-w-[1360px] text-sm">
             <thead class="bg-[#0F1729]">
                 <tr class="border-b border-white/[0.06]">
                     <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Invoice #</th>
@@ -92,6 +92,7 @@
                     <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Amount</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Invoice Due Date</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Payment Method</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Paid At</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Renewal Date</th>
                     <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500">Actions</th>
@@ -103,7 +104,17 @@
                         $statusClass = match ($invoice->status) {
                             'paid' => 'bg-emerald-500/15 text-emerald-300',
                             'overdue' => 'bg-red-500/15 text-red-300',
+                            'pending_verification' => 'bg-blue-500/15 text-blue-300',
                             default => 'bg-amber-500/15 text-amber-300',
+                        };
+                        $statusLabel = $invoice->status === 'pending_verification'
+                            ? 'Pending Verification'
+                            : ucfirst((string) $invoice->status);
+                        $methodClass = match ($invoice->payment_method) {
+                            'gcash' => 'bg-blue-500/10 text-blue-400',
+                            'maya' => 'bg-green-500/10 text-green-400',
+                            'card' => 'bg-purple-500/10 text-purple-400',
+                            default => 'bg-white/5 text-slate-300',
                         };
                         $renewalDate = $invoice->status === 'paid'
                             ? $invoice->tenant?->subscription_due_at?->format('M d, Y')
@@ -118,7 +129,19 @@
                             {{ $invoice->due_date?->format('M d, Y') ?? 'N/A' }}
                         </td>
                         <td class="px-4 py-3">
-                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $statusClass }}">{{ ucfirst($invoice->status) }}</span>
+                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $statusClass }}">{{ $statusLabel }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-300">
+                            @if($invoice->paid_via === 'paymongo' || filled($invoice->payment_method) || filled($invoice->paymongo_link_id))
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">PayMongo</span>
+                                    <span class="inline-flex w-fit rounded px-2 py-1 text-xs font-semibold {{ $methodClass }}">
+                                        {{ strtoupper((string) ($invoice->payment_method ?: 'link')) }}
+                                    </span>
+                                </div>
+                            @else
+                                <span class="text-xs text-slate-500">Manual</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3 text-slate-400">{{ $invoice->paid_at?->format('M d, Y h:i A') ?? 'Not Paid' }}</td>
                         <td class="px-4 py-3 text-slate-300">{{ $renewalDate ?? '-' }}</td>
@@ -153,7 +176,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-12 text-center text-sm text-slate-500">No billing invoices found.</td>
+                        <td colspan="10" class="px-6 py-12 text-center text-sm text-slate-500">No billing invoices found.</td>
                     </tr>
                 @endforelse
             </tbody>

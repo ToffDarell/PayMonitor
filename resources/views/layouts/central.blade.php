@@ -450,7 +450,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 4.5h9A1.5 1.5 0 0 1 18 6v12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18V6A1.5 1.5 0 0 1 7.5 4.5Z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 9h6M9 12h6M9 15h3.75"/>
                                 </svg>
-                                <span>App Versions</span>
+                                <span>System Updates</span>
                             </a>
                         </nav>
                     </div>

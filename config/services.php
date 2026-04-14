@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'github' => [
+        'token' => env('GITHUB_TOKEN', ''),
+        'latest_release_url' => env('GITHUB_LATEST_RELEASE_URL', 'https://api.github.com/repos/ToffDarell/PayMonitor/releases/latest'),
+    ],
+
 ];

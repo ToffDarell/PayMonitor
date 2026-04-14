@@ -70,7 +70,9 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::post('/billing/{invoice}/mark-paid', [CentralBillingController::class, 'markPaid'])->name('billing.mark-paid');
                 Route::post('/billing/{invoice}/send-receipt', [CentralBillingController::class, 'sendReceipt'])->name('billing.send-receipt');
 
-                Route::resource('versions', CentralVersionController::class)->only(['index', 'create', 'store']);
+                Route::get('/versions', [CentralVersionController::class, 'index'])->name('versions.index');
+                Route::post('/versions/check', [CentralVersionController::class, 'checkForUpdates'])->name('versions.check');
+                Route::post('/versions/apply', [CentralVersionController::class, 'applyUpdate'])->name('versions.apply');
             });
     });
 }

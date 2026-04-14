@@ -8,8 +8,14 @@
     $logoUrl = filled($logoPath)
         ? route('stancl.tenancy.asset', ['path' => ltrim((string) $logoPath, '/')], false)
         : null;
-    $currentVersionLabel = $currentVersion?->version_number ? 'v'.$currentVersion->version_number : 'Not acknowledged yet';
-    $latestVersionLabel = $latestVersion?->version_number ? 'v'.$latestVersion->version_number : 'No active release';
+    $updateAvailable = (bool) ($updateInfo['update_available'] ?? false);
+    $currentVersionLabel = (string) ($updateInfo['current_version'] ?? 'v1.0.0');
+    $latestVersionLabel = (string) ($updateInfo['latest_version'] ?? 'Unknown');
+    $releaseName = (string) ($updateInfo['release_name'] ?? 'Unable to check');
+    $releaseUrl = (string) ($updateInfo['release_url'] ?? '');
+    $releasePublishedLabel = filled($updateInfo['published_at'] ?? null)
+        ? \Illuminate\Support\Carbon::parse((string) $updateInfo['published_at'])->format('M d, Y h:i A')
+        : 'Unknown';
     $supportEmail = $supportContact['email'] ?? config('mail.from.address', 'support@paymonitor.test');
     $supportPhone = $supportContact['phone'] ?? '+63 917 000 0000';
     $supportHours = $supportContact['hours'] ?? 'Mon-Fri, 8:00 AM - 5:00 PM';
@@ -59,7 +65,7 @@
     <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
             <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Tenant Settings</h2>
-            <p class="mt-1 text-sm text-slate-400">Customize your portal details, appearance, and tenant update acknowledgements.</p>
+            <p class="mt-1 text-sm text-slate-400">Customize your portal details, appearance, and release update visibility.</p>
         </div>
         <div class="flex flex-wrap gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-2">
             <button type="button" x-on:click="activeTab = 'general'" x-bind:class="activeTab === 'general' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">General</button>
@@ -276,91 +282,54 @@
             <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Current Version</p>
                 <p class="mt-3 font-heading text-3xl font-bold text-white">{{ $currentVersionLabel }}</p>
-                <p class="mt-2 text-sm text-slate-500">Most recent release acknowledged by this tenant.</p>
+                <p class="mt-2 text-sm text-slate-500">Installed version from this tenant workspace.</p>
             </div>
             <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Latest Available</p>
-                <p class="mt-3 font-heading text-3xl font-bold text-white">{{ $latestVersionLabel }}</p>
-                <p class="mt-2 text-sm text-slate-500">{{ $latestVersion?->title ?? 'No active version has been published in the central app.' }}</p>
+                <p class="mt-3 font-heading text-3xl font-bold {{ $updateAvailable ? 'text-yellow-300' : 'text-emerald-300' }}">{{ $latestVersionLabel }}</p>
+                <p class="mt-2 text-sm text-slate-500">{{ $releaseName }}</p>
             </div>
             <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Status</p>
-                <p class="mt-3 font-heading text-3xl font-bold {{ $latestVersionAcknowledged ? 'text-emerald-300' : 'text-indigo-300' }}">{{ $latestVersionAcknowledged ? 'Up to Date' : 'Action Needed' }}</p>
-                <p class="mt-2 text-sm text-slate-500">{{ $latestVersionAcknowledged ? 'The latest release has already been acknowledged.' : 'Review the changelog below and mark the update as acknowledged.' }}</p>
+                <p class="mt-3 font-heading text-3xl font-bold {{ $updateAvailable ? 'text-yellow-300' : 'text-emerald-300' }}">{{ $updateAvailable ? 'Update Available' : 'Up to Date' }}</p>
+                <p class="mt-2 text-sm text-slate-500">{{ $updateAvailable ? 'A new release is ready to install by your PayMonitor administrator.' : 'This tenant is running the latest published release.' }}</p>
             </div>
         </div>
 
-        <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-            <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
-                <div class="flex flex-col gap-4 border-b border-white/[0.06] pb-5 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Latest Changelog</p>
-                        <h3 class="mt-2 font-heading text-2xl font-bold text-white">{{ $latestVersion ? 'v'.$latestVersion->version_number.' - '.$latestVersion->title : 'No active update yet' }}</h3>
-                        <p class="mt-2 text-sm text-slate-500">{{ $latestVersion?->released_at?->format('M d, Y') ?? 'Publish an active central version to start tenant update tracking.' }}</p>
-                    </div>
-                    @if($latestVersion && ! $latestVersionAcknowledged)
-                        <form method="POST" action="{{ route('settings.acknowledge', [...$tenantParameter, 'version' => $latestVersion], false) }}">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-indigo-500/20 px-4 py-2.5 text-sm font-medium text-indigo-100 transition hover:bg-indigo-500/30">Mark as Updated</button>
-                        </form>
-                    @endif
-                </div>
+        @if($updateAvailable)
+            <div class="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-6">
+                <p class="text-sm font-semibold text-yellow-300">Release: {{ $releaseName }}</p>
+                <p class="mt-1 text-xs text-slate-500">Published: {{ $releasePublishedLabel }}</p>
 
-                @if($latestVersion)
-                    <ul class="mt-5 space-y-3 text-sm text-slate-300">
-                        @foreach($latestVersion->changelog_items as $change)
+                <div class="mt-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Changelog</p>
+                    <ul class="mt-3 space-y-2 text-sm text-slate-300">
+                        @forelse($changelogItems as $item)
                             <li class="flex gap-3">
-                                <span class="mt-1.5 h-2 w-2 rounded-full bg-indigo-300"></span>
-                                <span>{{ $change }}</span>
+                                <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-yellow-300"></span>
+                                <span>{{ $item }}</span>
                             </li>
-                        @endforeach
+                        @empty
+                            <li class="text-slate-500">No changelog details available.</li>
+                        @endforelse
                     </ul>
-                @else
-                    <div class="mt-5 rounded-2xl border border-dashed border-white/[0.08] bg-[#0f1319] px-5 py-10 text-center">
-                        <p class="text-sm text-slate-500">No active release has been published yet.</p>
-                    </div>
-                @endif
-            </div>
-
-            <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
-                <div class="border-b border-white/[0.06] pb-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Update History</p>
-                    <h3 class="mt-2 font-heading text-xl font-bold text-white">All Releases</h3>
-                    <p class="mt-2 text-sm text-slate-500">Track which versions have already been acknowledged by this tenant.</p>
                 </div>
 
-                <div class="mt-5 space-y-4">
-                    @forelse($versions as $version)
-                        @php($ack = $acknowledgements->get($version->id))
-                        <div class="rounded-2xl border border-white/[0.07] bg-[#0f1319] p-4">
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <p class="text-sm font-semibold text-white">v{{ $version->version_number }}</p>
-                                    <p class="mt-1 text-sm text-slate-400">{{ $version->title }}</p>
-                                </div>
-                                @if($ack)
-                                    <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-300">Acknowledged</span>
-                                @elseif($version->is_active)
-                                    <span class="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-indigo-300">Pending</span>
-                                @else
-                                    <span class="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Archived</span>
-                                @endif
-                            </div>
-                            <div class="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
-                                <span>Released {{ $version->released_at?->format('M d, Y') ?? 'Not scheduled' }}</span>
-                                @if($ack)
-                                    <span>Acknowledged {{ $ack->acknowledged_at?->format('M d, Y h:i A') }}</span>
-                                @endif
-                            </div>
-                        </div>
-                    @empty
-                        <div class="rounded-2xl border border-dashed border-white/[0.08] bg-[#0f1319] px-5 py-10 text-center">
-                            <p class="text-sm text-slate-500">No version history available yet.</p>
-                        </div>
-                    @endforelse
+                <div class="mt-5 flex flex-wrap items-center gap-3">
+                    @if($releaseUrl !== '')
+                        <a href="{{ $releaseUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
+                            View Full Release Notes
+                        </a>
+                    @endif
+                    <p class="text-sm text-slate-400">To install updates, please contact your PayMonitor administrator.</p>
                 </div>
             </div>
-        </div>
+        @else
+            <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                <p class="text-sm font-semibold text-emerald-300">PayMonitor is up to date.</p>
+                <p class="mt-1 text-sm text-slate-400">To install future updates, please contact your PayMonitor administrator.</p>
+            </div>
+        @endif
     </div>
 
     <div x-cloak x-show="activeTab === 'support'" class="space-y-6">
@@ -392,7 +361,7 @@
                     <h3 class="mt-2 font-heading text-xl font-bold text-white">Support and Updates</h3>
                     <ul class="mt-4 space-y-3 text-sm text-slate-300">
                         <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Version announcements and changelog tracking</span></li>
-                        <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Tenant update acknowledgement history</span></li>
+                        <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Tenant release notifications and changelog visibility</span></li>
                         <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Billing and account assistance through support requests</span></li>
                         <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 rounded-full bg-emerald-400"></span><span>Technical issue reporting for portal and access concerns</span></li>
                     </ul>

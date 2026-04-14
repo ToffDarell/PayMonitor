@@ -1,5 +1,6 @@
 <?php
-    $pageTitle = trim($__env->yieldContent('title', 'Tenant App')) ?: 'Tenant App';
+    $rawPageTitle = trim((string) $__env->yieldContent('title', 'Tenant App'));
+    $pageTitle = html_entity_decode($rawPageTitle !== '' ? $rawPageTitle : 'Tenant App', ENT_QUOTES | ENT_HTML5, 'UTF-8');
     $user = auth()->user();
     $tenantModel = tenant();
     $tenantName = $tenantModel?->name ?? 'PayMonitor';
@@ -74,26 +75,25 @@
     $faviconUrl = $logoUrl !== null
         ? $logoUrl.'?v='.rawurlencode((string) $logoPath)
         : asset('favicon.ico');
-    $latestVersion = null;
-    $latestVersionAcknowledged = false;
+    $updateInfo = [
+        'update_available' => false,
+        'latest_version' => 'Unknown',
+        'release_name' => 'Unable to check',
+    ];
+
     try {
-        $centralConnection = config('tenancy.database.central_connection');
-        $hasVersionTables = \Illuminate\Support\Facades\Schema::connection($centralConnection)->hasTable('app_versions')
-            && \Illuminate\Support\Facades\Schema::connection($centralConnection)->hasTable('tenant_version_acknowledgements');
-
-        if ($hasVersionTables && $tenantModel !== null) {
-            $latestVersion = \App\Models\AppVersion::latestActive();
-
-            if ($latestVersion !== null) {
-                $latestVersionAcknowledged = \App\Models\TenantVersionAcknowledgement::query()
-                    ->where('tenant_id', $tenantModel->id)
-                    ->where('version_id', $latestVersion->id)
-                    ->exists();
-            }
-        }
+        $versionService = app(\App\Services\GitHubVersionService::class);
+        $updateInfo = \Illuminate\Support\Facades\Cache::remember(
+            'github_latest_release_info',
+            now()->addMinutes(30),
+            fn (): array => $versionService->getUpdateInfo(),
+        );
     } catch (\Throwable) {
-        $latestVersion = null;
-        $latestVersionAcknowledged = false;
+        $updateInfo = [
+            'update_available' => false,
+            'latest_version' => 'Unknown',
+            'release_name' => 'Unable to check',
+        ];
     }
     $roleName = $user?->getRoleNames()->first() ?? 'viewer';
     $roleDisplay = match ($roleName) {
@@ -874,53 +874,31 @@
             </header>
 
             <main class="tenant-main-surface min-h-screen p-6 pt-24">
-                @if($latestVersion && ! $latestVersionAcknowledged)
-                    <div x-data="{ showChangelog: false }" class="mb-6">
-                        <div class="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-4 text-indigo-200">
-                            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold">New update available: v{{ $latestVersion->version_number }} - {{ $latestVersion->title }}</p>
-                                    <p class="mt-1 text-sm text-indigo-200/80">Review the changelog and mark it as updated once your tenant has acknowledged the release.</p>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
-                                    <button type="button" x-on:click="showChangelog = true" class="inline-flex items-center gap-2 rounded-lg border border-indigo-400/25 px-4 py-2 text-sm font-medium text-indigo-100 transition hover:border-indigo-300/40 hover:bg-indigo-400/10">
-                                        View Changelog
-                                    </button>
-                                    <form method="POST" action="{{ route('settings.acknowledge', [...$tenantParameter, 'version' => $latestVersion], false) }}">
-                                        @csrf
-                                        <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-indigo-400/20 px-4 py-2 text-sm font-medium text-indigo-100 transition hover:bg-indigo-400/30">
-                                            Dismiss
-                                        </button>
-                                    </form>
-                                </div>
+                @if($updateInfo['update_available'] ?? false)
+                    <div
+                        class="mb-4 flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3"
+                        x-data="{ show: true }"
+                        x-show="show"
+                        x-transition
+                    >
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg text-indigo-400">New</span>
+                            <div>
+                                <p class="text-sm font-medium text-indigo-300">
+                                    New update available: {{ $updateInfo['latest_version'] ?? 'Unknown' }} - {{ $updateInfo['release_name'] ?? 'Unable to check' }}
+                                </p>
+                                <p class="mt-0.5 text-xs text-indigo-400/70">
+                                    Contact your administrator to install the update.
+                                </p>
                             </div>
                         </div>
-
-                        <div x-show="showChangelog" x-transition class="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" style="display: none;">
-                            <div class="w-full max-w-2xl rounded-2xl border border-white/[0.08] bg-[#0f1319] shadow-2xl">
-                                <div class="flex items-start justify-between gap-4 border-b border-white/[0.06] px-6 py-5">
-                                    <div>
-                                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-300">Update Notice</p>
-                                        <h2 class="mt-2 font-heading text-xl font-bold text-white">v{{ $latestVersion->version_number }} - {{ $latestVersion->title }}</h2>
-                                        <p class="mt-1 text-sm text-slate-500">Released {{ $latestVersion->released_at?->format('M d, Y') ?? 'Not scheduled' }}</p>
-                                    </div>
-                                    <button type="button" x-on:click="showChangelog = false" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
-                                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
-                                    </button>
-                                </div>
-                                <div class="px-6 py-5">
-                                    <h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Changelog</h3>
-                                    <ul class="mt-4 space-y-3 text-sm text-slate-300">
-                                        @foreach($latestVersion->changelog_items as $change)
-                                            <li class="flex gap-3">
-                                                <span class="mt-1.5 h-2 w-2 rounded-full bg-indigo-300"></span>
-                                                <span>{{ $change }}</span>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
+                        <button
+                            type="button"
+                            @click="show = false"
+                            class="ml-4 text-xs text-indigo-400/50 transition hover:text-indigo-300"
+                        >
+                            Dismiss
+                        </button>
                     </div>
                 @endif
 

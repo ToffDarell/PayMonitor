@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Models\AppVersion;
+use App\Services\GitHubVersionService;
 use App\Models\SupportRequest;
-use App\Models\TenantVersionAcknowledgement;
 use App\Models\TenantSetting;
 use App\Mail\TenantSupportRequestMail;
 use Illuminate\Http\RedirectResponse;
@@ -168,72 +167,20 @@ class SettingsController extends Controller
         return redirect('/settings?tab=support')->with('success', 'Support request submitted successfully.');
     }
 
-    public function acknowledge(Request $request, string $tenant, AppVersion $version): RedirectResponse
-    {
-        $tenantModel = tenant();
-        abort_if($tenantModel === null, 404);
-        abort_unless($this->versionTablesExist(), 404);
-
-        TenantVersionAcknowledgement::query()->updateOrCreate(
-            [
-                'tenant_id' => $tenantModel->id,
-                'version_id' => $version->id,
-            ],
-            [
-                'acknowledged_at' => now(),
-            ],
-        );
-
-        return back()->with('success', "Version {$version->version_number} acknowledged.");
-    }
-
     /**
      * @return array{
-     *     latestVersion: ?AppVersion,
-     *     currentVersion: ?AppVersion,
-     *     versions: Collection<int, AppVersion>,
-     *     acknowledgements: Collection<int|string, TenantVersionAcknowledgement>,
-     *     latestVersionAcknowledged: bool
+     *     updateInfo: array<string, mixed>,
+     *     changelogItems: array<int, string>
      * }
      */
     protected function resolveUpdateData(): array
     {
-        if (! $this->versionTablesExist()) {
-            return [
-                'latestVersion' => null,
-                'currentVersion' => null,
-                'versions' => collect(),
-                'acknowledgements' => collect(),
-                'latestVersionAcknowledged' => false,
-            ];
-        }
-
-        $tenantModel = tenant();
-        $tenantId = $tenantModel?->id;
-
-        $versions = AppVersion::query()
-            ->orderByDesc('released_at')
-            ->orderByDesc('id')
-            ->get();
-
-        $acknowledgements = $tenantId === null
-            ? collect()
-            : TenantVersionAcknowledgement::query()
-                ->where('tenant_id', $tenantId)
-                ->orderByDesc('acknowledged_at')
-                ->get()
-                ->keyBy('version_id');
-
-        $latestVersion = AppVersion::latestActive();
-        $currentVersion = $versions->first(fn (AppVersion $version): bool => $acknowledgements->has($version->id));
-        $latestVersionAcknowledged = $latestVersion !== null && $acknowledgements->has($latestVersion->id);
+        $versionService = app(GitHubVersionService::class);
+        $updateInfo = $versionService->getUpdateInfo();
 
         return [
-            'latestVersion' => $latestVersion,
-            'currentVersion' => $currentVersion,
-            'versions' => $versions,
-            'acknowledgements' => $acknowledgements,
-            'latestVersionAcknowledged' => $latestVersionAcknowledged,
+            'updateInfo' => $updateInfo,
+            'changelogItems' => $versionService->parseChangelog((string) ($updateInfo['changelog'] ?? '')),
         ];
     }
 
@@ -269,14 +216,6 @@ class SettingsController extends Controller
                 ->get(),
             'supportContact' => $supportContact,
         ];
-    }
-
-    protected function versionTablesExist(): bool
-    {
-        $centralConnection = config('tenancy.database.central_connection');
-
-        return Schema::connection($centralConnection)->hasTable('app_versions')
-            && Schema::connection($centralConnection)->hasTable('tenant_version_acknowledgements');
     }
 
     protected function supportRequestsTableExists(): bool

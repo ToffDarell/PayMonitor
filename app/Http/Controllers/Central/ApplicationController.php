@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Central;
 
+use App\Mail\ApplicationPaymentVerifiedMail;
 use App\Http\Controllers\Controller;
 use App\Models\TenantApplication;
 use App\Services\TenantService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class ApplicationController extends Controller
 {
@@ -45,6 +48,7 @@ class ApplicationController extends Controller
 
         // Setup domain name based on cooperative name
         $domainStr = $application->domain;
+        $subscriptionDueAt = now()->addDays(30)->toDateString();
 
         // Let's create the tenant
         $tenantService->createTenant([
@@ -54,6 +58,7 @@ class ApplicationController extends Controller
             'admin_name' => $application->admin_name,
             'admin_email' => $application->admin_email,
             'admin_password' => 'password', // Default temporary password
+            'subscription_due_at' => $subscriptionDueAt,
         ]);
 
         $application->update([
@@ -86,13 +91,27 @@ class ApplicationController extends Controller
             return back()->with('error', 'Only pending applications can have their payment verified.');
         }
 
+        if ($application->payment_status === 'verified') {
+            return back()->with('success', 'Payment proof has already been verified for this application.');
+        }
+
         $application->update([
             'payment_status' => 'verified',
             'payment_verified_by' => auth()->id(),
             'payment_verified_at' => now(),
         ]);
 
-        return back()->with('success', 'Payment proof verified. You can now approve this application.');
+        $application->refresh()->loadMissing('plan', 'paymentVerifier');
+
+        try {
+            Mail::to($application->admin_email)->send(new ApplicationPaymentVerifiedMail($application));
+
+            return back()->with('success', 'Payment proof verified and confirmation email sent. You can now approve this application.');
+        } catch (Throwable $throwable) {
+            report($throwable);
+
+            return back()->with('warning', 'Payment proof verified, but the confirmation email could not be sent.');
+        }
     }
 
     public function rejectPayment(TenantApplication $application): RedirectResponse

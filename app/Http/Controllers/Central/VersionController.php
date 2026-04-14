@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Central;
 
 use App\Http\Controllers\Controller;
-use App\Models\AppVersion;
-use App\Models\Tenant;
+use App\Services\GitHubVersionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class VersionController extends Controller
@@ -27,55 +25,49 @@ class VersionController extends Controller
 
     public function index(): View
     {
-        $versions = AppVersion::query()
-            ->withCount('acknowledgements')
-            ->orderByDesc('released_at')
-            ->orderByDesc('id')
-            ->get();
+        $versionService = app(GitHubVersionService::class);
+        $updateInfo = $versionService->getUpdateInfo();
+        $changelogItems = $versionService->parseChangelog((string) ($updateInfo['changelog'] ?? ''));
+        $updateHistory = $versionService->getUpdateHistory();
 
-        $totalTenants = Tenant::query()->count();
-        $latestActiveVersion = AppVersion::latestActive();
-
-        return view('central.versions.index', compact('versions', 'totalTenants', 'latestActiveVersion'));
-    }
-
-    public function create(): View
-    {
-        return view('central.versions.create');
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'version_number' => ['required', 'string', 'max:50', 'regex:/^\d+(?:\.\d+){1,2}$/', Rule::unique('app_versions', 'version_number')],
-            'title' => ['required', 'string', 'max:255'],
-            'changelog' => ['required', 'string'],
-            'released_at' => ['nullable', 'date'],
-            'is_active' => ['nullable', 'boolean'],
+        return view('central.versions.index', [
+            'updateInfo' => $updateInfo,
+            'changelogItems' => $changelogItems,
+            'updateHistory' => $updateHistory,
         ]);
+    }
 
-        $isActive = $request->boolean('is_active');
-        $releasedAt = filled($validated['released_at'] ?? null)
-            ? Carbon::parse((string) $validated['released_at'])->startOfDay()
-            : ($isActive ? now() : null);
+    public function checkForUpdates(): JsonResponse
+    {
+        Cache::forget('github_latest_release');
+        Cache::forget('github_latest_release_info');
 
-        DB::transaction(function () use ($validated, $isActive, $releasedAt): void {
-            if ($isActive) {
-                AppVersion::query()->where('is_active', true)->update(['is_active' => false]);
-            }
+        $updateInfo = app(GitHubVersionService::class)->getUpdateInfo();
 
-            AppVersion::query()->create([
-                'version_number' => $validated['version_number'],
-                'title' => $validated['title'],
-                'changelog' => trim((string) $validated['changelog']),
-                'is_active' => $isActive,
-                'released_at' => $releasedAt,
-            ]);
-        });
+        return response()->json([
+            'update_available' => $updateInfo['update_available'] ?? false,
+            'latest_version' => $updateInfo['latest_version'] ?? 'Unknown',
+            'current_version' => $updateInfo['current_version'] ?? 'Unknown',
+            'release_name' => $updateInfo['release_name'] ?? 'Unable to check',
+            'changelog' => $updateInfo['changelog'] ?? '',
+        ]);
+    }
 
-        return redirect('/central/versions')->with( 
-            'success',
-            $isActive ? 'App version published successfully.' : 'App version saved successfully.',
-        );
+    public function applyUpdate(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
+        $result = app(GitHubVersionService::class)->applyUpdate((string) ($request->user()?->email ?? 'superadmin@paymonitor.com'));
+
+        if ((bool) ($result['success'] ?? false)) {
+            return redirect()
+                ->route('central.versions.index')
+                ->with('success', (string) ($result['message'] ?? 'Update applied successfully'));
+        }
+
+        return redirect()
+            ->route('central.versions.index')
+            ->with('error', (string) ($result['message'] ?? 'Update failed'))
+            ->with('warning', trim((string) ($result['output'] ?? '')));
     }
 }

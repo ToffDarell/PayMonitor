@@ -59,7 +59,7 @@ class BillingController extends Controller
         $summary = [
             'total_invoiced' => (float) (clone $summaryBaseQuery)->sum('amount'),
             'total_paid' => (float) (clone $summaryBaseQuery)->paid()->sum('amount'),
-            'total_unpaid' => (float) (clone $summaryBaseQuery)->unpaid()->sum('amount'),
+            'total_unpaid' => (float) (clone $summaryBaseQuery)->whereIn('status', ['unpaid', 'pending_verification'])->sum('amount'),
             'total_overdue' => (float) (clone $summaryBaseQuery)->overdue()->sum('amount'),
         ];
 

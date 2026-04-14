@@ -5,15 +5,15 @@ declare(strict_types=1);
 use App\Http\Controllers\Auth\Tenant\AuthenticatedSessionController as TenantAuthenticatedSessionController;
 use App\Http\Controllers\Auth\Tenant\NewPasswordController as TenantNewPasswordController;
 use App\Http\Controllers\Auth\Tenant\PasswordResetLinkController as TenantPasswordResetLinkController;
-use App\Http\Controllers\Tenant\BranchController;
 use App\Http\Controllers\Tenant\BillingController;
+use App\Http\Controllers\Tenant\BranchController;
 use App\Http\Controllers\Tenant\DashboardController;
 use App\Http\Controllers\Tenant\LoanController;
 use App\Http\Controllers\Tenant\LoanPaymentController;
 use App\Http\Controllers\Tenant\LoanTypeController;
 use App\Http\Controllers\Tenant\MemberController;
-use App\Http\Controllers\Tenant\RoleController;
 use App\Http\Controllers\Tenant\ReportController;
+use App\Http\Controllers\Tenant\RoleController;
 use App\Http\Controllers\Tenant\SettingsController;
 use App\Http\Controllers\Tenant\UserController;
 use App\Support\TenantPermissions;
@@ -52,6 +52,10 @@ collect(config('tenancy.central_domains', ['localhost']))
                 Route::middleware(['auth', 'tenant.context'])->group(function (): void {
                     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
                     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
+                    Route::match(['get', 'post'], '/billing/{invoiceId}/pay', [BillingController::class, 'initiatePayment'])->name('billing.pay');
+                    Route::get('/billing/{invoiceId}/success', [BillingController::class, 'paymentSuccess'])->name('billing.success');
+                    Route::get('/billing/{invoiceId}/failed', [BillingController::class, 'paymentFailed'])->name('billing.failed');
+                    Route::post('/billing/{invoiceId}/verify', [BillingController::class, 'verifyPayment'])->name('billing.verify');
 
                     Route::resource('members', MemberController::class);
                     Route::post('/loans/compute-preview', [LoanController::class, 'computePreview'])->name('loans.compute-preview');
@@ -87,7 +91,6 @@ collect(config('tenancy.central_domains', ['localhost']))
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::SETTINGS_UPDATE])->group(function (): void {
                     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
-                    Route::post('/settings/updates/{version}/acknowledge', [SettingsController::class, 'acknowledge'])->name('settings.acknowledge');
                     Route::post('/settings/support', [SettingsController::class, 'submitSupport'])->name('settings.support');
                 });
 

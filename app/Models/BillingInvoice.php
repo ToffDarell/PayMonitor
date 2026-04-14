@@ -24,6 +24,11 @@ class BillingInvoice extends Model
         'due_date',
         'paid_at',
         'status',
+        'paymongo_link_id',
+        'paymongo_payment_id',
+        'payment_url',
+        'payment_method',
+        'paid_via',
         'notes',
     ];
 
@@ -58,6 +63,11 @@ class BillingInvoice extends Model
     public function scopeOverdue(Builder $query): Builder
     {
         return $query->where('status', 'overdue');
+    }
+
+    public function scopePendingVerification(Builder $query): Builder
+    {
+        return $query->where('status', 'pending_verification');
     }
 
     public static function generateInvoiceNumber(?CarbonInterface $date = null): string

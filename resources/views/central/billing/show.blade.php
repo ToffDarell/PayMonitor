@@ -63,10 +63,14 @@
                 $statusClass = match ($invoice->status) {
                     'paid' => 'bg-emerald-500/15 text-emerald-300',
                     'overdue' => 'bg-red-500/15 text-red-300',
+                    'pending_verification' => 'bg-blue-500/15 text-blue-300',
                     default => 'bg-amber-500/15 text-amber-300',
                 };
+                $statusLabel = $invoice->status === 'pending_verification'
+                    ? 'Pending Verification'
+                    : ucfirst((string) $invoice->status);
             @endphp
-            <span class="mt-3 inline-flex rounded-full px-3 py-1 text-xs font-medium {{ $statusClass }}">{{ ucfirst($invoice->status) }}</span>
+            <span class="mt-3 inline-flex rounded-full px-3 py-1 text-xs font-medium {{ $statusClass }}">{{ $statusLabel }}</span>
             <div class="mt-5 space-y-2 text-sm text-slate-400">
                 <p><span class="font-medium text-white">Plan:</span> {{ $invoice->tenant?->plan?->name ?? 'No Plan' }}</p>
                 <p><span class="font-medium text-white">Amount:</span> P{{ number_format((float) $invoice->amount, 2) }}</p>
@@ -100,6 +104,42 @@
             </tfoot>
         </table>
     </div>
+
+    @if(filled($invoice->paymongo_link_id) || filled($invoice->paymongo_payment_id) || $invoice->paid_via === 'paymongo')
+        @php
+            $methodClass = match ($invoice->payment_method) {
+                'gcash' => 'bg-blue-500/10 text-blue-400',
+                'maya' => 'bg-green-500/10 text-green-400',
+                'card' => 'bg-purple-500/10 text-purple-400',
+                default => 'bg-white/5 text-slate-300',
+            };
+        @endphp
+        <div class="mt-6 rounded-xl border border-white/[0.06] bg-[#0f1319] p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">PayMongo Payment Info</p>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+                <div class="rounded-xl border border-white/[0.06] bg-[#11161d] p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Payment ID</p>
+                    <p class="mt-2 break-all text-sm text-white">{{ $invoice->paymongo_payment_id ?? 'Not available' }}</p>
+                </div>
+                <div class="rounded-xl border border-white/[0.06] bg-[#11161d] p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Payment Method</p>
+                    <div class="mt-2">
+                        <span class="inline-flex rounded px-2 py-1 text-xs font-semibold {{ $methodClass }}">
+                            {{ strtoupper((string) ($invoice->payment_method ?: 'N/A')) }}
+                        </span>
+                    </div>
+                </div>
+                <div class="rounded-xl border border-white/[0.06] bg-[#11161d] p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Paid Via</p>
+                    <p class="mt-2 text-sm text-white">{{ $invoice->paid_via === 'paymongo' ? 'PayMongo' : ($invoice->paid_via ? ucfirst((string) $invoice->paid_via) : 'Not available') }}</p>
+                </div>
+                <div class="rounded-xl border border-white/[0.06] bg-[#11161d] p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Transaction Reference</p>
+                    <p class="mt-2 break-all text-sm text-white">{{ $invoice->paymongo_link_id ?? 'Not available' }}</p>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @if(filled($invoice->notes))
         <div class="mt-6 rounded-xl border border-white/[0.06] bg-[#0f1319] p-5">
