@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -13,7 +14,18 @@ class GitHubVersionService
 {
     public function getLatestRelease(): array
     {
-        return Cache::remember('github_latest_release', now()->addMinutes(30), function (): array {
+        $resolver = fn (): array => $this->resolveLatestRelease();
+
+        try {
+            return $this->releaseCacheStore()->remember('github_latest_release', now()->addMinutes(30), $resolver);
+        } catch (\Throwable) {
+            return $resolver();
+        }
+    }
+
+    protected function resolveLatestRelease(): array
+    {
+        return (function (): array {
             $headers = [
                 'Accept' => 'application/vnd.github.v3+json',
                 'User-Agent' => 'PayMonitor-App',
@@ -46,7 +58,7 @@ class GitHubVersionService
                 'url' => (string) ($data['html_url'] ?? ''),
                 'found' => true,
             ];
-        });
+        })();
     }
 
     protected function fallbackReleaseData(): array
@@ -278,8 +290,13 @@ class GitHubVersionService
             'status' => $success ? 'success' : 'failed',
         ]);
 
-        Cache::forget('github_latest_release');
-        Cache::forget('github_latest_release_info');
+        try {
+            $releaseCache = $this->releaseCacheStore();
+            $releaseCache->forget('github_latest_release');
+            $releaseCache->forget('github_latest_release_info');
+        } catch (\Throwable) {
+            // Swallow cache reset errors so update flow doesn't fail for cache backend differences.
+        }
 
         return [
             'success' => $success,
@@ -289,6 +306,11 @@ class GitHubVersionService
                 ? 'Update applied successfully'
                 : 'Update failed',
         ];
+    }
+
+    protected function releaseCacheStore(): CacheRepository
+    {
+        return Cache::store('file');
     }
 
     /**
