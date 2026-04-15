@@ -194,7 +194,7 @@ class GitHubVersionService
         $composerBin = config('services.composer.binary', 'composer');
 
         // Check for tracked modified files (dirty repo)
-        $statusCheck = Process::fromShellCommandline("$gitBin status --porcelain", base_path());
+        $statusCheck = new Process([$gitBin, 'status', '--porcelain'], base_path());
         $statusCheck->run();
         
         // Count lines that start with M, A, D, R, etc. (indicating tracked modifications)
@@ -218,19 +218,17 @@ class GitHubVersionService
             ];
         }
 
-        $fetch = Process::fromShellCommandline("$gitBin fetch --tags origin", base_path());
+        $fetch = new Process([$gitBin, 'fetch', '--tags', 'origin'], base_path());
         $fetch->setTimeout(300);
         $fetch->run();
         
-        $checkout = Process::fromShellCommandline("$gitBin checkout --detach $newVersion", base_path());
+        $checkout = new Process([$gitBin, 'checkout', '--detach', $newVersion], base_path());
         $checkout->setTimeout(180);
         
-        $composer = Process::fromShellCommandline("$composerBin install --no-dev", base_path());
+        $composer = new Process([$composerBin, 'install', '--no-dev'], base_path());
         $composer->setTimeout(600);
         
-        $artisanPath = escapeshellarg(base_path('artisan'));
-        $phpBin = escapeshellarg(PHP_BINARY);
-        $clear = Process::fromShellCommandline("$phpBin $artisanPath optimize:clear", base_path());
+        $clear = new Process([PHP_BINARY, base_path('artisan'), 'optimize:clear'], base_path());
         $clear->setTimeout(180);
         
         $success = false;
