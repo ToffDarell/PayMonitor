@@ -225,7 +225,11 @@ class GitHubVersionService
         $checkout = new Process([$gitBin, 'checkout', '--detach', $newVersion], base_path());
         $checkout->setTimeout(180);
         
-        $composer = new Process([$composerBin, 'install', '--no-dev'], base_path());
+        $composer = new Process(
+            [$composerBin, 'install', '--no-dev', '--no-interaction'],
+            base_path(),
+            $this->buildComposerEnvironment(),
+        );
         $composer->setTimeout(600);
         
         $clear = new Process([PHP_BINARY, base_path('artisan'), 'optimize:clear'], base_path());
@@ -284,6 +288,35 @@ class GitHubVersionService
             'message' => $success
                 ? 'Update applied successfully'
                 : 'Update failed',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function buildComposerEnvironment(): array
+    {
+        $composerHome = trim((string) (getenv('COMPOSER_HOME') ?: ''));
+        $appData = trim((string) (getenv('APPDATA') ?: ''));
+
+        if ($composerHome === '' && $appData !== '') {
+            $composerHome = rtrim($appData, "\\/").DIRECTORY_SEPARATOR.'Composer';
+        }
+
+        if ($composerHome === '') {
+            $composerHome = storage_path('app/composer-home');
+        }
+
+        if ($appData === '') {
+            $appData = dirname($composerHome);
+        }
+
+        File::ensureDirectoryExists($composerHome);
+        File::ensureDirectoryExists($appData);
+
+        return [
+            'COMPOSER_HOME' => $composerHome,
+            'APPDATA' => $appData,
         ];
     }
 
