@@ -190,31 +190,83 @@ class GitHubVersionService
             ];
         }
 
-        $git = Process::fromShellCommandline('git pull origin main', base_path());
-        $git->setTimeout(300);
-        $git->run();
+        $gitBin = config('services.git.binary', 'git');
+        $composerBin = config('services.composer.binary', 'composer');
 
-        $composer = Process::fromShellCommandline('composer install --no-dev', base_path());
+        // Check for tracked modified files (dirty repo)
+        $statusCheck = Process::fromShellCommandline("$gitBin status --porcelain", base_path());
+        $statusCheck->run();
+        
+        // Count lines that start with M, A, D, R, etc. (indicating tracked modifications)
+        $isDirty = false;
+        if ($statusCheck->isSuccessful()) {
+            $lines = explode("\n", trim($statusCheck->getOutput()));
+            foreach ($lines as $line) {
+                if (preg_match('/^[MADRCU]. /', $line) || preg_match('/^.[MADRCU] /', $line)) {
+                    $isDirty = true;
+                    break;
+                }
+            }
+        }
+
+        if ($isDirty) {
+            return [
+                'success' => false,
+                'output' => trim($statusCheck->getOutput()),
+                'version' => $this->getCurrentVersion(),
+                'message' => 'Update blocked by local changes',
+            ];
+        }
+
+        $fetch = Process::fromShellCommandline("$gitBin fetch --tags origin", base_path());
+        $fetch->setTimeout(300);
+        $fetch->run();
+        
+        $checkout = Process::fromShellCommandline("$gitBin checkout --detach $newVersion", base_path());
+        $checkout->setTimeout(180);
+        
+        $composer = Process::fromShellCommandline("$composerBin install --no-dev", base_path());
         $composer->setTimeout(600);
-        $composer->run();
-
-        $clear = new Process([PHP_BINARY, 'artisan', 'optimize:clear'], base_path());
+        
+        $artisanPath = escapeshellarg(base_path('artisan'));
+        $phpBin = escapeshellarg(PHP_BINARY);
+        $clear = Process::fromShellCommandline("$phpBin $artisanPath optimize:clear", base_path());
         $clear->setTimeout(180);
-        $clear->run();
-
-        $success = $git->isSuccessful() && $composer->isSuccessful() && $clear->isSuccessful();
+        
+        $success = false;
+        
+        if ($fetch->isSuccessful()) {
+            $checkout->run();
+            if ($checkout->isSuccessful()) {
+                $composer->run();
+                if ($composer->isSuccessful()) {
+                    $clear->run();
+                    $success = $clear->isSuccessful();
+                }
+            }
+        }
 
         if ($success) {
             file_put_contents(base_path('version.txt'), $newVersion.PHP_EOL);
         }
+        
+        $formatOutput = function ($process) {
+            if (! $process->isStarted()) {
+                return '[skipped]';
+            }
+            $out = trim($process->getOutput()."\n".$process->getErrorOutput());
+            return $out === '' ? '[no output]' : $out;
+        };
 
         $output = trim(implode("\n", [
-            '[git pull]',
-            trim($git->getOutput()."\n".$git->getErrorOutput()),
+            '[git fetch --tags origin]',
+            $formatOutput($fetch),
+            "[git checkout --detach $newVersion]",
+            $formatOutput($checkout),
             '[composer install --no-dev]',
-            trim($composer->getOutput()."\n".$composer->getErrorOutput()),
+            $formatOutput($composer),
             '[php artisan optimize:clear]',
-            trim($clear->getOutput()."\n".$clear->getErrorOutput()),
+            $formatOutput($clear),
         ]));
 
         $this->appendUpdateHistory([
