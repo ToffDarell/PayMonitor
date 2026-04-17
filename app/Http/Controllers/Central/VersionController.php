@@ -39,8 +39,18 @@ class VersionController extends Controller
 
     public function checkForUpdates(): JsonResponse
     {
-        Cache::forget('github_latest_release');
-        Cache::forget('github_latest_release_info');
+        foreach (array_unique([(string) config('cache.default'), 'file']) as $store) {
+            if ($store === '') {
+                continue;
+            }
+
+            try {
+                Cache::store($store)->forget('github_latest_release');
+                Cache::store($store)->forget('github_latest_release_info');
+            } catch (\Throwable) {
+                // Ignore cache driver issues and still attempt to fetch fresh release info.
+            }
+        }
 
         $updateInfo = app(GitHubVersionService::class)->getUpdateInfo();
 
