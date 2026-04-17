@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Domain;
 use App\Models\Plan;
-use App\Models\AppVersion;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TenantService;
@@ -491,32 +490,64 @@ test('payment controller classifies statuses and mark paid extends from the late
     expect($currentTenant->fresh()->status)->toBe('active');
 });
 
-test('version store publishes a new active release and deactivates the old one', function (): void {
-    AppVersion::query()->create([
-        'version_number' => '1.1.0',
-        'title' => 'Previous Release',
-        'changelog' => "Existing change\nExisting improvement",
-        'is_active' => true,
-        'released_at' => now()->subMonth(),
+test('version check endpoint returns the latest release snapshot', function (): void {
+    $service = Mockery::mock(\App\Services\GitHubVersionService::class);
+    $service->shouldReceive('getUpdateInfo')->once()->andReturnUsing(static fn (): array => [
+        'update_available' => true,
+        'latest_version' => 'v1.2.3',
+        'current_version' => 'v1.2.2',
+        'release_name' => 'April Update',
+        'changelog' => "- Fixed cache handling\n- Improved updater stability",
     ]);
+    app()->instance(\App\Services\GitHubVersionService::class, $service);
 
     actingAs(createCentralAdmin());
 
-    $response = $this->withServerVariables(centralHost())->post('/central/versions', [
-        'version_number' => '1.2.0',
-        'title' => 'March Update',
-        'changelog' => "Added tenant updates\nAdded tenant settings",
-        'released_at' => today()->toDateString(),
-        'is_active' => '1',
-    ]);
+    $this->withServerVariables(centralHost())->post('/central/versions/check')
+        ->assertOk()
+        ->assertJson([
+            'update_available' => true,
+            'latest_version' => 'v1.2.3',
+            'current_version' => 'v1.2.2',
+            'release_name' => 'April Update',
+            'changelog' => "- Fixed cache handling\n- Improved updater stability",
+        ]);
+});
 
-    $response->assertRedirect('/central/versions')
-        ->assertSessionHas('success', 'App version published successfully.');
+test('version apply endpoint redirects with success when updater succeeds', function (): void {
+    $service = Mockery::mock(\App\Services\GitHubVersionService::class);
+    $service->shouldReceive('applyUpdate')
+        ->once()
+        ->with('central@example.com')
+        ->andReturnUsing(static fn (): array => [
+            'success' => true,
+            'message' => 'Update applied successfully',
+        ]);
+    app()->instance(\App\Services\GitHubVersionService::class, $service);
 
-    $newVersion = AppVersion::query()->where('version_number', '1.2.0')->firstOrFail();
-    $oldVersion = AppVersion::query()->where('version_number', '1.1.0')->firstOrFail();
+    actingAs(createCentralAdmin());
 
-    expect($newVersion->is_active)->toBeTrue();
-    expect($newVersion->title)->toBe('March Update');
-    expect($oldVersion->is_active)->toBeFalse();
+    $this->withServerVariables(centralHost())->post('/central/versions/apply')
+        ->assertRedirect('/central/versions')
+        ->assertSessionHas('success', 'Update applied successfully');
+});
+
+test('version apply endpoint redirects with error and warning when updater fails', function (): void {
+    $service = Mockery::mock(\App\Services\GitHubVersionService::class);
+    $service->shouldReceive('applyUpdate')
+        ->once()
+        ->with('central@example.com')
+        ->andReturnUsing(static fn (): array => [
+            'success' => false,
+            'message' => 'Update failed',
+            'output' => 'git fetch failed: network timeout',
+        ]);
+    app()->instance(\App\Services\GitHubVersionService::class, $service);
+
+    actingAs(createCentralAdmin());
+
+    $this->withServerVariables(centralHost())->post('/central/versions/apply')
+        ->assertRedirect('/central/versions')
+        ->assertSessionHas('error', 'Update failed')
+        ->assertSessionHas('warning', 'git fetch failed: network timeout');
 });

@@ -2,11 +2,53 @@
 
 @section('title', 'Billing & Subscription')
 
+@push('styles')
+<style>
+    .billing-shell [class*="bg-[#161b22]"],
+    .billing-shell [class*="bg-[#0F1729]"] {
+        background-color: var(--pm-card-bg) !important;
+    }
+
+    .billing-shell [class*="bg-[#0f1319]"],
+    .billing-shell [class*="bg-white/[0.02]"] {
+        background-color: var(--pm-surface-bg) !important;
+    }
+
+    .billing-shell [class*="border-[#21262d]"],
+    .billing-shell [class*="border-white/[0.07]"],
+    .billing-shell [class*="border-white/[0.06]"],
+    .billing-shell [class*="divide-white/[0.04]"] {
+        border-color: var(--pm-border) !important;
+    }
+
+    .billing-shell .text-white {
+        color: var(--pm-text-primary) !important;
+    }
+
+    .billing-shell .text-slate-200,
+    .billing-shell .text-slate-300,
+    .billing-shell [class*="text-[#8b949e]"] {
+        color: var(--pm-text-secondary) !important;
+    }
+
+    .billing-shell .text-slate-400,
+    .billing-shell .text-slate-500 {
+        color: var(--pm-text-muted) !important;
+    }
+
+    .billing-shell tbody tr:hover {
+        background-color: var(--pm-table-hover-bg) !important;
+    }
+</style>
+@endpush
+
 @section('content')
 @php
     $invoices = $invoices ?? collect();
     $tenantParameter = ['tenant' => tenant()?->id ?? request()->route('tenant')];
 @endphp
+
+<div class="billing-shell">
 
 <div class="mb-5">
     <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Billing & Subscription</h2>
@@ -110,5 +152,7 @@
             </tbody>
         </table>
     </div>
+</div>
+
 </div>
 @endsection

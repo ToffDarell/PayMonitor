@@ -28,7 +28,67 @@
     .settings-tab-active {
         border-color: rgba(var(--pm-accent-rgb), 0.35);
         background-color: rgba(var(--pm-accent-rgb), 0.12);
-        color: #fff;
+        color: var(--pm-nav-hover-text);
+    }
+
+    .settings-tab-default {
+        color: var(--pm-text-muted);
+    }
+
+    .settings-tab-default:hover {
+        background-color: var(--pm-nav-hover-bg);
+        color: var(--pm-nav-hover-text);
+    }
+
+    .settings-shell [class*="bg-white/[0.02]"] {
+        background-color: var(--pm-panel-bg) !important;
+    }
+
+    .settings-shell [class*="bg-white/[0.03]"],
+    .settings-shell [class*="bg-white/[0.06]"],
+    .settings-shell [class*="bg-[#0f1319]"],
+    .settings-shell [class*="bg-[#0b1120]"] {
+        background-color: var(--pm-surface-bg) !important;
+    }
+
+    .settings-shell [class*="border-white/[0.07]"],
+    .settings-shell [class*="border-white/[0.06]"],
+    .settings-shell [class*="border-white/10"] {
+        border-color: var(--pm-border) !important;
+    }
+
+    .settings-shell .text-white {
+        color: var(--pm-text-primary) !important;
+    }
+
+    .settings-shell .text-slate-200,
+    .settings-shell .text-slate-300 {
+        color: var(--pm-text-secondary) !important;
+    }
+
+    .settings-shell .text-slate-400,
+    .settings-shell .text-slate-500 {
+        color: var(--pm-text-muted) !important;
+    }
+
+    .settings-shell input:not([type='hidden']):not([type='checkbox']):not([type='radio']),
+    .settings-shell textarea,
+    .settings-shell select {
+        background-color: var(--pm-surface-bg) !important;
+        border-color: var(--pm-border) !important;
+        color: var(--pm-text-primary) !important;
+    }
+
+    .settings-shell input:not([type='hidden']):not([type='checkbox']):not([type='radio'])::placeholder,
+    .settings-shell textarea::placeholder {
+        color: var(--pm-text-subtle) !important;
+    }
+
+    .settings-shell input:not([type='hidden']):not([type='checkbox']):not([type='radio']):focus,
+    .settings-shell textarea:focus,
+    .settings-shell select:focus {
+        border-color: var(--pm-accent) !important;
+        box-shadow: 0 0 0 0.2rem rgba(var(--pm-accent-rgb), 0.18) !important;
     }
 
     .settings-support-status-open {
@@ -68,10 +128,10 @@
             <p class="mt-1 text-sm text-slate-400">Customize your portal details, appearance, and release update visibility.</p>
         </div>
         <div class="flex flex-wrap gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-2">
-            <button type="button" x-on:click="activeTab = 'general'" x-bind:class="activeTab === 'general' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">General</button>
-            <button type="button" x-on:click="activeTab = 'appearance'" x-bind:class="activeTab === 'appearance' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Appearance</button>
-            <button type="button" x-on:click="activeTab = 'updates'" x-bind:class="activeTab === 'updates' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Updates</button>
-            <button type="button" x-on:click="activeTab = 'support'" x-bind:class="activeTab === 'support' ? 'settings-tab-active' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Support</button>
+            <button type="button" x-on:click="activeTab = 'general'" x-bind:class="activeTab === 'general' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">General</button>
+            <button type="button" x-on:click="activeTab = 'appearance'" x-bind:class="activeTab === 'appearance' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Appearance</button>
+            <button type="button" x-on:click="activeTab = 'updates'" x-bind:class="activeTab === 'updates' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Updates</button>
+            <button type="button" x-on:click="activeTab = 'support'" x-bind:class="activeTab === 'support' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Support</button>
         </div>
     </div>
 
