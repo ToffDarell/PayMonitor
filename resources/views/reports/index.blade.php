@@ -5,6 +5,9 @@
 @section('content')
 @php
     $tenantParameter = ['tenant' => request()->route('tenant')];
+    $exportQuery = http_build_query(request()->query());
+    $pdfExportUrl = url('/reports/export/pdf').($exportQuery !== '' ? '?'.$exportQuery : '');
+    $excelExportUrl = url('/reports/export/excel').($exportQuery !== '' ? '?'.$exportQuery : '');
 @endphp
 
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
@@ -12,9 +15,29 @@
         <h1 class="h3 fw-bold mb-1">Reports</h1>
         <p class="text-muted mb-0">Monitor lending performance, collections, overdue exposure, and borrower concentration.</p>
     </div>
-    <button type="button" id="export-report-button" class="btn btn-outline-primary">
-        <i class="bi bi-download me-2"></i>Export
-    </button>
+    <div class="flex items-center gap-2">
+        <a href="{{ $pdfExportUrl }}"
+           class="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Export PDF
+        </a>
+
+        <a href="{{ $excelExportUrl }}"
+           class="flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-400 transition-colors hover:bg-green-500/20">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export Excel
+        </a>
+    </div>
 </div>
 
 <div class="card border-0 shadow-sm mb-4">
@@ -231,32 +254,4 @@
         </div>
     </div>
 </div>
-
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="exportSoonToast" class="toast align-items-center text-bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-            <div class="toast-body">
-                Export feature coming soon
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    </div>
-</div>
 @endsection
-
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const exportButton = document.getElementById('export-report-button');
-        const toastElement = document.getElementById('exportSoonToast');
-
-        if (!exportButton || !toastElement) {
-            return;
-        }
-
-        exportButton.addEventListener('click', function () {
-            bootstrap.Toast.getOrCreateInstance(toastElement).show();
-        });
-    });
-</script>
-@endpush

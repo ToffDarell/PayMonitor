@@ -61,6 +61,9 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::post('/loans/compute-preview', [LoanController::class, 'computePreview'])->name('loans.compute-preview');
                     Route::resource('loans', LoanController::class);
                     Route::resource('loan-payments', LoanPaymentController::class)->only(['index', 'create', 'store']);
+                    Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
+                    Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
+                    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
                     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
                 });
 

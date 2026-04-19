@@ -11,8 +11,10 @@ use App\Models\LoanType;
 use App\Models\Member;
 use App\Models\Plan;
 use App\Models\Tenant;
+use App\Models\TenantSetting;
 use App\Models\User;
 use App\Services\LoanService;
+use App\Support\Reports\TenantReportExcelExporter;
 use App\Support\TenantPermissions;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -20,6 +22,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 use function Pest\Laravel\actingAs;
@@ -53,6 +56,43 @@ function tenantUrl(string $tenantId = 'alpha', string $path = '/'): string
     $normalizedPath = str_starts_with($path, '/') ? $path : "/{$path}";
 
     return "http://{$tenantId}.localhost{$normalizedPath}";
+}
+
+function unpackSpreadsheet(string $binaryContent): array
+{
+    $tempPath = tempnam(sys_get_temp_dir(), 'tenant-report-xlsx-');
+
+    if ($tempPath === false) {
+        throw new RuntimeException('Unable to create a temporary spreadsheet file.');
+    }
+
+    File::put($tempPath, $binaryContent);
+
+    $zip = new ZipArchive();
+    $opened = $zip->open($tempPath);
+
+    if ($opened !== true) {
+        File::delete($tempPath);
+
+        throw new RuntimeException('Unable to open the spreadsheet archive.');
+    }
+
+    $files = [];
+
+    for ($index = 0; $index < $zip->numFiles; $index++) {
+        $name = $zip->getNameIndex($index);
+
+        if ($name === false) {
+            continue;
+        }
+
+        $files[$name] = (string) $zip->getFromIndex($index);
+    }
+
+    $zip->close();
+    File::delete($tempPath);
+
+    return $files;
 }
 
 function provisionTenant(string $tenantId = 'alpha', string $status = 'active'): Tenant
@@ -855,4 +895,376 @@ test('report page renders computed tenant report data', function (): void {
         ->assertSee('Collections by Month')
         ->assertSee('Top 10 Borrowers by Outstanding Balance')
         ->assertSee('Fully Paid Loans');
+});
+
+test('report export downloads csv for selected tenant filters', function (): void {
+    $tenant = provisionTenant('reports-export');
+    $user = createTenantUser($tenant, 'viewer');
+
+    $branchId = $tenant->run(function (): int {
+        $branch = Branch::query()->create([
+            'name' => 'Export Branch',
+            'address' => 'Export Street',
+            'is_active' => true,
+        ]);
+
+        $member = Member::query()->create([
+            'branch_id' => $branch->id,
+            'member_number' => 'MBR-20260318-3002',
+            'first_name' => 'Mila',
+            'last_name' => 'Santos',
+            'is_active' => true,
+        ]);
+
+        $loanType = LoanType::query()->create([
+            'name' => 'Food Loan',
+            'interest_rate' => 3,
+            'interest_type' => 'flat',
+            'is_active' => true,
+        ]);
+
+        $loan = Loan::query()->create([
+            'member_id' => $member->id,
+            'branch_id' => $branch->id,
+            'user_id' => User::query()->firstOrFail()->id,
+            'loan_type_id' => $loanType->id,
+            'loan_number' => 'LN-20260318-3002',
+            'principal_amount' => 500,
+            'interest_rate' => 3,
+            'interest_type' => 'flat',
+            'term_months' => 1,
+            'total_interest' => 15,
+            'total_payable' => 515,
+            'monthly_payment' => 515,
+            'amount_paid' => 515,
+            'outstanding_balance' => 0,
+            'status' => 'fully_paid',
+            'release_date' => today(),
+            'due_date' => today()->addMonth(),
+        ]);
+
+        LoanPayment::query()->create([
+            'loan_id' => $loan->id,
+            'user_id' => User::query()->firstOrFail()->id,
+            'amount' => 515,
+            'payment_date' => today(),
+        ]);
+
+        LoanSchedule::query()->create([
+            'loan_id' => $loan->id,
+            'period_number' => 1,
+            'due_date' => today()->addMonth(),
+            'amount_due' => 515,
+            'principal_portion' => 500,
+            'interest_portion' => 15,
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        return $branch->id;
+    });
+
+    actingAs($user);
+
+    $response = $this->get(tenantUrl(
+        'reports-export',
+        '/reports/export?date_from='.today()->toDateString().'&date_to='.today()->toDateString().'&branch_id='.$branchId,
+    ));
+
+    $response->assertOk();
+
+    $contentType = (string) $response->headers->get('content-type');
+    $contentDisposition = (string) $response->headers->get('content-disposition');
+    $content = (string) $response->getContent();
+
+    expect($contentType)->toContain('text/csv');
+    expect($contentDisposition)->toContain('attachment; filename="lending-report-');
+    expect($content)->toContain('PayMonitor - Lending Report');
+    expect($content)->toContain('SUMMARY');
+    expect($content)->toContain('Food Loan');
+    expect($content)->toContain('COLLECTIONS BY MONTH');
+});
+
+test('report export downloads excel for selected tenant filters', function (): void {
+    $tenant = provisionTenant('reports-excel');
+    $user = createTenantUser($tenant, 'viewer');
+
+    $branchId = $tenant->run(function (): int {
+        $branch = Branch::query()->create([
+            'name' => 'Excel Branch',
+            'address' => 'Excel Street',
+            'is_active' => true,
+        ]);
+
+        $member = Member::query()->create([
+            'branch_id' => $branch->id,
+            'member_number' => 'MBR-20260318-3003',
+            'first_name' => 'Nina',
+            'last_name' => 'Dela Cruz',
+            'is_active' => true,
+        ]);
+
+        $loanType = LoanType::query()->create([
+            'name' => 'Rice Loan',
+            'interest_rate' => 4,
+            'interest_type' => 'flat',
+            'is_active' => true,
+        ]);
+
+        $loan = Loan::query()->create([
+            'member_id' => $member->id,
+            'branch_id' => $branch->id,
+            'user_id' => User::query()->firstOrFail()->id,
+            'loan_type_id' => $loanType->id,
+            'loan_number' => 'LN-20260318-3003',
+            'principal_amount' => 900,
+            'interest_rate' => 4,
+            'interest_type' => 'flat',
+            'term_months' => 1,
+            'total_interest' => 36,
+            'total_payable' => 936,
+            'monthly_payment' => 936,
+            'amount_paid' => 936,
+            'outstanding_balance' => 0,
+            'status' => 'fully_paid',
+            'release_date' => today(),
+            'due_date' => today()->addMonth(),
+        ]);
+
+        LoanPayment::query()->create([
+            'loan_id' => $loan->id,
+            'user_id' => User::query()->firstOrFail()->id,
+            'amount' => 936,
+            'payment_date' => today(),
+        ]);
+
+        LoanSchedule::query()->create([
+            'loan_id' => $loan->id,
+            'period_number' => 1,
+            'due_date' => today()->addMonth(),
+            'amount_due' => 936,
+            'principal_portion' => 900,
+            'interest_portion' => 36,
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        return $branch->id;
+    });
+
+    actingAs($user);
+
+    $response = $this->get(tenantUrl(
+        'reports-excel',
+        '/reports/export?format=excel&date_from='.today()->toDateString().'&date_to='.today()->toDateString().'&branch_id='.$branchId,
+    ));
+
+    $response->assertOk();
+
+    $contentType = (string) $response->headers->get('content-type');
+    $contentDisposition = (string) $response->headers->get('content-disposition');
+    $content = (string) $response->getContent();
+    $spreadsheetFiles = unpackSpreadsheet($content);
+
+    expect($contentType)->toContain('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect($contentDisposition)->toContain('.xlsx');
+    expect($content)->toStartWith('PK');
+    expect($spreadsheetFiles)->toHaveKey('xl/worksheets/sheet1.xml');
+    expect($spreadsheetFiles['xl/worksheets/sheet1.xml'])->toContain('Reports-excel Cooperative');
+    expect($spreadsheetFiles['xl/worksheets/sheet1.xml'])->toContain('COOPERATIVE LENDING REPORT');
+    expect($spreadsheetFiles['xl/worksheets/sheet1.xml'])->toContain('Rice Loan');
+    expect($spreadsheetFiles['xl/worksheets/sheet1.xml'])->toContain('TOP 10 BORROWERS BY OUTSTANDING BALANCE');
+});
+
+test('report export downloads pdf for selected tenant filters', function (): void {
+    $tenant = provisionTenant('reports-pdf');
+    $user = createTenantUser($tenant, 'viewer');
+
+    $branchId = $tenant->run(function (): int {
+        $branch = Branch::query()->create([
+            'name' => 'PDF Branch',
+            'address' => 'PDF Street',
+            'is_active' => true,
+        ]);
+
+        $member = Member::query()->create([
+            'branch_id' => $branch->id,
+            'member_number' => 'MBR-20260318-3004',
+            'first_name' => 'Joel',
+            'last_name' => 'Mendoza',
+            'is_active' => true,
+        ]);
+
+        $loanType = LoanType::query()->create([
+            'name' => 'School Loan',
+            'interest_rate' => 2,
+            'interest_type' => 'flat',
+            'is_active' => true,
+        ]);
+
+        $loan = Loan::query()->create([
+            'member_id' => $member->id,
+            'branch_id' => $branch->id,
+            'user_id' => User::query()->firstOrFail()->id,
+            'loan_type_id' => $loanType->id,
+            'loan_number' => 'LN-20260318-3004',
+            'principal_amount' => 700,
+            'interest_rate' => 2,
+            'interest_type' => 'flat',
+            'term_months' => 1,
+            'total_interest' => 14,
+            'total_payable' => 714,
+            'monthly_payment' => 714,
+            'amount_paid' => 714,
+            'outstanding_balance' => 0,
+            'status' => 'fully_paid',
+            'release_date' => today(),
+            'due_date' => today()->addMonth(),
+        ]);
+
+        LoanPayment::query()->create([
+            'loan_id' => $loan->id,
+            'user_id' => User::query()->firstOrFail()->id,
+            'amount' => 714,
+            'payment_date' => today(),
+        ]);
+
+        LoanSchedule::query()->create([
+            'loan_id' => $loan->id,
+            'period_number' => 1,
+            'due_date' => today()->addMonth(),
+            'amount_due' => 714,
+            'principal_portion' => 700,
+            'interest_portion' => 14,
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        return $branch->id;
+    });
+
+    actingAs($user);
+
+    $response = $this->get(tenantUrl(
+        'reports-pdf',
+        '/reports/export?format=pdf&date_from='.today()->toDateString().'&date_to='.today()->toDateString().'&branch_id='.$branchId,
+    ));
+
+    $response->assertOk();
+
+    $contentType = (string) $response->headers->get('content-type');
+    $contentDisposition = (string) $response->headers->get('content-disposition');
+    $content = (string) $response->getContent();
+
+    expect($contentType)->toContain('application/pdf');
+    expect($contentDisposition)->toContain('.pdf');
+    expect($content)->toStartWith('%PDF-1.4');
+});
+
+test('report exports include tenant logo when configured', function (): void {
+    Storage::fake('public');
+
+    $tenant = provisionTenant('reports-logo');
+    $user = createTenantUser($tenant, 'viewer');
+
+    $tenant->run(static function (): void {
+        $logoPath = 'tenant-assets/logos/report-logo.png';
+        $logoBinary = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVQImWP8////fwYGBgYGAB8NBAVbfXDnAAAAAElFTkSuQmCC');
+
+        Storage::disk('public')->put($logoPath, $logoBinary);
+        TenantSetting::set('logo_path', $logoPath);
+        TenantSetting::set('cooperative_tagline', 'Serving members with care');
+    });
+
+    actingAs($user);
+
+    $excelResponse = $this->get(tenantUrl('reports-logo', '/reports/export?format=excel'));
+    $excelResponse->assertOk();
+
+    $excelContent = (string) $excelResponse->getContent();
+    $spreadsheetFiles = unpackSpreadsheet($excelContent);
+
+    expect($excelContent)->toStartWith('PK');
+    expect($spreadsheetFiles)->toHaveKey('xl/media/logo.png');
+    expect($spreadsheetFiles)->toHaveKey('xl/drawings/drawing1.xml');
+    expect($spreadsheetFiles)->toHaveKey('xl/worksheets/_rels/sheet1.xml.rels');
+    expect($spreadsheetFiles['xl/worksheets/sheet1.xml'])->toContain('Serving members with care');
+    expect($spreadsheetFiles['xl/drawings/drawing1.xml'])->toContain('Tenant Logo');
+
+    $pdfResponse = $this->get(tenantUrl('reports-logo', '/reports/export?format=pdf'));
+    $pdfResponse->assertOk();
+
+    $pdfContent = (string) $pdfResponse->getContent();
+
+    expect($pdfContent)->toContain('/Subtype /Image');
+    expect($pdfContent)->toContain('/Im1 Do');
+});
+
+test('excel exporter builds xlsx archive even without zip archive support', function (): void {
+    $exporter = new class extends TenantReportExcelExporter
+    {
+        protected function canUseZipArchive(): bool
+        {
+            return false;
+        }
+    };
+
+    $logoBinary = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVQImWP8////fwYGBgYGAB8NBAVbfXDnAAAAAElFTkSuQmCC');
+
+    $content = $exporter->build(
+        [
+            'tenant_name' => 'Fallback Cooperative',
+            'tagline' => 'Serving members with care',
+            'address' => 'Main Street',
+            'contact_number' => '0917-000-0000',
+            'contact_email' => 'fallback@example.com',
+            'accent_hex' => '0F6B4B',
+            'logo_excel_image' => [
+                'data' => $logoBinary,
+                'extension' => 'png',
+                'mime_type' => 'image/png',
+                'pixel_width' => 2,
+                'pixel_height' => 2,
+                'display_width' => 48,
+                'display_height' => 48,
+            ],
+        ],
+        [
+            ['label' => 'Tenant', 'value' => 'Fallback Cooperative'],
+            ['label' => 'Branch', 'value' => 'All Branches'],
+            ['label' => 'Date From', 'value' => 'All Dates'],
+            ['label' => 'Date To', 'value' => 'All Dates'],
+            ['label' => 'Generated At', 'value' => now()->format('Y-m-d H:i:s')],
+        ],
+        [
+            [
+                'title' => 'SUMMARY',
+                'headers' => ['Metric', 'Value'],
+                'rows' => [
+                    ['Total Loans Released (Count)', '0'],
+                    ['Total Loans Released (Amount)', 'P0.00'],
+                    ['Total Collections', 'P0.00'],
+                    ['Outstanding Balance', 'P0.00'],
+                    ['Overdue Loans', '0'],
+                    ['Interest Income / Profit', 'P0.00'],
+                    ['Fully Paid Loans', '0'],
+                ],
+            ],
+            [
+                'title' => 'LOAN RELEASES BY TYPE',
+                'headers' => ['Loan Type', 'Count', 'Total Principal', 'Total Payable'],
+                'rows' => [
+                    ['No loan releases found for the selected period.', '', '', ''],
+                ],
+            ],
+        ],
+    );
+
+    $spreadsheetFiles = unpackSpreadsheet($content);
+
+    expect($content)->toStartWith('PK');
+    expect($spreadsheetFiles)->toHaveKey('xl/worksheets/sheet1.xml');
+    expect($spreadsheetFiles)->toHaveKey('xl/media/logo.png');
+    expect($spreadsheetFiles['xl/worksheets/sheet1.xml'])->toContain('Fallback Cooperative');
+    expect($spreadsheetFiles['xl/worksheets/sheet1.xml'])->toContain('COOPERATIVE LENDING REPORT');
 });
