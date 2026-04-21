@@ -6,28 +6,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class SupportRequest extends Model
+class SupportResponse extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'tenant_id',
-        'tenant_name',
-        'requester_name',
-        'requester_email',
-        'category',
-        'subject',
+        'support_request_id',
+        'responder_name',
+        'responder_email',
         'message',
-        'status',
-        'resolved_at',
+        'sent_via_email',
     ];
 
     protected function casts(): array
     {
         return [
-            'resolved_at' => 'datetime',
+            'sent_via_email' => 'boolean',
         ];
     }
 
@@ -36,8 +32,8 @@ class SupportRequest extends Model
         return config('tenancy.database.central_connection') ?: parent::getConnectionName();
     }
 
-    public function responses(): HasMany
+    public function supportRequest(): BelongsTo
     {
-        return $this->hasMany(SupportResponse::class)->latest();
+        return $this->belongsTo(SupportRequest::class);
     }
 }

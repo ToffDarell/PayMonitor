@@ -9,8 +9,11 @@ The Central Support Management System allows super admins to view, manage, and r
 1. **View All Support Requests** - See every support ticket from all tenants in one place
 2. **Filter & Search** - Filter by status, category, or search by tenant/subject/email
 3. **Status Management** - Update ticket status (Open → In Progress → Resolved)
-4. **Statistics Dashboard** - See total, open, in-progress, and resolved ticket counts
-5. **Detailed View** - View full ticket details including tenant info, requester, message, and category
+4. **Send Responses** - Reply to tickets directly from the dashboard
+5. **Email Notifications** - Automatically email responses to tenants
+6. **Conversation History** - View full conversation thread for each ticket
+7. **Statistics Dashboard** - See total, open, in-progress, and resolved ticket counts
+8. **Detailed View** - View full ticket details including tenant info, requester, message, and category
 
 ## How It Works
 
@@ -28,6 +31,9 @@ The Central Support Management System allows super admins to view, manage, and r
    - Filter by status/category
    - Search by tenant name, subject, or email
    - Click "View Details" to see full ticket
+   - Send responses to tenants
+   - Email responses automatically
+   - View conversation history
    - Update status from Open → In Progress → Resolved
 
 ## How to Test
@@ -53,7 +59,7 @@ The Central Support Management System allows super admins to view, manage, and r
    - Filter form (search, status, category)
    - Table with all support requests
 
-### Step 3: View Ticket Details
+### Step 3: View Ticket Details & Send Response
 1. In the support requests table, click "View Details" on any ticket
 2. You should see:
    - Full subject and message
@@ -62,24 +68,47 @@ The Central Support Management System allows super admins to view, manage, and r
    - Category badge
    - Current status
    - Submission date/time
+   - Response form at the bottom
 
-### Step 4: Update Ticket Status
+### Step 4: Send a Response
+1. On the ticket details page, scroll to "Send Response" section
+2. Type your response in the textarea (e.g., "Thank you for contacting us. We're looking into this issue.")
+3. Make sure "Send email notification" checkbox is checked
+4. Click "Send Response" button
+5. You should see success message
+6. The response will appear in "Conversation History" section
+7. An email will be sent to the tenant's requester email
+8. Status will automatically change from "Open" to "In Progress"
+
+### Step 5: Check Email (as Tenant)
+1. Check the tenant's email inbox (requester_email)
+2. You should receive an email with:
+   - Subject: "Re: [Original Subject]"
+   - Original ticket summary
+   - Your response message
+   - Ticket details (ID, status, category)
+   - Link to view support dashboard
+
+### Step 6: Send Multiple Responses
+1. Go back to the ticket detail page
+2. Send another response
+3. Both responses will appear in "Conversation History"
+4. Each response shows:
+   - Responder name and email
+   - Timestamp
+   - "Emailed" badge if sent via email
+   - Full message content
+
+### Step 7: Update Ticket Status
 1. On the ticket details page, look at the right sidebar
 2. Use the "Update Status" dropdown
-3. Change status from "Open" to "In Progress"
+3. Change status from "In Progress" to "Resolved"
 4. Click "Update Status" button
 5. You should see success message
 6. Status badge should update
-7. Go back to support list - the ticket should now show "In Progress"
+7. "Resolved" timestamp will appear
 
-### Step 5: Resolve Ticket
-1. Open the ticket again
-2. Change status to "Resolved"
-3. Click "Update Status"
-4. You should see "Resolved" timestamp appear
-5. Go back to support list - resolved count should increase
-
-### Step 6: Test Filters
+### Step 8: Test Filters
 1. On support index page, try filtering:
    - Status: Select "Open" - should only show open tickets
    - Category: Select "Technical" - should only show technical tickets
@@ -93,7 +122,7 @@ The Central Support Management System allows super admins to view, manage, and r
 
 ## Database
 
-All support requests are stored in the central database in the `support_requests` table with these fields:
+### support_requests table (central database):
 - `tenant_id` - Which tenant submitted it
 - `tenant_name` - Tenant cooperative name
 - `requester_name` - Person who submitted
@@ -105,28 +134,42 @@ All support requests are stored in the central database in the `support_requests
 - `resolved_at` - Timestamp when resolved
 - `created_at` - When submitted
 
+### support_responses table (central database):
+- `support_request_id` - Which ticket this response belongs to
+- `responder_name` - Admin who responded
+- `responder_email` - Admin's email
+- `message` - Response message
+- `sent_via_email` - Whether email was sent
+- `created_at` - When response was sent
+
 ## What's Next (Optional Future Enhancements)
 
-1. **Reply System** - Allow admins to reply to tickets via email
+1. ~~**Reply System**~~ ✅ DONE - Allow admins to reply to tickets
 2. **Assignment** - Assign tickets to specific support staff
 3. **Priority Levels** - Add urgent/high/medium/low priority
 4. **Internal Notes** - Add private notes visible only to admins
 5. **Email Templates** - Auto-reply when status changes
 6. **SLA Tracking** - Track response time and resolution time
 7. **Attachments** - Allow file uploads with tickets
+8. **Tenant Reply** - Allow tenants to reply to responses
 
 ## Files Created/Modified
 
 ### New Files:
 - `app/Http/Controllers/Central/SupportController.php` - Controller for support management
+- `app/Models/SupportResponse.php` - Model for support responses
+- `app/Mail/SupportResponseMail.php` - Email notification for responses
 - `resources/views/central/support/index.blade.php` - Support requests list view
-- `resources/views/central/support/show.blade.php` - Individual ticket detail view
+- `resources/views/central/support/show.blade.php` - Individual ticket detail view with response form
+- `resources/views/emails/support-response.blade.php` - Email template for responses
+- `database/migrations/2026_04_21_135621_create_support_responses_table.php` - Migration for responses
 
 ### Modified Files:
-- `routes/web.php` - Added support routes
+- `routes/web.php` - Added support routes including response route
 - `resources/views/layouts/central.blade.php` - Added Support navigation link
 - `config/app.php` - Added support_email configuration
 - `app/Http/Controllers/Tenant/SettingsController.php` - Updated to use SUPPORT_EMAIL
+- `app/Models/SupportRequest.php` - Added responses relationship
 
 ## Configuration
 
@@ -136,3 +179,11 @@ SUPPORT_EMAIL=support@paymonitor.com
 SUPPORT_PHONE=+63 917 000 0000
 SUPPORT_HOURS=Mon-Fri, 8:00 AM - 5:00 PM
 ```
+
+## Email Configuration
+
+Responses are sent using the same mail configuration as support requests:
+- **From**: `MAIL_FROM_ADDRESS` (no-reply@paymonitor.com)
+- **To**: Tenant's requester email
+- **Subject**: "Re: [Original Subject]"
+- **Content**: Professional HTML email with original request summary and response

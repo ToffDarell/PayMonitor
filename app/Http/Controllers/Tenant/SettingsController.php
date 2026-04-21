@@ -235,6 +235,7 @@ class SettingsController extends Controller
 
         return [
             'supportRequests' => SupportRequest::query()
+                ->with('responses')
                 ->where('tenant_id', $tenantId)
                 ->latest()
                 ->limit(10)

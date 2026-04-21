@@ -593,11 +593,27 @@
                                         <p class="text-sm font-semibold text-white">{{ $supportRequest->subject }}</p>
                                         <p class="mt-1 text-sm text-slate-400">{{ ucfirst($supportRequest->category) }} request from {{ $supportRequest->requester_name }}</p>
                                     </div>
-                                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] {{ $supportRequest->status === 'open' ? 'settings-support-status-open' : 'border border-white/10 bg-white/[0.03] text-slate-400' }}">
-                                        {{ $supportRequest->status }}
+                                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] {{ $supportRequest->status === 'open' ? 'settings-support-status-open' : ($supportRequest->status === 'resolved' ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border border-blue-500/20 bg-blue-500/10 text-blue-300') }}">
+                                        {{ str_replace('_', ' ', $supportRequest->status) }}
                                     </span>
                                 </div>
                                 <p class="mt-3 text-sm leading-6 text-slate-300">{{ \Illuminate\Support\Str::limit($supportRequest->message, 220) }}</p>
+                                
+                                @if($supportRequest->responses->isNotEmpty())
+                                    <div class="mt-4 space-y-3 border-t border-white/[0.06] pt-4">
+                                        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-400">{{ $supportRequest->responses->count() }} Response(s) from Support</p>
+                                        @foreach($supportRequest->responses as $response)
+                                            <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+                                                <div class="mb-2 flex items-start justify-between gap-2">
+                                                    <p class="text-xs font-semibold text-emerald-300">{{ $response->responder_name }}</p>
+                                                    <p class="text-xs text-slate-500">{{ $response->created_at->format('M d, Y h:i A') }}</p>
+                                                </div>
+                                                <p class="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">{{ $response->message }}</p>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+
                                 <div class="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
                                     <span>Submitted {{ $supportRequest->created_at?->format('M d, Y h:i A') }}</span>
                                     @if($supportRequest->resolved_at)

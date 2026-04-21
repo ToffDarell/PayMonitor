@@ -78,6 +78,7 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::get('/support', [CentralSupportController::class, 'index'])->name('support.index');
                 Route::get('/support/{supportRequest}', [CentralSupportController::class, 'show'])->name('support.show');
                 Route::patch('/support/{supportRequest}/status', [CentralSupportController::class, 'updateStatus'])->name('support.update-status');
+                Route::post('/support/{supportRequest}/response', [CentralSupportController::class, 'storeResponse'])->name('support.store-response');
             });
     });
 }
