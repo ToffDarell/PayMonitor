@@ -4,6 +4,7 @@
     $user = auth()->user();
     $tenantModel = tenant();
     $tenantName = $tenantModel?->name ?? 'PayMonitor';
+    $tenantSupportsAuditLogs = $tenantModel?->supportsAuditLogs() ?? false;
     $tenantHost = request()->getHost();
     $tenantParameter = ['tenant' => $tenantModel?->id ?? request()->route('tenant')];
     $tenantSettings = \App\Models\TenantSetting::allKeyed();
@@ -808,10 +809,17 @@
                                     <span>Payments</span>
                                 </a>
                             @endif
+                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::COLLECTIONS_VIEW))
+                                @php($collectionsActive = request()->routeIs('tenant.collections'))
+                                <a href="{{ route('tenant.collections', $tenantParameter, false) }}" class="{{ $navItemClass($collectionsActive) }}">
+                                    <svg class="h-5 w-5 {{ $navIconClass($collectionsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M6 3.75v6m12-6v6M5.25 12.75h13.5a1.5 1.5 0 0 1 1.5 1.5v3a3 3 0 0 1-3 3H6.75a3 3 0 0 1-3-3v-3a1.5 1.5 0 0 1 1.5-1.5Zm3 0v1.5a.75.75 0 0 0 .75.75h6a.75.75 0 0 0 .75-.75v-1.5"/></svg>
+                                    <span>Collections</span>
+                                </a>
+                            @endif
                         </nav>
                     </div>
 
-                    @if($user?->hasAnyTenantPermission([\App\Support\TenantPermissions::BRANCHES_VIEW, \App\Support\TenantPermissions::USERS_VIEW]))
+                    @if($user?->hasAnyTenantPermission([\App\Support\TenantPermissions::BRANCHES_VIEW, \App\Support\TenantPermissions::USERS_VIEW]) || ($tenantSupportsAuditLogs && $user?->hasTenantPermission(\App\Support\TenantPermissions::AUDIT_LOGS_VIEW)))
                         <div class="mt-6">
                             <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Management</p>
                             <nav class="mt-3 space-y-1.5">
@@ -827,6 +835,13 @@
                                     <a href="{{ route('users.index', $tenantParameter, false) }}" class="{{ $navItemClass($usersActive) }}">
                                         <svg class="h-5 w-5 {{ $navIconClass($usersActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 7.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5.25 18a5.25 5.25 0 0 1 10.5 0"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 8.25h3m-1.5-1.5v3"/></svg>
                                         <span>Users</span>
+                                    </a>
+                                @endif
+                                @if($tenantSupportsAuditLogs && $user?->hasTenantPermission(\App\Support\TenantPermissions::AUDIT_LOGS_VIEW))
+                                    @php($auditLogsActive = request()->routeIs('tenant.audit-logs'))
+                                    <a href="{{ route('tenant.audit-logs', $tenantParameter, false) }}" class="{{ $navItemClass($auditLogsActive) }}">
+                                        <svg class="h-5 w-5 {{ $navIconClass($auditLogsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4.5 2.25"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                                        <span>Audit Logs</span>
                                     </a>
                                 @endif
                             </nav>

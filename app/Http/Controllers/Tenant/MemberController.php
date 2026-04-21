@@ -73,7 +73,10 @@ class MemberController extends Controller
     {
         $this->authorize('view', $member);
 
-        $member->load('branch');
+        $member->load([
+            'branch',
+            'documents.uploadedBy',
+        ]);
         $loanHistory = $member->loans()
             ->with(['loanType', 'branch'])
             ->latest('release_date')

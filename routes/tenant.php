@@ -7,11 +7,15 @@ use App\Http\Controllers\Auth\Tenant\NewPasswordController as TenantNewPasswordC
 use App\Http\Controllers\Auth\Tenant\PasswordResetLinkController as TenantPasswordResetLinkController;
 use App\Http\Controllers\Tenant\BillingController;
 use App\Http\Controllers\Tenant\BranchController;
+use App\Http\Controllers\Tenant\AuditLogController;
+use App\Http\Controllers\Tenant\CollectionController;
 use App\Http\Controllers\Tenant\DashboardController;
 use App\Http\Controllers\Tenant\LoanController;
+use App\Http\Controllers\Tenant\LoanDocumentController;
 use App\Http\Controllers\Tenant\LoanPaymentController;
 use App\Http\Controllers\Tenant\LoanTypeController;
 use App\Http\Controllers\Tenant\MemberController;
+use App\Http\Controllers\Tenant\MemberDocumentController;
 use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\RoleController;
 use App\Http\Controllers\Tenant\SettingsController;
@@ -67,6 +71,38 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
                 });
 
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_UPLOAD])->group(function (): void {
+                    Route::post('/members/{member}/documents', [MemberDocumentController::class, 'store'])->name('member.documents.store');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_DELETE])->group(function (): void {
+                    Route::delete('/members/documents/{document}', [MemberDocumentController::class, 'destroy'])->name('member.documents.destroy');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_VIEW])->group(function (): void {
+                    Route::get('/members/documents/{document}/download', [MemberDocumentController::class, 'download'])->name('member.documents.download');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_UPLOAD])->group(function (): void {
+                    Route::post('/loans/{loan}/documents', [LoanDocumentController::class, 'store'])->name('loan.documents.store');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_DELETE])->group(function (): void {
+                    Route::delete('/loans/documents/{document}', [LoanDocumentController::class, 'destroy'])->name('loan.documents.destroy');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_VIEW])->group(function (): void {
+                    Route::get('/loans/documents/{document}/download', [LoanDocumentController::class, 'download'])->name('loan.documents.download');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::COLLECTIONS_VIEW])->group(function (): void {
+                    Route::get('/collections', [CollectionController::class, 'index'])->name('tenant.collections');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::AUDIT_LOGS_VIEW])->group(function (): void {
+                    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('tenant.audit-logs');
+                });
+
                 Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::LOAN_TYPES_VIEW])->group(function (): void {
                     Route::resource('loan-types', LoanTypeController::class);
                 });
@@ -90,6 +126,10 @@ collect(config('tenancy.central_domains', ['localhost']))
                 Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::SETTINGS_VIEW])->group(function (): void {
                     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
                     Route::get('/settings/updates', [SettingsController::class, 'updates'])->name('settings.updates');
+                });
+
+                Route::middleware(['auth', 'tenant.context'])->group(function (): void {
+                    Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
                 });
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::SETTINGS_UPDATE])->group(function (): void {

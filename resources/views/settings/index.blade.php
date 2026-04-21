@@ -19,6 +19,7 @@
     $supportEmail = $supportContact['email'] ?? config('mail.from.address', 'support@paymonitor.test');
     $supportPhone = $supportContact['phone'] ?? '+63 917 000 0000';
     $supportHours = $supportContact['hours'] ?? 'Mon-Fri, 8:00 AM - 5:00 PM';
+    $passwordHint = auth()->user()?->email ?? tenant()?->email ?? 'your account email';
 @endphp
 
 @push('styles')
@@ -125,11 +126,12 @@
     <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
             <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Tenant Settings</h2>
-            <p class="mt-1 text-sm text-slate-400">Customize your portal details, appearance, and release update visibility.</p>
+            <p class="mt-1 text-sm text-slate-400">Customize your portal details, appearance, account security, and release update visibility.</p>
         </div>
         <div class="flex flex-wrap gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-2">
             <button type="button" x-on:click="activeTab = 'general'" x-bind:class="activeTab === 'general' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">General</button>
             <button type="button" x-on:click="activeTab = 'appearance'" x-bind:class="activeTab === 'appearance' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Appearance</button>
+            <button type="button" x-on:click="activeTab = 'security'" x-bind:class="activeTab === 'security' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Security</button>
             <button type="button" x-on:click="activeTab = 'updates'" x-bind:class="activeTab === 'updates' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Updates</button>
             <button type="button" x-on:click="activeTab = 'support'" x-bind:class="activeTab === 'support' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Support</button>
         </div>
@@ -337,6 +339,106 @@
         </form>
     </div>
 
+    <div x-cloak x-show="activeTab === 'security'" class="space-y-6">
+        <div class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+            <div class="space-y-6">
+                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Account Security</p>
+                    <h3 class="mt-2 font-heading text-2xl font-bold text-white">Change Password</h3>
+                    <p class="mt-2 text-sm text-slate-400">Update your login password here after receiving your temporary credentials.</p>
+
+                    <div class="mt-6 space-y-4">
+                        <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Current Account</p>
+                            <p class="mt-2 text-sm font-semibold text-white">{{ auth()->user()?->name ?? 'Tenant User' }}</p>
+                            <p class="mt-1 text-sm text-slate-500">{{ $passwordHint }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Best Practice</p>
+                            <p class="mt-2 text-sm text-slate-300">Use a strong password that is unique to this tenant workspace. If you ever forget it, you can still use the tenant <span class="font-semibold text-white">Forgot password?</span> flow from the login page.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Password Form</p>
+                <h3 class="mt-2 font-heading text-xl font-bold text-white">Update your password</h3>
+                <p class="mt-2 text-sm text-slate-400">Enter your current password, then choose a new one for future logins.</p>
+
+                <form method="POST" action="{{ route('settings.password', $tenantParameter, false) }}" class="mt-6 space-y-5" x-data="{ showCurrentPassword: false, showNewPassword: false, showConfirmPassword: false }">
+                    @csrf
+
+                    <div>
+                        <label for="current_password" class="mb-2 block text-sm font-medium text-slate-200">Current Password</label>
+                        <div class="relative">
+                            <input id="current_password" name="current_password" x-bind:type="showCurrentPassword ? 'text' : 'password'" autocomplete="current-password" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-12 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
+                            <button type="button" x-on:click="showCurrentPassword = !showCurrentPassword" class="absolute inset-y-0 right-0 inline-flex items-center px-4 text-slate-400 transition hover:text-slate-200" x-bind:aria-label="showCurrentPassword ? 'Hide current password' : 'Show current password'">
+                                <svg x-cloak x-show="!showCurrentPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"/>
+                                </svg>
+                                <svg x-cloak x-show="showCurrentPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="display: none;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.88 5.09A10.94 10.94 0 0 1 12 4.88c6 0 9.75 7.12 9.75 7.12a17.56 17.56 0 0 1-4.13 4.77"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.61 6.61A17.42 17.42 0 0 0 2.25 12s3.75 7.12 9.75 7.12c1.64 0 3.13-.35 4.46-.94"/>
+                                </svg>
+                            </button>
+                        </div>
+                        @error('current_password', 'updatePassword') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="password" class="mb-2 block text-sm font-medium text-slate-200">New Password</label>
+                        <div class="relative">
+                            <input id="password" name="password" x-bind:type="showNewPassword ? 'text' : 'password'" autocomplete="new-password" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-12 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
+                            <button type="button" x-on:click="showNewPassword = !showNewPassword" class="absolute inset-y-0 right-0 inline-flex items-center px-4 text-slate-400 transition hover:text-slate-200" x-bind:aria-label="showNewPassword ? 'Hide new password' : 'Show new password'">
+                                <svg x-cloak x-show="!showNewPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"/>
+                                </svg>
+                                <svg x-cloak x-show="showNewPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="display: none;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.88 5.09A10.94 10.94 0 0 1 12 4.88c6 0 9.75 7.12 9.75 7.12a17.56 17.56 0 0 1-4.13 4.77"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.61 6.61A17.42 17.42 0 0 0 2.25 12s3.75 7.12 9.75 7.12c1.64 0 3.13-.35 4.46-.94"/>
+                                </svg>
+                            </button>
+                        </div>
+                        @error('password', 'updatePassword') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="password_confirmation" class="mb-2 block text-sm font-medium text-slate-200">Confirm New Password</label>
+                        <div class="relative">
+                            <input id="password_confirmation" name="password_confirmation" x-bind:type="showConfirmPassword ? 'text' : 'password'" autocomplete="new-password" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-12 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
+                            <button type="button" x-on:click="showConfirmPassword = !showConfirmPassword" class="absolute inset-y-0 right-0 inline-flex items-center px-4 text-slate-400 transition hover:text-slate-200" x-bind:aria-label="showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'">
+                                <svg x-cloak x-show="!showConfirmPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"/>
+                                </svg>
+                                <svg x-cloak x-show="showConfirmPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="display: none;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.88 5.09A10.94 10.94 0 0 1 12 4.88c6 0 9.75 7.12 9.75 7.12a17.56 17.56 0 0 1-4.13 4.77"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.61 6.61A17.42 17.42 0 0 0 2.25 12s3.75 7.12 9.75 7.12c1.64 0 3.13-.35 4.46-.94"/>
+                                </svg>
+                            </button>
+                        </div>
+                        @error('password_confirmation', 'updatePassword') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
+                            Save New Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div x-cloak x-show="activeTab === 'updates'" class="space-y-6">
         <div class="grid gap-4 md:grid-cols-3">
             <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
@@ -436,14 +538,14 @@
 
                     <form method="POST" action="{{ route('settings.support', $tenantParameter, false) }}" class="mt-6 space-y-5">
                         @csrf
-                        <div class="grid gap-5 md:grid-cols-2">
-                            <div class="md:col-span-2">
+                        <div class="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                            <div class="lg:col-span-2">
                                 <label for="subject" class="mb-2 block text-sm font-medium text-slate-200">Subject</label>
                                 <input id="subject" name="subject" type="text" value="{{ old('subject') }}" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]" placeholder="Describe your concern" required>
                                 @error('subject') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
                             </div>
 
-                            <div>
+                            <div class="min-w-0">
                                 <label for="category" class="mb-2 block text-sm font-medium text-slate-200">Category</label>
                                 <select id="category" name="category" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
                                     @foreach(['general' => 'General', 'technical' => 'Technical', 'billing' => 'Billing', 'account' => 'Account', 'feature' => 'Feature Request'] as $value => $label)
@@ -453,13 +555,17 @@
                                 @error('category') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
                             </div>
 
-                            <div class="rounded-2xl border border-white/10 bg-[#0f1319] px-4 py-3">
+                            <div class="min-w-0 rounded-2xl border border-white/10 bg-[#0f1319] px-4 py-3">
                                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Requester</p>
-                                <p class="mt-2 text-sm font-semibold text-white">{{ auth()->user()?->name ?? tenant()?->admin_name ?? tenant()?->name }}</p>
-                                <p class="mt-1 text-sm text-slate-500">{{ auth()->user()?->email ?? tenant()?->email }}</p>
+                                <p class="mt-2 truncate text-sm font-semibold text-white" title="{{ auth()->user()?->name ?? tenant()?->admin_name ?? tenant()?->name }}">
+                                    {{ auth()->user()?->name ?? tenant()?->admin_name ?? tenant()?->name }}
+                                </p>
+                                <p class="mt-1 break-all text-xs leading-5 text-slate-500 sm:text-sm">
+                                    {{ auth()->user()?->email ?? tenant()?->email }}
+                                </p>
                             </div>
 
-                            <div class="md:col-span-2">
+                            <div class="lg:col-span-2">
                                 <label for="message" class="mb-2 block text-sm font-medium text-slate-200">Message</label>
                                 <textarea id="message" name="message" rows="6" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]" placeholder="Explain the issue, what happened, and what you need help with." required>{{ old('message') }}</textarea>
                                 @error('message') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror

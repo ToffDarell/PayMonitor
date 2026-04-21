@@ -10,6 +10,7 @@ use App\Http\Controllers\Central\PlanController as CentralPlanController;
 use App\Http\Controllers\Central\TenantController as CentralTenantController;
 use App\Http\Controllers\Central\ApplicationController as CentralApplicationController;
 use App\Http\Controllers\Central\VersionController as CentralVersionController;
+use App\Http\Controllers\Central\SupportController as CentralSupportController;
 use App\Http\Controllers\ApplicationController;
 use App\Models\Plan;
 use Illuminate\Http\RedirectResponse;
@@ -73,6 +74,10 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::get('/versions', [CentralVersionController::class, 'index'])->name('versions.index');
                 Route::post('/versions/check', [CentralVersionController::class, 'checkForUpdates'])->name('versions.check');
                 Route::post('/versions/apply', [CentralVersionController::class, 'applyUpdate'])->name('versions.apply');
+
+                Route::get('/support', [CentralSupportController::class, 'index'])->name('support.index');
+                Route::get('/support/{supportRequest}', [CentralSupportController::class, 'show'])->name('support.show');
+                Route::patch('/support/{supportRequest}/status', [CentralSupportController::class, 'updateStatus'])->name('support.update-status');
             });
     });
 }

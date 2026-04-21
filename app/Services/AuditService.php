@@ -19,9 +19,7 @@ class AuditService
             return;
         }
 
-        $tenant->loadMissing('plan');
-
-        if ($tenant->plan?->name !== 'Premium') {
+        if (! $tenant->supportsAuditLogs()) {
             return;
         }
 

@@ -129,8 +129,17 @@
                         <label for="password" class="mb-2 block text-sm font-medium text-slate-200">Password</label>
                         <div class="relative">
                             <input id="password" name="password" x-bind:type="showPassword ? 'text' : 'password'" autocomplete="current-password" required placeholder="Enter your password" class="pm-input block w-full rounded-xl px-4 py-3 pr-14 text-sm">
-                            <button type="button" x-on:click="showPassword = !showPassword" class="absolute inset-y-0 right-0 inline-flex items-center px-4 text-sm font-medium text-slate-400 transition hover:text-slate-200">
-                                <span x-text="showPassword ? 'Hide' : 'Show'"></span>
+                            <button type="button" x-on:click="showPassword = !showPassword" class="absolute inset-y-0 right-0 inline-flex items-center px-4 text-slate-400 transition hover:text-slate-200" x-bind:aria-label="showPassword ? 'Hide password' : 'Show password'">
+                                <svg x-cloak x-show="!showPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"/>
+                                </svg>
+                                <svg x-cloak x-show="showPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="display: none;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.88 5.09A10.94 10.94 0 0 1 12 4.88c6 0 9.75 7.12 9.75 7.12a17.56 17.56 0 0 1-4.13 4.77"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.61 6.61A17.42 17.42 0 0 0 2.25 12s3.75 7.12 9.75 7.12c1.64 0 3.13-.35 4.46-.94"/>
+                                </svg>
                             </button>
                         </div>
                         @error('password')

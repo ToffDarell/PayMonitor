@@ -79,6 +79,11 @@ class Loan extends Model
         return $this->hasMany(LoanSchedule::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(LoanDocument::class)->latest();
+    }
+
     public function computeAndFill(): static
     {
         $principal = (float) $this->principal_amount;

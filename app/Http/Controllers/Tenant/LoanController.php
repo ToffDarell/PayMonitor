@@ -47,15 +47,20 @@ class LoanController extends Controller
         return view('loans.index', compact('loans', 'branches', 'loanTypes'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', Loan::class);
 
         $members = Member::query()->where('is_active', true)->orderBy('last_name')->get();
         $branches = Branch::query()->where('is_active', true)->orderBy('name')->get();
         $loanTypes = LoanType::query()->where('is_active', true)->orderBy('name')->get();
+        $prefilledMember = null;
 
-        return view('loans.create', compact('members', 'branches', 'loanTypes'));
+        if ($request->filled('member_id')) {
+            $prefilledMember = $members->firstWhere('id', $request->integer('member_id'));
+        }
+
+        return view('loans.create', compact('members', 'branches', 'loanTypes', 'prefilledMember'));
     }
 
     public function store(StoreLoanRequest $request): RedirectResponse
@@ -113,6 +118,7 @@ class LoanController extends Controller
             'branch',
             'user',
             'loanType',
+            'documents.uploadedBy',
             'loanPayments.user',
             'loanSchedules',
         ]);

@@ -52,6 +52,11 @@ class Member extends Model
         return $this->hasMany(Loan::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(MemberDocument::class)->latest();
+    }
+
     public function getFullNameAttribute(): string
     {
         $middleName = $this->middle_name ? " {$this->middle_name}" : '';

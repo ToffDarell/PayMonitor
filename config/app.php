@@ -67,7 +67,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Manila'),
 
     /*
     |--------------------------------------------------------------------------
@@ -124,5 +124,19 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Support Contact Information
+    |--------------------------------------------------------------------------
+    |
+    | These values configure the support contact information displayed to
+    | tenants and where support requests are sent.
+    |
+    */
+
+    'support_email' => env('SUPPORT_EMAIL', 'support@paymonitor.test'),
+    'support_phone' => env('SUPPORT_PHONE', '+63 917 000 0000'),
+    'support_hours' => env('SUPPORT_HOURS', 'Mon-Fri, 8:00 AM - 5:00 PM'),
 
 ];

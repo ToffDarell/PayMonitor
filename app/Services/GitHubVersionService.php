@@ -75,6 +75,11 @@ class GitHubVersionService
 
     public function getCurrentVersion(): string
     {
+        $gitVersion = $this->currentGitTag();
+        if ($gitVersion !== null) {
+            return $gitVersion;
+        }
+
         $versionFile = base_path('version.txt');
 
         if (! is_file($versionFile)) {
@@ -311,6 +316,27 @@ class GitHubVersionService
     protected function releaseCacheStore(): CacheRepository
     {
         return Cache::store('file');
+    }
+
+    protected function currentGitTag(): ?string
+    {
+        $gitBin = (string) config('services.git.binary', 'git');
+        $process = new Process([$gitBin, 'describe', '--tags', '--exact-match'], base_path());
+        $process->setTimeout(10);
+
+        try {
+            $process->run();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (! $process->isSuccessful()) {
+            return null;
+        }
+
+        $tag = trim($process->getOutput());
+
+        return $tag !== '' ? $tag : null;
     }
 
     /**

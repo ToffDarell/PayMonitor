@@ -101,6 +101,13 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return $this->subscription_due_at->lt(today());
     }
 
+    public function supportsAuditLogs(): bool
+    {
+        $this->loadMissing('plan');
+
+        return strcasecmp((string) ($this->plan?->name ?? ''), 'Premium') === 0;
+    }
+
     public function getUsage(): int
     {
         try {

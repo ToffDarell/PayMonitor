@@ -9,15 +9,19 @@ use App\Services\GitHubVersionService;
 use App\Models\SupportRequest;
 use App\Models\TenantSetting;
 use App\Mail\TenantSupportRequestMail;
+use Illuminate\Contracts\Support\MessageBag;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
@@ -28,12 +32,18 @@ class SettingsController extends Controller
 
         $settings = TenantSetting::allKeyed();
         $activeTab = (string) ($request->query('tab', $request->routeIs('settings.updates') ? 'updates' : 'general'));
+        $passwordErrors = $this->passwordErrorBag($request);
+
+        if ($passwordErrors !== null && $passwordErrors->isNotEmpty()) {
+            $activeTab = 'security';
+        }
+
         $updateData = $this->resolveUpdateData();
         $supportData = $this->resolveSupportData($request);
 
         return view('settings.index', [
             'settings' => $settings,
-            'activeTab' => in_array($activeTab, ['general', 'appearance', 'updates', 'support'], true) ? $activeTab : 'general',
+            'activeTab' => in_array($activeTab, ['general', 'appearance', 'security', 'updates', 'support'], true) ? $activeTab : 'general',
             ...$updateData,
             ...$supportData,
         ]);
@@ -132,6 +142,21 @@ class SettingsController extends Controller
         return redirect('/settings?tab='.urlencode($activeTab))->with('success', 'Settings updated successfully.');
     }
 
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validateWithBag('updatePassword', [
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', Password::defaults(), 'confirmed'],
+        ]);
+
+        $request->user()?->forceFill([
+            'password' => Hash::make($validated['password']),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        return redirect('/settings?tab=security')->with('success', 'Password updated successfully.');
+    }
+
     public function submitSupport(Request $request): RedirectResponse
     {
         abort_unless($this->supportRequestsTableExists(), 404);
@@ -156,7 +181,7 @@ class SettingsController extends Controller
             'status' => 'open',
         ]);
 
-        $supportEmail = (string) config('mail.from.address', 'support@paymonitor.test');
+        $supportEmail = (string) config('app.support_email', config('mail.from.address', 'support@paymonitor.test'));
 
         try {
             Mail::to($supportEmail)->send(new TenantSupportRequestMail($supportRequest, $tenantModel, $user));
@@ -193,7 +218,7 @@ class SettingsController extends Controller
     protected function resolveSupportData(Request $request): array
     {
         $supportContact = [
-            'email' => (string) config('mail.from.address', 'support@paymonitor.test'),
+            'email' => (string) config('app.support_email', config('mail.from.address', 'support@paymonitor.test')),
             'phone' => (string) config('app.support_phone', '+63 917 000 0000'),
             'hours' => (string) config('app.support_hours', 'Mon-Fri, 8:00 AM - 5:00 PM'),
         ];
@@ -223,5 +248,16 @@ class SettingsController extends Controller
         $centralConnection = config('tenancy.database.central_connection');
 
         return Schema::connection($centralConnection)->hasTable('support_requests');
+    }
+
+    private function passwordErrorBag(Request $request): ?MessageBag
+    {
+        $errors = $request->session()->get('errors');
+
+        if (! $errors instanceof \Illuminate\Support\ViewErrorBag || ! $errors->hasBag('updatePassword')) {
+            return null;
+        }
+
+        return $errors->getBag('updatePassword');
     }
 }

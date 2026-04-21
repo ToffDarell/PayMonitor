@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 use App\Models\Domain;
 use App\Models\Plan;
+use App\Models\BillingInvoice;
+use App\Models\SupportRequest;
 use App\Models\Tenant;
+use App\Models\TenantApplication;
 use App\Models\User;
 use App\Services\TenantService;
 use Carbon\Carbon;
@@ -47,11 +50,13 @@ afterEach(function (): void {
 });
 
 test('central dashboard shows tenant metrics and recent tenants', function (): void {
+    Carbon::setTestNow('2026-04-19 09:00:00');
+
     $plan = Plan::query()->create([
-        'name' => 'Premium',
+        'name' => 'Standard',
         'price' => 1999,
-        'max_branches' => 0,
-        'max_users' => 0,
+        'max_branches' => 3,
+        'max_users' => 10,
     ]);
 
     createCentralTenant([
@@ -61,6 +66,8 @@ test('central dashboard shows tenant metrics and recent tenants', function (): v
         'plan_id' => $plan->id,
         'status' => 'active',
         'subscription_due_at' => today()->addDays(10),
+        'created_at' => now()->subMonths(2),
+        'updated_at' => now()->subDays(2),
     ]);
 
     createCentralTenant([
@@ -70,6 +77,8 @@ test('central dashboard shows tenant metrics and recent tenants', function (): v
         'plan_id' => $plan->id,
         'status' => 'overdue',
         'subscription_due_at' => today()->subDay(),
+        'created_at' => now()->subMonths(2),
+        'updated_at' => now()->subDay(),
     ]);
 
     createCentralTenant([
@@ -78,7 +87,106 @@ test('central dashboard shows tenant metrics and recent tenants', function (): v
         'email' => 'charlie@example.com',
         'plan_id' => $plan->id,
         'status' => 'suspended',
+        'created_at' => now()->subMonths(2),
+        'updated_at' => now()->subDays(3),
     ]);
+
+    BillingInvoice::query()->create([
+        'tenant_id' => 'alpha',
+        'invoice_number' => 'INV-202604-0001',
+        'amount' => 1999,
+        'due_date' => today()->addDays(10),
+        'status' => 'paid',
+        'paid_at' => now()->subDays(2),
+    ]);
+
+    BillingInvoice::query()->create([
+        'tenant_id' => 'bravo',
+        'invoice_number' => 'INV-202604-0002',
+        'amount' => 1999,
+        'due_date' => today()->subDay(),
+        'status' => 'overdue',
+        'paymongo_link_id' => 'plink_test_123',
+    ]);
+
+    BillingInvoice::query()->create([
+        'tenant_id' => 'bravo',
+        'invoice_number' => 'INV-202604-0003',
+        'amount' => 1999,
+        'due_date' => today()->addDays(3),
+        'status' => 'pending_verification',
+        'paymongo_link_id' => 'plink_test_456',
+    ]);
+
+    TenantApplication::query()->create([
+        'cooperative_name' => 'Delta Cooperative',
+        'cda_registration_number' => 'CDA-2026-0419',
+        'address' => '123 Main Street',
+        'city' => 'Manila',
+        'contact_number' => '+639171234567',
+        'email' => 'apply@example.com',
+        'admin_name' => 'Delta Admin',
+        'admin_email' => 'delta@example.com',
+        'plan_id' => $plan->id,
+        'status' => 'pending',
+    ]);
+
+    SupportRequest::query()->create([
+        'tenant_id' => 'alpha',
+        'tenant_name' => 'Alpha Cooperative',
+        'requester_name' => 'Alpha Admin',
+        'requester_email' => 'alpha@example.com',
+        'category' => 'general',
+        'subject' => 'Recent request',
+        'message' => 'Please help us review our account.',
+        'status' => 'open',
+        'created_at' => now()->subHours(4),
+        'updated_at' => now()->subHours(4),
+    ]);
+
+    SupportRequest::query()->create([
+        'tenant_id' => 'bravo',
+        'tenant_name' => 'Bravo Cooperative',
+        'requester_name' => 'Bravo Admin',
+        'requester_email' => 'bravo@example.com',
+        'category' => 'billing',
+        'subject' => 'Old billing issue',
+        'message' => 'Our payment needs review.',
+        'status' => 'open',
+        'created_at' => now()->subHours(40),
+        'updated_at' => now()->subHours(40),
+    ]);
+
+    SupportRequest::query()->create([
+        'tenant_id' => 'charlie',
+        'tenant_name' => 'Charlie Cooperative',
+        'requester_name' => 'Charlie Admin',
+        'requester_email' => 'charlie@example.com',
+        'category' => 'technical',
+        'subject' => 'Resolved request',
+        'message' => 'This issue was resolved.',
+        'status' => 'resolved',
+        'resolved_at' => now()->subHours(2),
+        'created_at' => now()->subHours(10),
+        'updated_at' => now()->subHours(2),
+    ]);
+
+    $service = Mockery::mock(TenantService::class);
+    $service->shouldReceive('getTenantUsage')->times(3)->andReturnUsing(static function (Tenant $tenant): array {
+        return match ($tenant->id) {
+            'alpha' => ['branches' => 1, 'users' => 4, 'members' => 10, 'loan_types' => 2, 'loans' => 12, 'total' => 29],
+            'bravo' => ['branches' => 3, 'users' => 10, 'members' => 25, 'loan_types' => 2, 'loans' => 20, 'total' => 60],
+            default => ['branches' => 4, 'users' => 12, 'members' => 18, 'loan_types' => 2, 'loans' => 14, 'total' => 50],
+        };
+    });
+    $service->shouldReceive('getTenantDatabaseSize')->times(3)->andReturnUsing(static function (Tenant $tenant): array {
+        return match ($tenant->id) {
+            'alpha' => ['size_mb' => 50.0, 'total_rows' => 1000, 'formatted' => '50.00 MB'],
+            'bravo' => ['size_mb' => 320.0, 'total_rows' => 5000, 'formatted' => '320.00 MB'],
+            default => ['size_mb' => 900.0, 'total_rows' => 12000, 'formatted' => '900.00 MB'],
+        };
+    });
+    app()->instance(TenantService::class, $service);
 
     actingAs(createCentralAdmin());
 
@@ -90,7 +198,28 @@ test('central dashboard shows tenant metrics and recent tenants', function (): v
         ->assertViewHas('overdueTenants', 1)
         ->assertViewHas('suspendedTenants', 1)
         ->assertViewHas('inactiveTenants', 0)
-        ->assertViewHas('monthlyRevenue', 1999.0)
+        ->assertViewHas('monthlyRevenue', 3998.0)
+        ->assertViewHas('dashboardMetrics', function (array $metrics): bool {
+            return (float) data_get($metrics, 'mrr.value') === 3998.0
+                && (float) data_get($metrics, 'collections.value') === 1999.0
+                && (int) data_get($metrics, 'new_applications.value') === 1
+                && (float) data_get($metrics, 'churn_rate.value') === 33.3
+                && (float) data_get($metrics, 'overdue_rate.value') === 50.0
+                && (int) data_get($metrics, 'pending_payments.value') === 1;
+        })
+        ->assertViewHas('healthSummary', function (array $healthSummary): bool {
+            return $healthSummary['attention_needed'] === 2
+                && $healthSummary['critical'] === 2;
+        })
+        ->assertViewHas('tenantHealthWatchlist', function ($watchlist): bool {
+            $bravo = collect($watchlist)->firstWhere('tenant_id', 'bravo');
+            $charlie = collect($watchlist)->firstWhere('tenant_id', 'charlie');
+
+            return $bravo !== null
+                && $charlie !== null
+                && $bravo['health_label'] === 'Critical'
+                && $charlie['billing_label'] === 'Suspended';
+        })
         ->assertSee('Alpha Cooperative');
 });
 

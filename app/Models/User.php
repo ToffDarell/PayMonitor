@@ -156,6 +156,7 @@ class User extends Authenticatable
             TenantPermissions::DASHBOARD_VIEW => '/dashboard',
             TenantPermissions::MEMBERS_VIEW => '/members',
             TenantPermissions::LOANS_VIEW => '/loans',
+            TenantPermissions::COLLECTIONS_VIEW => '/collections',
             TenantPermissions::LOAN_PAYMENTS_VIEW => '/loan-payments',
             TenantPermissions::REPORTS_VIEW => '/reports',
             TenantPermissions::LOAN_TYPES_VIEW => '/loan-types',
