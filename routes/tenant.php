@@ -135,6 +135,7 @@ collect(config('tenancy.central_domains', ['localhost']))
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::SETTINGS_UPDATE])->group(function (): void {
                     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
                     Route::post('/settings/support', [SettingsController::class, 'submitSupport'])->name('settings.support');
+                    Route::post('/settings/updates/sync', [SettingsController::class, 'syncReleases'])->name('settings.updates.sync');
                     Route::post('/settings/updates/apply', [SettingsController::class, 'applyUpdate'])->name('settings.updates.apply');
                 });
 

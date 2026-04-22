@@ -220,6 +220,17 @@ class SettingsController extends Controller
         return back()->with('error', 'Update failed: ' . $result['error']);
     }
 
+    public function syncReleases(): RedirectResponse
+    {
+        $result = app(\App\Services\ReleaseRegistryService::class)->syncFromGitHub();
+
+        if ($result['success']) {
+            return redirect('/settings?tab=updates')->with('success', 'Successfully checked and synced latest releases from GitHub.');
+        }
+
+        return redirect('/settings?tab=updates')->with('error', 'Failed to sync updates: ' . $result['error']);
+    }
+
     /**
      * @return array{
      *     updateInfo: array<string, mixed>,

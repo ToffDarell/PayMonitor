@@ -518,6 +518,17 @@
                             View Full Release Notes
                         </a>
                     @endif
+                    @if($canManageSettings)
+                        <form method="POST" action="{{ route('settings.updates.sync', $tenantParameter, false) }}" class="inline-block">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                                Sync Releases
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
 
@@ -603,6 +614,17 @@
             <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
                 <p class="text-sm font-semibold text-emerald-300">PayMonitor is up to date.</p>
                 <p class="mt-1 text-sm text-slate-400">When a new release arrives, you can apply it here.</p>
+                @if($canManageSettings)
+                    <form method="POST" action="{{ route('settings.updates.sync', $tenantParameter, false) }}" class="mt-4">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 px-4 py-2 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/10">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                            Check for Updates
+                        </button>
+                    </form>
+                @endif
             </div>
         @endif
 

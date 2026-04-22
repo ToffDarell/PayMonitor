@@ -217,8 +217,9 @@ class ReleaseRegistryService
         }
 
         $notified = 0;
+        $centralConnection = config('tenancy.database.central_connection', config('database.default'));
 
-        foreach (DB::table('tenants')->pluck('id') as $tenantId) {
+        foreach (DB::connection($centralConnection)->table('tenants')->pluck('id') as $tenantId) {
             if ($this->tenantUpdateService->syncAvailabilityForTenant((string) $tenantId, $latestStable)) {
                 $notified++;
             }
