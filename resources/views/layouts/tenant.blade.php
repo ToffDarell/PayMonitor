@@ -1079,7 +1079,7 @@
                     @if($updateInfo['update_available'] ?? false)
                         <div
                             class="mb-4 flex flex-col gap-3 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sky-100 lg:flex-row lg:items-center lg:justify-between"
-                            x-data="{ show: true }"
+                            x-data="{ show: localStorage.getItem('dismissed_update') !== '{{ $updateInfo['latest_version'] ?? '' }}' }"
                             x-show="show"
                             x-transition
                         >
@@ -1098,7 +1098,7 @@
                                 </a>
                                 <button
                                     type="button"
-                                    @click="show = false"
+                                    @click="show = false; localStorage.setItem('dismissed_update', '{{ $updateInfo['latest_version'] ?? '' }}')"
                                     class="text-xs font-medium text-sky-200/70 transition hover:text-sky-100"
                                 >
                                     Dismiss

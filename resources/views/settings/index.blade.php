@@ -789,14 +789,28 @@
                     </form>
                 </div>
 
-                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
-                    <div class="border-b border-white/[0.06] pb-5">
-                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Request History</p>
-                        <h3 class="mt-2 font-heading text-xl font-bold text-white">Recent support requests</h3>
-                        <p class="mt-2 text-sm text-slate-400">Track the concerns this tenant has already submitted.</p>
+                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6" x-data="{ requestsOpen: false }">
+                    <div class="flex flex-col gap-2 border-b border-white/[0.06] pb-5 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Request History</p>
+                            <h3 class="mt-2 font-heading text-xl font-bold text-white">Recent support requests</h3>
+                            <p class="mt-2 text-sm text-slate-400">Track the concerns this tenant has already submitted.</p>
+                        </div>
+                        <div class="flex flex-col items-start gap-3 md:items-end">
+                            <button
+                                type="button"
+                                x-on:click="requestsOpen = !requestsOpen"
+                                class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0f1319] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:text-white"
+                            >
+                                <span x-text="requestsOpen ? 'Hide Requests' : 'Show Requests'"></span>
+                                <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="requestsOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="mt-5 space-y-4">
+                    <div x-cloak x-show="requestsOpen" x-transition.opacity.duration.200ms class="mt-5 space-y-4">
                         @forelse($supportRequests as $supportRequest)
                             <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-4">
                                 <div class="flex items-start justify-between gap-3">
