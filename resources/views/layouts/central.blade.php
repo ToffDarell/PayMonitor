@@ -385,7 +385,7 @@
     <div class="relative min-h-screen">
         <div x-cloak x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-black/70 md:hidden" x-on:click="sidebarOpen = false"></div>
 
-        <aside class="fixed inset-y-0 left-0 z-50 w-56 border-r border-white/[0.06] bg-[#0A1628] px-4 py-6 transition-transform duration-200 md:translate-x-0" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+        <aside class="fixed inset-y-0 left-0 z-50 w-64 border-r border-white/[0.06] bg-[#0A1628] px-4 py-6 transition-transform duration-200 md:translate-x-0" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
             <div class="flex h-full flex-col">
                 <div>
                     <div class="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-3">
@@ -477,7 +477,7 @@
             </div>
         </aside>
 
-        <div class="md:pl-56">
+        <div class="md:pl-64">
             <header class="fixed left-0 right-0 top-0 z-30 border-b border-white/[0.06] bg-[#060B18]/80 backdrop-blur md:left-56">
                 <div class="flex h-16 items-center justify-between px-6">
                     <div class="flex items-center gap-3">
