@@ -172,7 +172,7 @@ class AdminReleaseService
     {
         $tenantIds = DB::table('tenants')->pluck('id');
         $totalTenants = $tenantIds->count();
-        $latestRelease = AppRelease::stable()->latest('published_at')->first();
+        $latestRelease = $this->selectLatestStableRelease();
 
         if (! $latestRelease) {
             return [
@@ -246,7 +246,7 @@ class AdminReleaseService
 
     public function backfillMissingCurrentTracking(): array
     {
-        $latestRelease = AppRelease::stable()->latest('published_at')->first();
+        $latestRelease = $this->selectLatestStableRelease();
 
         if (! $latestRelease) {
             return [
@@ -291,5 +291,37 @@ class AdminReleaseService
         $normalized = ltrim(trim($tag), 'vV');
 
         return $normalized === '' ? '0' : $normalized;
+    }
+
+    private function selectLatestStableRelease(): ?AppRelease
+    {
+        /** @var \Illuminate\Support\Collection<int, AppRelease> $stableReleases */
+        $stableReleases = AppRelease::stable()->get();
+
+        if ($stableReleases->isEmpty()) {
+            return null;
+        }
+
+        return $stableReleases
+            ->sort(function (AppRelease $left, AppRelease $right): int {
+                $versionComparison = version_compare(
+                    $this->normalizeVersion($left->tag),
+                    $this->normalizeVersion($right->tag)
+                );
+
+                if ($versionComparison !== 0) {
+                    return $versionComparison > 0 ? -1 : 1;
+                }
+
+                $leftPublishedAt = $left->published_at?->getTimestamp() ?? 0;
+                $rightPublishedAt = $right->published_at?->getTimestamp() ?? 0;
+
+                if ($leftPublishedAt !== $rightPublishedAt) {
+                    return $leftPublishedAt > $rightPublishedAt ? -1 : 1;
+                }
+
+                return strcmp($right->tag, $left->tag);
+            })
+            ->first();
     }
 }
