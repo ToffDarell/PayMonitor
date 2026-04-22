@@ -195,8 +195,8 @@
                                     <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle" x-text="`${preset.interest_rate}%`"></span>
                                 </div>
                                 <div class="d-flex gap-2 mt-3 flex-wrap">
-                                    <span class="badge rounded-pill text-bg-dark border border-light-subtle text-uppercase" x-text="preset.interest_type"></span>
-                                    <span class="badge rounded-pill text-bg-dark border border-light-subtle" x-text="`${preset.max_term_months} months`"></span>
+                                    <span class="badge rounded-pill border text-uppercase" style="background-color: var(--pm-panel-border); color: var(--pm-text-primary); border-color: var(--pm-border) !important;" x-text="preset.interest_type"></span>
+                                    <span class="badge rounded-pill border" style="background-color: var(--pm-panel-border); color: var(--pm-text-primary); border-color: var(--pm-border) !important;" x-text="`${preset.max_term_months} months`"></span>
                                 </div>
                             </button>
                         </div>
