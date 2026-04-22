@@ -20,12 +20,15 @@ class Plan extends Model
         'max_branches',
         'max_users',
         'description',
+        'features',
+        'is_active',
     ];
 
     protected function casts(): array
     {
         return [
             'price' => 'decimal:2',
+            'features' => 'array',
         ];
     }
 
@@ -37,5 +40,10 @@ class Plan extends Model
     public static function defaultDescription(): string
     {
         return self::DEFAULT_DESCRIPTION;
+    }
+
+    public function hasFeature(string $key): bool
+    {
+        return in_array($key, $this->features ?? []);
     }
 }

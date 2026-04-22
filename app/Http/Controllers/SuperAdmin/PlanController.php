@@ -28,15 +28,21 @@ class PlanController extends Controller
     {
         abort_if(! auth()->user()->isSuperAdmin(), 403);
 
-        $request->validate([
+        $validated = $request->validate([
             'name'         => ['required', 'string', 'max:255'],
             'price'        => ['required', 'numeric', 'min:0'],
-            'max_branches' => ['required', 'integer', 'min:1'],
-            'max_users'    => ['required', 'integer', 'min:1'],
+            'max_branches' => ['required', 'integer', 'min:0'],
+            'max_users'    => ['required', 'integer', 'min:0'],
             'is_active'    => ['boolean'],
+            'features'     => ['nullable', 'array'],
+            'features.*'   => ['string'],
         ]);
 
-        Plan::create($request->validated());
+        if (!isset($validated['features'])) {
+            $validated['features'] = [];
+        }
+
+        Plan::create($validated);
 
         return redirect()->route('superadmin.plans.index')->with('success', 'Plan created.');
     }
@@ -52,15 +58,21 @@ class PlanController extends Controller
     {
         abort_if(! auth()->user()->isSuperAdmin(), 403);
 
-        $request->validate([
+        $validated = $request->validate([
             'name'         => ['required', 'string', 'max:255'],
             'price'        => ['required', 'numeric', 'min:0'],
-            'max_branches' => ['required', 'integer', 'min:1'],
-            'max_users'    => ['required', 'integer', 'min:1'],
+            'max_branches' => ['required', 'integer', 'min:0'],
+            'max_users'    => ['required', 'integer', 'min:0'],
             'is_active'    => ['boolean'],
+            'features'     => ['nullable', 'array'],
+            'features.*'   => ['string'],
         ]);
 
-        $plan->update($request->validated());
+        if (!isset($validated['features'])) {
+            $validated['features'] = [];
+        }
+
+        $plan->update($validated);
 
         return redirect()->route('superadmin.plans.index')->with('success', 'Plan updated.');
     }
