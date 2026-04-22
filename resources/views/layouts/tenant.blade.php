@@ -1053,7 +1053,7 @@
         </aside>
 
         <div class="md:pl-64">
-            <header class="tenant-topbar-surface fixed left-0 right-0 top-0 z-30 border-b backdrop-blur md:left-56">
+            <header class="tenant-topbar-surface fixed left-0 right-0 top-0 z-30 border-b backdrop-blur md:left-64">
                 <div class="flex h-16 items-center justify-between px-6">
                     <div class="flex items-center gap-3">
                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border transition md:hidden" style="border-color: rgba(148, 163, 184, 0.2); color: var(--pm-text-secondary);" x-on:click="sidebarOpen = true">
