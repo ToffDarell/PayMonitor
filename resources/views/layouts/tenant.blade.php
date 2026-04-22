@@ -734,6 +734,90 @@
             --bs-pagination-disabled-color: var(--pm-text-subtle);
             --bs-pagination-disabled-border-color: var(--pm-border);
         }
+
+        body.tenant-theme-light .tenant-sidebar-surface,
+        body.tenant-theme-light .tenant-topbar-surface {
+            border-color: var(--pm-border);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        body.tenant-theme-light .tenant-panel {
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        body.tenant-theme-light .legacy-content h1,
+        body.tenant-theme-light .legacy-content h2,
+        body.tenant-theme-light .legacy-content h3,
+        body.tenant-theme-light .legacy-content h4,
+        body.tenant-theme-light .legacy-content h5,
+        body.tenant-theme-light .legacy-content h6 {
+            color: var(--pm-text-primary) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="bg-white/[0.02]"],
+        body.tenant-theme-light .legacy-content [class~="bg-white/[0.04]"] {
+            background-color: var(--pm-panel-bg) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="bg-white/[0.03]"],
+        body.tenant-theme-light .legacy-content [class~="bg-white/[0.06]"],
+        body.tenant-theme-light .legacy-content [class~="bg-[#161b22]"],
+        body.tenant-theme-light .legacy-content [class~="bg-[#0f1319]"],
+        body.tenant-theme-light .legacy-content [class~="bg-[#0F1729]"],
+        body.tenant-theme-light .legacy-content [class~="bg-[#0b1120]"],
+        body.tenant-theme-light .legacy-content [class~="bg-slate-950"] {
+            background-color: var(--pm-surface-bg) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="border-[#21262d]"],
+        body.tenant-theme-light .legacy-content [class~="border-white/[0.05]"],
+        body.tenant-theme-light .legacy-content [class~="border-white/[0.06]"],
+        body.tenant-theme-light .legacy-content [class~="border-white/[0.07]"],
+        body.tenant-theme-light .legacy-content [class~="border-white/[0.08]"],
+        body.tenant-theme-light .legacy-content [class~="border-white/10"] {
+            border-color: var(--pm-panel-border) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="divide-white/[0.04]"] > :not([hidden]) ~ :not([hidden]) {
+            border-color: var(--pm-panel-border) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="text-white"]:not(.btn):not(button):not([role='button']):not([style*='background-color']):not([class*='bg-']) {
+            color: var(--pm-text-primary) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="text-slate-200"],
+        body.tenant-theme-light .legacy-content [class~="text-slate-300"],
+        body.tenant-theme-light .legacy-content [class~="text-[#8b949e]"] {
+            color: var(--pm-text-secondary) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="text-slate-400"],
+        body.tenant-theme-light .legacy-content [class~="text-slate-500"] {
+            color: var(--pm-text-muted) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="hover:bg-white/[0.02]"]:hover {
+            background-color: var(--pm-table-hover-bg) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="hover:bg-white/[0.04]"]:hover,
+        body.tenant-theme-light .legacy-content [class~="hover:bg-white/[0.05]"]:hover {
+            background-color: var(--pm-surface-bg) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="hover:border-white/20"]:hover,
+        body.tenant-theme-light .legacy-content [class~="hover:border-white/25"]:hover {
+            border-color: var(--pm-border-hover) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="hover:text-white"]:hover {
+            color: var(--pm-text-primary) !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="ring-white/20"] {
+            --tw-ring-color: rgba(var(--pm-accent-rgb), 0.18) !important;
+        }
     </style>
 
     @vite(['resources/css/paymonitor.css', 'resources/js/paymonitor-dashboard.js'])

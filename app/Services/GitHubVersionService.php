@@ -237,26 +237,30 @@ class GitHubVersionService
             ];
         }
 
-        $fetchResult = $this->runGitFetchWithRetry((string) $gitBin);
+        $archiveDeployment = $this->deployFromReleaseArchive($newVersion);
+        $archiveDeploymentOutput = $archiveDeployment['output'];
+        $fetchResult = [
+            'process' => new Process([$gitBin, 'fetch', '--tags', 'origin'], base_path()),
+            'output' => '[skipped]',
+        ];
         $fetch = $fetchResult['process'];
-        $archiveFallbackOutput = '[skipped]';
         $checkout = new Process([$gitBin, 'checkout', '--detach', $newVersion], base_path());
         $checkout->setTimeout(180);
         $composer = $this->buildComposerInstallProcess($composerBin);
         $clear = $this->buildOptimizeClearProcess();
         $success = false;
         
-        if ($fetch->isSuccessful()) {
-            $checkout->run();
-            if ($checkout->isSuccessful()) {
-                ['composer' => $composer, 'clear' => $clear, 'success' => $success] = $this->runPostUpdateProcesses($composerBin);
-            }
+        if ($archiveDeployment['success']) {
+            ['composer' => $composer, 'clear' => $clear, 'success' => $success] = $this->runPostUpdateProcesses($composerBin);
         } else {
-            $archiveFallback = $this->deployFromReleaseArchive($newVersion);
-            $archiveFallbackOutput = $archiveFallback['output'];
+            $fetchResult = $this->runGitFetchWithRetry((string) $gitBin);
+            $fetch = $fetchResult['process'];
 
-            if ($archiveFallback['success']) {
-                ['composer' => $composer, 'clear' => $clear, 'success' => $success] = $this->runPostUpdateProcesses($composerBin);
+            if ($fetch->isSuccessful()) {
+                $checkout->run();
+                if ($checkout->isSuccessful()) {
+                    ['composer' => $composer, 'clear' => $clear, 'success' => $success] = $this->runPostUpdateProcesses($composerBin);
+                }
             }
         }
 
@@ -265,12 +269,12 @@ class GitHubVersionService
         }
         
         $output = trim(implode("\n", [
+            '[release archive deployment]',
+            $archiveDeploymentOutput,
             '[git fetch --tags origin]',
             $fetchResult['output'],
             "[git checkout --detach $newVersion]",
             $this->formatProcessOutput($checkout),
-            '[release archive fallback]',
-            $archiveFallbackOutput,
             '[composer install --no-dev]',
             $this->formatProcessOutput($composer),
             '[php artisan optimize:clear]',
