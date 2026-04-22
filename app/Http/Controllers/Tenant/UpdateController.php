@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\TenantSelfUpdateService;
 use App\Services\TenantUpdateService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class UpdateController extends Controller
 {
@@ -27,8 +28,13 @@ class UpdateController extends Controller
 
     public function apply(Request $request)
     {
+        $centralConnection = (string) config('tenancy.database.central_connection', config('database.default'));
+
         $request->validate([
-            'release_id' => 'required|exists:app_releases,id',
+            'release_id' => [
+                'required',
+                Rule::exists("$centralConnection.app_releases", 'id'),
+            ],
         ]);
 
         $tenantId = $request->route('tenant');

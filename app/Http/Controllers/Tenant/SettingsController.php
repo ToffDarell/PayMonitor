@@ -196,8 +196,15 @@ class SettingsController extends Controller
 
     public function applyUpdate(Request $request): RedirectResponse
     {
+        // app_releases lives in the central DB, not the tenant DB.
+        // Use the central connection explicitly so the exists rule works.
+        $centralConnection = (string) config('tenancy.database.central_connection', config('database.default'));
+
         $request->validate([
-            'release_id' => 'required|exists:app_releases,id',
+            'release_id' => [
+                'required',
+                Rule::exists("$centralConnection.app_releases", 'id'),
+            ],
         ]);
 
         $tenantId = (string) (tenant()?->id ?? $request->route('tenant'));
