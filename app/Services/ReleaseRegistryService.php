@@ -195,12 +195,12 @@ class ReleaseRegistryService
 
     public function getLatestStableRelease(): ?AppRelease
     {
-        return AppRelease::stable()->latest('published_at')->first();
+        return $this->pickLatestRelease(AppRelease::stable()->get());
     }
 
     public function getLatestRelease(): ?AppRelease
     {
-        return AppRelease::latest('published_at')->first();
+        return $this->pickLatestRelease(AppRelease::query()->get());
     }
 
     public function markAsRequired(int $releaseId, ?\DateTime $gracePeriod = null): void
@@ -226,5 +226,41 @@ class ReleaseRegistryService
         }
 
         return $notified;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, AppRelease>  $releases
+     */
+    private function pickLatestRelease(\Illuminate\Support\Collection $releases): ?AppRelease
+    {
+        if ($releases->isEmpty()) {
+            return null;
+        }
+
+        return $releases
+            ->sort(function (AppRelease $left, AppRelease $right): int {
+                $versionComparison = version_compare($this->normalizeVersion($left->tag), $this->normalizeVersion($right->tag));
+
+                if ($versionComparison !== 0) {
+                    return $versionComparison > 0 ? -1 : 1;
+                }
+
+                $leftPublishedAt = $left->published_at?->getTimestamp() ?? 0;
+                $rightPublishedAt = $right->published_at?->getTimestamp() ?? 0;
+
+                if ($leftPublishedAt !== $rightPublishedAt) {
+                    return $leftPublishedAt > $rightPublishedAt ? -1 : 1;
+                }
+
+                return strcmp($right->tag, $left->tag);
+            })
+            ->first();
+    }
+
+    private function normalizeVersion(string $tag): string
+    {
+        $normalized = ltrim(trim($tag), 'vV');
+
+        return $normalized === '' ? '0' : $normalized;
     }
 }

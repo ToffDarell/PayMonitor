@@ -57,6 +57,28 @@ class TenantUpdateService
             ->latest('published_at')
             ->get();
 
+        $stableReleases = $stableReleases
+            ->sort(function (AppRelease $left, AppRelease $right): int {
+                $versionComparison = version_compare(
+                    $this->normalizeVersion($left->tag),
+                    $this->normalizeVersion($right->tag)
+                );
+
+                if ($versionComparison !== 0) {
+                    return $versionComparison > 0 ? -1 : 1;
+                }
+
+                $leftPublishedAt = $left->published_at?->getTimestamp() ?? 0;
+                $rightPublishedAt = $right->published_at?->getTimestamp() ?? 0;
+
+                if ($leftPublishedAt !== $rightPublishedAt) {
+                    return $leftPublishedAt > $rightPublishedAt ? -1 : 1;
+                }
+
+                return strcmp($right->tag, $left->tag);
+            })
+            ->values();
+
         if (! $current || ! $current->relationLoaded('appRelease') || $current->appRelease === null) {
             return $stableReleases->toArray();
         }
