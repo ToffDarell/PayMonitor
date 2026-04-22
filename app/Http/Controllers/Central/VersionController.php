@@ -6,6 +6,9 @@ namespace App\Http\Controllers\Central;
 
 use App\Http\Controllers\Controller;
 use App\Services\GitHubVersionService;
+use App\Services\ReleaseRegistryService;
+use App\Services\AdminReleaseService;
+use App\Models\AppRelease;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,10 +33,15 @@ class VersionController extends Controller
         $changelogItems = $versionService->parseChangelog((string) ($updateInfo['changelog'] ?? ''));
         $updateHistory = $versionService->getUpdateHistory();
 
+        $releases = AppRelease::latest('published_at')->paginate(20);
+        $statistics = app(AdminReleaseService::class)->getUpdateStatistics();
+
         return view('central.versions.index', [
             'updateInfo' => $updateInfo,
             'changelogItems' => $changelogItems,
             'updateHistory' => $updateHistory,
+            'releases' => $releases,
+            'statistics' => $statistics,
         ]);
     }
 
@@ -69,5 +77,77 @@ class VersionController extends Controller
             ->route('central.versions.index')
             ->with('error', (string) ($result['message'] ?? 'Update failed'))
             ->with('warning', trim((string) ($result['output'] ?? '')));
+    }
+
+    public function backfillTracking(): RedirectResponse
+    {
+        $result = app(AdminReleaseService::class)->backfillMissingCurrentTracking();
+
+        if (($result['latest_release'] ?? null) === null) {
+            return back()->with('warning', 'No stable release is available yet to backfill tenant tracking.');
+        }
+
+        if (($result['backfilled'] ?? 0) === 0) {
+            return back()->with('warning', 'No empty tenant tracking records needed backfilling.');
+        }
+
+        return back()->with(
+            'success',
+            "Backfilled {$result['backfilled']} tenant(s) to {$result['latest_release']}"
+        );
+    }
+
+    public function syncReleases(): RedirectResponse
+    {
+        $result = app(ReleaseRegistryService::class)->syncFromGitHub();
+
+        if ($result['success']) {
+            return back()->with(
+                'success',
+                "Synced {$result['synced']} releases, skipped {$result['skipped']}, notified {$result['notified']} tenant(s)"
+            );
+        }
+
+        return back()->with('error', "Sync failed: {$result['error']}");
+    }
+
+    public function markRequired(Request $request, AppRelease $release): RedirectResponse
+    {
+        $request->validate([
+            'grace_days' => 'nullable|integer|min:0|max:90',
+        ]);
+
+        $gracePeriod = $request->input('grace_days') 
+            ? now()->addDays($request->input('grace_days'))
+            : now()->addDays(7);
+
+        app(AdminReleaseService::class)->markAsRequired($release->id, $gracePeriod);
+
+        return back()->with('success', 'Release marked as required');
+    }
+
+    public function unmarkRequired(AppRelease $release): RedirectResponse
+    {
+        app(AdminReleaseService::class)->unmarkAsRequired($release->id);
+
+        return back()->with('success', 'Release unmarked as required');
+    }
+
+    public function notifyAll(AppRelease $release): RedirectResponse
+    {
+        $count = app(AdminReleaseService::class)->notifyAllTenantsOfUpdate($release->id);
+
+        return back()->with('success', "Notified {$count} tenants");
+    }
+
+    public function forceMarkAll(Request $request, AppRelease $release): RedirectResponse
+    {
+        $request->validate([
+            'confirm' => 'required|accepted',
+        ]);
+
+        $count = app(AdminReleaseService::class)->forceMarkAllAsUpdated($release->id);
+
+        return back()->with('warning', "Force-marked {$count} tenants as updated");
     }
 }

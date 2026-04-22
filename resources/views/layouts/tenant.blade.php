@@ -91,12 +91,18 @@
     ];
 
     try {
-        $versionService = app(\App\Services\GitHubVersionService::class);
-        $updateInfo = \Illuminate\Support\Facades\Cache::remember(
-            'github_latest_release_info',
-            now()->addMinutes(30),
-            fn (): array => $versionService->getUpdateInfo(),
-        );
+        $tenantId = (string) ($tenantModel?->id ?? request()->route('tenant'));
+        $tenantUpdateService = app(\App\Services\TenantUpdateService::class);
+        $availableUpdates = $tenantUpdateService->getAvailableUpdates($tenantId);
+        $latestAvailable = $availableUpdates[0] ?? null;
+
+        if (is_array($latestAvailable)) {
+            $updateInfo = [
+                'update_available' => true,
+                'latest_version' => (string) ($latestAvailable['tag'] ?? $latestAvailable['version'] ?? 'Unknown'),
+                'release_name' => (string) ($latestAvailable['title'] ?? 'Update available'),
+            ];
+        }
     } catch (\Throwable) {
         $updateInfo = [
             'update_available' => false,
@@ -187,9 +193,8 @@
     <link rel="icon" href="{{ $faviconUrl }}">
     <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -198,8 +203,8 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        heading: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Figtree', 'sans-serif'],
+                        sans: ['Figtree', 'sans-serif'],
                     },
                 },
             },
@@ -242,6 +247,7 @@
         body {
             background-color: var(--pm-shell-bg);
             color: var(--pm-text-secondary);
+            font-family: 'Figtree', sans-serif;
         }
 
         body.tenant-theme-dark {
@@ -269,6 +275,7 @@
         .tenant-panel {
             background-color: var(--pm-panel-bg);
             border-color: var(--pm-panel-border);
+            box-shadow: 0 20px 45px rgba(2, 6, 23, 0.18);
         }
 
         .tenant-heading {
@@ -385,7 +392,7 @@
 
         .legacy-content h1,
         .legacy-content .h1 {
-            font-size: 1.25rem !important;
+            font-size: 1.5rem !important;
             font-weight: 700 !important;
         }
 
@@ -655,7 +662,7 @@
             background-color: transparent;
             border-bottom-color: var(--pm-border);
             color: inherit;
-            padding: 0.75rem 0.875rem;
+            padding: 0.75rem 1rem;
             font-size: 0.875rem;
             line-height: 1.45;
             white-space: nowrap;
@@ -738,20 +745,24 @@
         <aside class="tenant-sidebar-surface fixed inset-y-0 left-0 z-50 w-56 overflow-hidden border-r px-4 py-6 transition-transform duration-200 md:translate-x-0" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
             <div class="flex h-full min-h-0 flex-col">
                 <div class="tenant-sidebar-scroll min-h-0 flex-1 pr-2">
-                    <div class="tenant-panel rounded-2xl border p-3.5">
-                        <div class="flex items-center gap-3">
+                    <div class="tenant-panel overflow-hidden rounded-2xl border p-3">
+                        <div class="flex items-center gap-2.5">
                             @if($logoUrl)
-                                <img src="{{ $logoUrl }}" alt="{{ $tenantName }} logo" class="h-9 w-9 rounded-xl object-cover ring-1 ring-white/10 flex-shrink-0">
+                                <img src="{{ $logoUrl }}" alt="{{ $tenantName }} logo" class="h-12 w-12 rounded-xl object-cover ring-1 ring-white/10 flex-shrink-0">
                             @else
-                                <div class="flex h-9 w-9 items-center justify-center rounded-xl shadow-lg flex-shrink-0" style="background: linear-gradient(135deg, var(--pm-accent), var(--pm-accent-hover)); box-shadow: 0 16px 36px rgba(var(--pm-accent-rgb), 0.22);">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                <div class="flex h-12 w-12 items-center justify-center rounded-xl shadow-lg flex-shrink-0" style="background: linear-gradient(135deg, var(--pm-accent), var(--pm-accent-hover)); box-shadow: 0 16px 36px rgba(var(--pm-accent-rgb), 0.22);">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                                 </div>
                             @endif
                             <div class="min-w-0 flex-1">
                                 <p class="tenant-heading font-heading text-base font-bold tracking-tight leading-tight" title="{{ $tenantName }}">{{ $tenantName }}</p>
-                                <p class="truncate text-[10px] uppercase tracking-[0.16em] accent-text" style="opacity: 0.72;" title="{{ $tenantHost }}">{{ $tenantHost }}</p>
+                                <div class="mt-1">
+                                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em]" style="border: 1px solid rgba(var(--pm-accent-rgb), 0.28); background-color: rgba(var(--pm-accent-rgb), 0.12); color: var(--pm-accent);">
+                                        Tenant
+                                    </span>
+                                </div>
                                 @if(filled($tagline))
-                                    <p class="tenant-muted mt-1 text-[11px] leading-5">{{ $tagline }}</p>
+                                    <p class="tenant-muted mt-1 text-[11px] leading-5">{{ \Illuminate\Support\Str::limit($tagline, 42) }}</p>
                                 @endif
                             </div>
                         </div>
@@ -870,7 +881,12 @@
                                     <svg class="h-5 w-5 {{ $navIconClass($settingsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h3m-7.72 1.22 2.12-2.12m8.64 0 2.12 2.12M18 10.5v3m-1.22 7.72-2.12-2.12m-8.64 0-2.12 2.12M6 13.5v-3m6 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
                                     </svg>
-                                    <span>Settings</span>
+                                    <span class="inline-flex items-center gap-2">
+                                        <span>Settings</span>
+                                        @if($updateInfo['update_available'] ?? false)
+                                            <span class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">New</span>
+                                        @endif
+                                    </span>
                                 </a>
                             @endif
                         </nav>
@@ -899,93 +915,98 @@
                     </div>
 
                     <div class="flex items-center gap-3">
+                        <span class="hidden rounded-full px-3 py-1 text-xs font-medium sm:inline-flex" style="border: 1px solid rgba(var(--pm-accent-rgb), 0.28); background-color: rgba(var(--pm-accent-rgb), 0.12); color: var(--pm-accent);" title="{{ $tenantName }}">{{ \Illuminate\Support\Str::limit($tenantName, 22) }}</span>
                         <div class="hidden text-right sm:block">
                             <p class="tenant-heading text-sm font-medium">{{ $user?->name ?? 'Tenant User' }}</p>
                             <p class="tenant-muted text-xs">{{ $roleDisplay }}</p>
                         </div>
-                        <span class="hidden rounded-full px-3 py-1 text-xs font-medium sm:inline-flex" style="border: 1px solid rgba(var(--pm-accent-rgb), 0.28); background-color: rgba(var(--pm-accent-rgb), 0.12); color: var(--pm-accent);" title="{{ $tenantName }}">{{ $tenantName }}</span>
                     </div>
                 </div>
             </header>
 
             <main class="tenant-main-surface min-h-screen p-6 pt-24">
-                @if($updateInfo['update_available'] ?? false)
-                    <div
-                        class="mb-4 flex items-center justify-between rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3"
-                        x-data="{ show: true }"
-                        x-show="show"
-                        x-transition
-                    >
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg text-indigo-400">New</span>
-                            <div>
-                                <p class="text-sm font-medium text-indigo-300">
-                                    New update available: {{ $updateInfo['latest_version'] ?? 'Unknown' }} - {{ $updateInfo['release_name'] ?? 'Unable to check' }}
-                                </p>
-                                <p class="mt-0.5 text-xs text-indigo-400/70">
-                                    Contact your administrator to install the update.
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            @click="show = false"
-                            class="ml-4 text-xs text-indigo-400/50 transition hover:text-indigo-300"
+                <div class="mx-auto max-w-7xl">
+                    @if($updateInfo['update_available'] ?? false)
+                        <div
+                            class="mb-4 flex flex-col gap-3 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sky-100 lg:flex-row lg:items-center lg:justify-between"
+                            x-data="{ show: true }"
+                            x-show="show"
+                            x-transition
                         >
-                            Dismiss
-                        </button>
-                    </div>
-                @endif
-
-                @if($subscriptionAlert !== null)
-                    <?php
-                        $subscriptionAlertStyles = match ($subscriptionAlert['tone']) {
-                            'danger' => [
-                                'container' => 'border-red-500/40 bg-red-500/10 text-red-100',
-                                'icon' => 'text-red-300',
-                            ],
-                            'warning' => [
-                                'container' => 'border-amber-400/40 bg-amber-500/10 text-amber-100',
-                                'icon' => 'text-amber-300',
-                            ],
-                            default => [
-                                'container' => 'border-sky-400/40 bg-sky-500/10 text-sky-100',
-                                'icon' => 'text-sky-300',
-                            ],
-                        };
-                    ?>
-                    <div class="mb-6 rounded-xl border px-4 py-4 {{ $subscriptionAlertStyles['container'] }}">
-                        <div class="flex items-start gap-3">
-                            <span class="mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-current/30 {{ $subscriptionAlertStyles['icon'] }}">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-                            </span>
-                            <div>
-                                <p class="text-sm font-semibold">{{ $subscriptionAlert['title'] }}</p>
-                                <p class="mt-1 text-sm text-white/80">{{ $subscriptionAlert['message'] }}</p>
+                            <div class="flex items-start gap-3">
+                                <span class="mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-sky-400/30 text-sky-300">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                                </span>
+                                <div>
+                                    <p class="text-sm font-semibold text-sky-200">New update available</p>
+                                    <p class="mt-1 text-sm text-sky-100/85">{{ $updateInfo['latest_version'] ?? 'Unknown' }} - {{ $updateInfo['release_name'] ?? 'Unable to check' }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route('settings.updates', $tenantParameter, false) }}" class="inline-flex items-center rounded-lg border border-sky-400/30 bg-transparent px-3 py-1.5 text-xs font-semibold text-sky-200 transition hover:border-sky-300 hover:bg-sky-500/10 hover:text-white">
+                                    View updates
+                                </a>
+                                <button
+                                    type="button"
+                                    @click="show = false"
+                                    class="text-xs font-medium text-sky-200/70 transition hover:text-sky-100"
+                                >
+                                    Dismiss
+                                </button>
                             </div>
                         </div>
-                    </div>
-                @endif
+                    @endif
 
-                @if($flashMessages->isNotEmpty())
-                    <div class="space-y-3">
-                        @foreach($flashMessages as $flash)
-                            <?php
-                                $flashStyle = match ($flash['key']) {
-                                    'success' => 'border-l-green-500 bg-green-500/10 text-green-100',
-                                    'error' => 'border-l-red-500 bg-red-500/10 text-red-100',
-                                    default => 'border-l-amber-400 bg-amber-500/10 text-amber-100',
-                                };
-                            ?>
-                            <div x-data="{ visible: true }" x-init="setTimeout(() => visible = false, 4000)" x-show="visible" x-transition.opacity.duration.300ms class="rounded-xl border border-white/10 border-l-4 px-4 py-3 text-sm {{ $flashStyle }}">
-                                {{ $flash['message'] }}
+                    @if($subscriptionAlert !== null)
+                        <?php
+                            $subscriptionAlertStyles = match ($subscriptionAlert['tone']) {
+                                'danger' => [
+                                    'container' => 'border-red-500/40 bg-red-500/10 text-red-100',
+                                    'icon' => 'text-red-300',
+                                ],
+                                'warning' => [
+                                    'container' => 'border-amber-400/40 bg-amber-500/10 text-amber-100',
+                                    'icon' => 'text-amber-300',
+                                ],
+                                default => [
+                                    'container' => 'border-sky-400/40 bg-sky-500/10 text-sky-100',
+                                    'icon' => 'text-sky-300',
+                                ],
+                            };
+                        ?>
+                        <div class="mb-6 rounded-xl border px-4 py-4 {{ $subscriptionAlertStyles['container'] }}">
+                            <div class="flex items-start gap-3">
+                                <span class="mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-current/30 {{ $subscriptionAlertStyles['icon'] }}">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+                                </span>
+                                <div>
+                                    <p class="text-sm font-semibold">{{ $subscriptionAlert['title'] }}</p>
+                                    <p class="mt-1 text-sm text-white/80">{{ $subscriptionAlert['message'] }}</p>
+                                </div>
                             </div>
-                        @endforeach
-                    </div>
-                @endif
+                        </div>
+                    @endif
 
-                <div class="legacy-content mt-6">
-                    @yield('content')
+                    @if($flashMessages->isNotEmpty())
+                        <div class="space-y-3">
+                            @foreach($flashMessages as $flash)
+                                <?php
+                                    $flashStyle = match ($flash['key']) {
+                                        'success' => 'border-l-green-500 bg-green-500/10 text-green-100',
+                                        'error' => 'border-l-red-500 bg-red-500/10 text-red-100',
+                                        default => 'border-l-amber-400 bg-amber-500/10 text-amber-100',
+                                    };
+                                ?>
+                                <div x-data="{ visible: true }" x-init="setTimeout(() => visible = false, 4000)" x-show="visible" x-transition.opacity.duration.300ms class="rounded-xl border border-white/10 border-l-4 px-4 py-3 text-sm {{ $flashStyle }}">
+                                    {{ $flash['message'] }}
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <div class="legacy-content mt-6 max-w-7xl">
+                        @yield('content')
+                    </div>
                 </div>
             </main>
         </div>

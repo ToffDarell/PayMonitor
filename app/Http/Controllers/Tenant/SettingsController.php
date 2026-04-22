@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Services\GitHubVersionService;
+use App\Models\TenantUpdate;
 use App\Models\SupportRequest;
 use App\Models\TenantSetting;
 use App\Mail\TenantSupportRequestMail;
+use App\Services\TenantUpdateService;
+use App\Services\TenantSelfUpdateService;
 use Illuminate\Contracts\Support\MessageBag;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -192,20 +194,70 @@ class SettingsController extends Controller
         return redirect('/settings?tab=support')->with('success', 'Support request submitted successfully.');
     }
 
+    public function applyUpdate(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'release_id' => 'required|exists:app_releases,id',
+        ]);
+
+        $tenantId = (string) (tenant()?->id ?? $request->route('tenant'));
+        $releaseId = (int) $request->input('release_id');
+
+        $selfUpdateService = app(TenantSelfUpdateService::class);
+        $result = $selfUpdateService->applyUpdate($tenantId, $releaseId);
+
+        if ($result['success']) {
+            return redirect('/settings?tab=updates')->with('success', 'Update applied successfully');
+        }
+
+        return back()->with('error', 'Update failed: ' . $result['error']);
+    }
+
     /**
      * @return array{
      *     updateInfo: array<string, mixed>,
-     *     changelogItems: array<int, string>
+     *     changelogItems: array<int, string>,
+     *     availableUpdates: array<int, array<string, mixed>>,
+     *     updateHistory: Collection<int, TenantUpdate>,
+     *     updateHistoryCount: int
      * }
      */
     protected function resolveUpdateData(): array
     {
-        $versionService = app(GitHubVersionService::class);
-        $updateInfo = $versionService->getUpdateInfo();
+        $tenantId = (string) (tenant()?->id ?? request()->route('tenant'));
+        $tenantUpdateService = app(TenantUpdateService::class);
+        $currentRelease = $tenantUpdateService->getCurrentRelease($tenantId);
+        $updateHistoryQuery = TenantUpdate::query()
+            ->forTenant($tenantId)
+            ->with('appRelease')
+            ->where('status', '!=', TenantUpdate::STATUS_UPDATE_AVAILABLE);
+        $availableUpdates = array_map(function (array $update): array {
+            $update['changelog_items'] = $this->parseChangelog((string) ($update['changelog'] ?? ''));
+
+            return $update;
+        }, $tenantUpdateService->getAvailableUpdates($tenantId));
+        $latestAvailable = $availableUpdates[0] ?? [];
+        $changelogText = (string) ($latestAvailable['changelog'] ?? '');
+
+        $updateInfo = [
+            'current_version' => (string) ($currentRelease?->appRelease?->tag ?? 'Unknown'),
+            'latest_version' => (string) ($latestAvailable['tag'] ?? $currentRelease?->appRelease?->tag ?? 'Unknown'),
+            'release_name' => (string) ($latestAvailable['title'] ?? ($currentRelease?->appRelease?->title ?? 'No published release')),
+            'release_url' => (string) ($latestAvailable['release_url'] ?? ''),
+            'published_at' => $latestAvailable['published_at'] ?? null,
+            'changelog' => $changelogText,
+            'update_available' => ! empty($availableUpdates),
+        ];
 
         return [
             'updateInfo' => $updateInfo,
-            'changelogItems' => $versionService->parseChangelog((string) ($updateInfo['changelog'] ?? '')),
+            'changelogItems' => $latestAvailable['changelog_items'] ?? $this->parseChangelog($changelogText),
+            'availableUpdates' => $availableUpdates,
+            'updateHistory' => (clone $updateHistoryQuery)
+                ->orderByDesc('created_at')
+                ->limit(20)
+                ->get(),
+            'updateHistoryCount' => (clone $updateHistoryQuery)->count(),
         ];
     }
 
@@ -260,5 +312,24 @@ class SettingsController extends Controller
         }
 
         return $errors->getBag('updatePassword');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function parseChangelog(string $raw): array
+    {
+        $lines = preg_split('/\r\n|\r|\n/', trim($raw)) ?: [];
+
+        $items = collect($lines)
+            ->map(static fn (string $line): string => trim($line))
+            ->filter(static fn (string $line): bool => $line !== '')
+            ->map(static function (string $line): string {
+                return trim((string) preg_replace('/^[-*]\s+/', '', $line));
+            })
+            ->values()
+            ->all();
+
+        return $items;
     }
 }

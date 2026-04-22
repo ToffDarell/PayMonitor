@@ -24,9 +24,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $pageTitle }} | PayMonitor Central</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,8 +34,8 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        heading: ['"Plus Jakarta Sans"', 'sans-serif'],
-                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Figtree', 'sans-serif'],
+                        sans: ['Figtree', 'sans-serif'],
                     },
                 },
             },
@@ -450,7 +449,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 4.5h9A1.5 1.5 0 0 1 18 6v12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18V6A1.5 1.5 0 0 1 7.5 4.5Z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 9h6M9 12h6M9 15h3.75"/>
                                 </svg>
-                                <span>System Updates</span>
+                                <span>Versions</span>
                             </a>
                             @php($supportActive = request()->routeIs('central.support.*'))
                             @php($openSupportCount = \App\Models\SupportRequest::where('status', 'open')->count())
@@ -502,7 +501,7 @@
 
             <main class="min-h-screen bg-[#0d1117] p-6 pt-24">
                 @if($flashMessages->isNotEmpty())
-                    <div class="space-y-3">
+                    <div class="mx-auto max-w-7xl space-y-3">
                         @foreach($flashMessages as $flash)
                             <?php
                                 $flashStyle = match ($flash['key']) {
@@ -518,7 +517,7 @@
                     </div>
                 @endif
 
-                <div class="legacy-content mt-6">
+                <div class="legacy-content mx-auto mt-6 max-w-7xl">
                     @yield('content')
                 </div>
             </main>

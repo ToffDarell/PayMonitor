@@ -9,6 +9,8 @@
         ? route('stancl.tenancy.asset', ['path' => ltrim((string) $logoPath, '/')], false)
         : null;
     $updateAvailable = (bool) ($updateInfo['update_available'] ?? false);
+    $availableUpdateCount = count($availableUpdates ?? []);
+    $historyCount = (int) ($updateHistoryCount ?? (isset($updateHistory) ? $updateHistory->count() : 0));
     $currentVersionLabel = (string) ($updateInfo['current_version'] ?? 'v1.0.0');
     $latestVersionLabel = (string) ($updateInfo['latest_version'] ?? 'Unknown');
     $releaseName = (string) ($updateInfo['release_name'] ?? 'Unable to check');
@@ -20,6 +22,9 @@
     $supportPhone = $supportContact['phone'] ?? '+63 917 000 0000';
     $supportHours = $supportContact['hours'] ?? 'Mon-Fri, 8:00 AM - 5:00 PM';
     $passwordHint = auth()->user()?->email ?? tenant()?->email ?? 'your account email';
+    $canViewSettings = auth()->user()?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_VIEW) ?? false;
+    $canManageSettings = auth()->user()?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_UPDATE) ?? false;
+    $updatesOnly = request()->routeIs('settings.updates') && ! $canViewSettings;
 @endphp
 
 @push('styles')
@@ -104,6 +109,8 @@
 <div
     x-data="{
         activeTab: @js($activeTab),
+        availableUpdatesOpen: false,
+        historyOpen: false,
         logoPreview: @js($logoUrl),
         selectedAccent: @js($settings['accent_color'] ?? 'green'),
         selectedThemeMode: @js(old('theme_mode', $settings['theme_mode'] ?? 'dark')),
@@ -125,18 +132,25 @@
 >
     <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-            <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Tenant Settings</h2>
-            <p class="mt-1 text-sm text-slate-400">Customize your portal details, appearance, account security, and release update visibility.</p>
+            <h2 class="font-heading text-2xl font-bold tracking-tight text-white">{{ $updatesOnly ? 'Tenant Updates' : 'Tenant Settings' }}</h2>
+            <p class="mt-1 text-sm text-slate-400">
+                {{ $updatesOnly ? 'Review the latest tenant release and apply it when your role allows updates.' : 'Customize your portal details, appearance, account security, and release update visibility.' }}
+            </p>
         </div>
         <div class="flex flex-wrap gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-2">
-            <button type="button" x-on:click="activeTab = 'general'" x-bind:class="activeTab === 'general' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">General</button>
-            <button type="button" x-on:click="activeTab = 'appearance'" x-bind:class="activeTab === 'appearance' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Appearance</button>
-            <button type="button" x-on:click="activeTab = 'security'" x-bind:class="activeTab === 'security' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Security</button>
+            @if(! $updatesOnly)
+                <button type="button" x-on:click="activeTab = 'general'" x-bind:class="activeTab === 'general' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">General</button>
+                <button type="button" x-on:click="activeTab = 'appearance'" x-bind:class="activeTab === 'appearance' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Appearance</button>
+                <button type="button" x-on:click="activeTab = 'security'" x-bind:class="activeTab === 'security' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Security</button>
+            @endif
             <button type="button" x-on:click="activeTab = 'updates'" x-bind:class="activeTab === 'updates' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Updates</button>
-            <button type="button" x-on:click="activeTab = 'support'" x-bind:class="activeTab === 'support' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Support</button>
+            @if(! $updatesOnly)
+                <button type="button" x-on:click="activeTab = 'support'" x-bind:class="activeTab === 'support' ? 'settings-tab-active' : 'settings-tab-default'" class="rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition">Support</button>
+            @endif
         </div>
     </div>
 
+    @if(! $updatesOnly)
     <div x-cloak x-show="activeTab === 'general'" class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6 sm:p-8">
         <form method="POST" action="{{ route('settings.update', $tenantParameter, false) }}" class="space-y-6">
             @csrf
@@ -203,7 +217,9 @@
             </div>
         </form>
     </div>
+    @endif
 
+    @if(! $updatesOnly)
     <div x-cloak x-show="activeTab === 'appearance'" class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6 sm:p-8">
         <form method="POST" action="{{ route('settings.update', $tenantParameter, false) }}" enctype="multipart/form-data" class="space-y-8">
             @csrf
@@ -338,7 +354,9 @@
             </div>
         </form>
     </div>
+    @endif
 
+    @if(! $updatesOnly)
     <div x-cloak x-show="activeTab === 'security'" class="space-y-6">
         <div class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
             <div class="space-y-6">
@@ -438,6 +456,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <div x-cloak x-show="activeTab === 'updates'" class="space-y-6">
         <div class="grid gap-4 md:grid-cols-3">
@@ -454,7 +473,7 @@
             <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Status</p>
                 <p class="mt-3 font-heading text-3xl font-bold {{ $updateAvailable ? 'text-yellow-300' : 'text-emerald-300' }}">{{ $updateAvailable ? 'Update Available' : 'Up to Date' }}</p>
-                <p class="mt-2 text-sm text-slate-500">{{ $updateAvailable ? 'A new release is ready to install by your PayMonitor administrator.' : 'This tenant is running the latest published release.' }}</p>
+                <p class="mt-2 text-sm text-slate-500">{{ $updateAvailable ? ($availableUpdateCount === 1 ? '1 release is ready to review below.' : $availableUpdateCount.' releases are ready to review below.') : 'This tenant is running the latest published release.' }}</p>
             </div>
         </div>
 
@@ -478,22 +497,192 @@
                 </div>
 
                 <div class="mt-5 flex flex-wrap items-center gap-3">
+                    @if(!empty($availableUpdates) && $canManageSettings)
+                        <form method="POST" action="{{ route('settings.updates.apply', $tenantParameter, false) }}" onsubmit="return confirm('Apply this update? This will run migrations for your tenant.')">
+                            @csrf
+                            <input type="hidden" name="release_id" value="{{ $availableUpdates[0]['id'] ?? '' }}">
+                            <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                                </svg>
+                                Apply Update Now
+                            </button>
+                        </form>
+                    @elseif(!empty($availableUpdates))
+                        <div class="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                            You can review this release, but only users with update access can apply it.
+                        </div>
+                    @endif
                     @if($releaseUrl !== '')
                         <a href="{{ $releaseUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
                             View Full Release Notes
                         </a>
                     @endif
-                    <p class="text-sm text-slate-400">To install updates, please contact your PayMonitor administrator.</p>
                 </div>
             </div>
+
+            @if($availableUpdateCount > 1)
+                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Available Updates</p>
+                            <h3 class="mt-2 font-heading text-xl font-bold text-white">{{ $availableUpdateCount }} releases available</h3>
+                            <p class="mt-2 text-sm text-slate-400">The newest release is highlighted above. Older pending releases are listed here for review.</p>
+                        </div>
+                        <div class="flex flex-col items-start gap-3 md:items-end">
+                            <p class="text-xs text-slate-500">Only the latest release can be applied from this screen.</p>
+                            <button
+                                type="button"
+                                x-on:click="availableUpdatesOpen = !availableUpdatesOpen"
+                                class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0f1319] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:text-white"
+                            >
+                                <span x-text="availableUpdatesOpen ? 'Hide Available Updates' : 'Show Available Updates'"></span>
+                                <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="availableUpdatesOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div x-cloak x-show="availableUpdatesOpen" x-transition.opacity.duration.200ms class="mt-6 space-y-4">
+                        @foreach($availableUpdates as $index => $release)
+                            @php
+                                $releaseTag = (string) ($release['tag'] ?? $release['version'] ?? 'Unknown');
+                                $releaseTitle = (string) ($release['title'] ?? 'Untitled release');
+                                $releasePublished = filled($release['published_at'] ?? null)
+                                    ? \Illuminate\Support\Carbon::parse((string) $release['published_at'])->format('M d, Y h:i A')
+                                    : 'Unknown';
+                                $releaseChangelogItems = $release['changelog_items'] ?? [];
+                            @endphp
+
+                            <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-5">
+                                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="inline-flex rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200">{{ $releaseTag }}</span>
+                                            @if($index === 0)
+                                                <span class="inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-yellow-300">Latest</span>
+                                            @endif
+                                            @if($release['is_required'] ?? false)
+                                                <span class="inline-flex rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-red-300">Required</span>
+                                            @elseif($release['is_stable'] ?? false)
+                                                <span class="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-300">Stable</span>
+                                            @endif
+                                        </div>
+
+                                        <h4 class="mt-3 text-lg font-semibold text-white">{{ $releaseTitle }}</h4>
+                                        <p class="mt-1 text-xs text-slate-500">Published {{ $releasePublished }}</p>
+                                    </div>
+
+                                    @if(($release['release_url'] ?? '') !== '')
+                                        <a href="{{ $release['release_url'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
+                                            View Release Notes
+                                        </a>
+                                    @endif
+                                </div>
+
+                                <div class="mt-4">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Changelog</p>
+                                    <ul class="mt-3 space-y-2 text-sm text-slate-300">
+                                        @forelse($releaseChangelogItems as $item)
+                                            <li class="flex gap-3">
+                                                <span class="mt-1.5 h-1.5 w-1.5 rounded-full {{ $index === 0 ? 'bg-yellow-300' : 'bg-emerald-300' }}"></span>
+                                                <span>{{ $item }}</span>
+                                            </li>
+                                        @empty
+                                            <li class="text-slate-500">No changelog details available.</li>
+                                        @endforelse
+                                    </ul>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         @else
             <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
                 <p class="text-sm font-semibold text-emerald-300">PayMonitor is up to date.</p>
-                <p class="mt-1 text-sm text-slate-400">To install future updates, please contact your PayMonitor administrator.</p>
+                <p class="mt-1 text-sm text-slate-400">When a new release arrives, you can apply it here.</p>
             </div>
         @endif
+
+        <section class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Audit Trail</p>
+                    <h3 class="mt-2 text-2xl font-semibold text-white">Update History</h3>
+                    <p class="mt-2 text-sm text-slate-400">
+                        {{ $historyCount > 0 ? $historyCount.' update attempt'.($historyCount === 1 ? '' : 's').' recorded.' : 'No updates applied yet.' }}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    x-on:click="historyOpen = !historyOpen"
+                    class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0f1319] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:text-white"
+                >
+                    <span x-text="historyOpen ? 'Hide Update History' : 'Show Update History'"></span>
+                    <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="historyOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                    </svg>
+                </button>
+            </div>
+
+            <div x-cloak x-show="historyOpen" x-transition.opacity.duration.200ms class="mt-6">
+                @if($historyCount === 0)
+                    <p class="text-sm text-slate-500">No updates applied yet.</p>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[720px] text-left text-sm text-slate-300">
+                            <thead>
+                                <tr class="border-b border-white/[0.07] text-xs uppercase tracking-[0.16em] text-slate-500">
+                                    <th class="px-4 py-3">Version</th>
+                                    <th class="px-4 py-3">Attempted At</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($updateHistory as $entry)
+                                    @php
+                                        $attemptedAt = $entry->applied_at ?? $entry->created_at;
+                                        $status = (string) ($entry->status ?? 'unknown');
+                                        $entryNote = $entry->failure_reason ?: (data_get($entry->metadata, 'updated_by') !== null
+                                            ? 'Updated by user #'.data_get($entry->metadata, 'updated_by')
+                                            : 'Applied successfully');
+                                        $statusClass = match ($status) {
+                                            'updated' => 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+                                            'failed' => 'border border-red-500/30 bg-red-500/10 text-red-300',
+                                            default => 'border border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
+                                        };
+                                    @endphp
+                                    <tr class="border-b border-white/[0.07] transition hover:bg-white/[0.02]">
+                                        <td class="px-4 py-4 font-semibold text-white">
+                                            {{ $entry->appRelease?->tag ?? 'Unknown' }}
+                                            @if($entry->is_current)
+                                                <span class="ml-2 inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300">Current</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-4 text-slate-400">{{ $attemptedAt?->format('M d, Y h:i A') ?? '-' }}</td>
+                                        <td class="px-4 py-4">
+                                            <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] {{ $statusClass }}">
+                                                {{ str_replace('_', ' ', $status) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-4 text-slate-400">
+                                            {{ $entryNote }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </section>
     </div>
 
+    @if(! $updatesOnly)
     <div x-cloak x-show="activeTab === 'support'" class="space-y-6">
         <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
             <div class="space-y-6">
@@ -631,5 +820,6 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 @endsection

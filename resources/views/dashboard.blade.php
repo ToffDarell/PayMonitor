@@ -5,219 +5,194 @@
 @section('content')
 @php
     $tenantParameter = ['tenant' => request()->route('tenant')];
+    $metricCards = [
+        [
+            'label' => 'Active loans',
+            'value' => number_format($activeLoansCount),
+            'detail' => 'Currently active loan accounts.',
+            'border' => 'border-l-emerald-500',
+            'dot' => 'bg-emerald-500',
+            'value_class' => 'text-emerald-300',
+        ],
+        [
+            'label' => 'Outstanding balance',
+            'value' => '&#8369;'.number_format($totalOutstandingBalance, 2),
+            'detail' => 'Remaining balance across active loans.',
+            'border' => 'border-l-sky-500',
+            'dot' => 'bg-sky-500',
+            'value_class' => 'text-sky-300',
+        ],
+        [
+            'label' => 'Overdue loans',
+            'value' => number_format($overdueLoansCount),
+            'detail' => 'Loans already past their due date.',
+            'border' => 'border-l-red-500',
+            'dot' => 'bg-red-500',
+            'value_class' => 'text-red-300',
+        ],
+        [
+            'label' => 'Members count',
+            'value' => number_format($totalMembersCount),
+            'detail' => 'Borrowers currently tracked in this tenant.',
+            'border' => 'border-l-indigo-500',
+            'dot' => 'bg-indigo-500',
+            'value_class' => 'text-indigo-300',
+        ],
+        [
+            'label' => 'Collections this month',
+            'value' => '&#8369;'.number_format($totalPaymentsThisMonth, 2),
+            'detail' => 'Payments recorded in the current month.',
+            'border' => 'border-l-amber-500',
+            'dot' => 'bg-amber-500',
+            'value_class' => 'text-amber-300',
+        ],
+        [
+            'label' => 'Loan types available',
+            'value' => number_format($loanTypesCount),
+            'detail' => 'Active loan products ready for use.',
+            'border' => 'border-l-emerald-400',
+            'dot' => 'bg-emerald-400',
+            'value_class' => 'text-white',
+        ],
+    ];
+
     $loanStatusClasses = [
-        'active' => 'primary',
-        'fully_paid' => 'success',
-        'overdue' => 'danger',
-        'restructured' => 'warning text-dark',
+        'active' => 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+        'fully_paid' => 'border border-sky-500/30 bg-sky-500/10 text-sky-300',
+        'overdue' => 'border border-red-500/30 bg-red-500/10 text-red-300',
+        'restructured' => 'border border-amber-500/30 bg-amber-500/10 text-amber-300',
     ];
 @endphp
 
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-    <div>
-        <h1 class="h3 fw-bold mb-1">Dashboard</h1>
-        <p class="text-muted mb-0">{{ tenant()?->name ?? 'Lending Cooperative' }}</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('members.index', $tenantParameter) }}" class="btn btn-outline-secondary">
-            <i class="bi bi-people me-2"></i>Members
-        </a>
-        @can('create', \App\Models\Loan::class)
-            <a href="{{ route('loans.create', $tenantParameter) }}" class="btn btn-primary">
-                <i class="bi bi-cash-coin me-2"></i>New Loan
+<div class="space-y-8">
+    <section class="flex flex-wrap items-start justify-between gap-4">
+        <div class="max-w-2xl">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Tenant Workspace</p>
+            <h2 class="mt-3 font-heading text-3xl font-bold tracking-tight text-white">Dashboard</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-400">
+                {{ tenant()?->name ?? 'Lending Cooperative' }} lending activity, collections, and portfolio visibility in one place.
+            </p>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('members.index', $tenantParameter, false) }}" class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
+                <i class="bi bi-people text-base"></i>
+                <span>Members</span>
             </a>
-        @endcan
-    </div>
-</div>
+            @can('create', \App\Models\Loan::class)
+                <a href="{{ route('loans.create', $tenantParameter, false) }}" class="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110" style="background-color: var(--pm-accent); box-shadow: 0 16px 36px rgba(var(--pm-accent-rgb), 0.22);">
+                    <i class="bi bi-cash-coin text-base"></i>
+                    <span>New Loan</span>
+                </a>
+            @endcan
+        </div>
+    </section>
 
-<div class="row g-4 mb-4">
-    <div class="col-md-6 col-xl-3">
-        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
-            <div class="p-4">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="text-[#8b949e] text-xs fw-semibold text-uppercase tracking-[0.16em]">Active Loans</div>
-                        <div class="mt-3 text-2xl font-bold text-white">{{ number_format($activeLoansCount) }}</div>
-                    </div>
-                    <span class="d-inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-400">
-                        <i class="bi bi-cash-stack"></i>
-                    </span>
+    <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        @foreach($metricCards as $metric)
+            <div class="rounded-xl border border-white/[0.05] border-l-4 {{ $metric['border'] }} bg-white/[0.02] p-4">
+                <div class="mb-1 flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full {{ $metric['dot'] }}"></span>
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{{ $metric['label'] }}</span>
                 </div>
+                <div class="font-heading text-2xl font-bold {!! $metric['value_class'] !!}">{!! $metric['value'] !!}</div>
+                <p class="mt-2 text-xs text-slate-500">{{ $metric['detail'] }}</p>
             </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
-            <div class="p-4">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="text-[#8b949e] text-xs fw-semibold text-uppercase tracking-[0.16em]">Outstanding Balance</div>
-                        <div class="mt-3 text-2xl font-bold text-white">P{{ number_format($totalOutstandingBalance, 2) }}</div>
-                    </div>
-                    <span class="d-inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-400">
-                        <i class="bi bi-bank2"></i>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
-            <div class="p-4">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="text-[#8b949e] text-xs fw-semibold text-uppercase tracking-[0.16em]">Overdue Loans</div>
-                        <div class="mt-3 text-2xl font-bold text-white">{{ number_format($overdueLoansCount) }}</div>
-                    </div>
-                    <span class="d-inline-flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500/10 text-yellow-400">
-                        <i class="bi bi-exclamation-triangle"></i>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
-            <div class="p-4">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="text-[#8b949e] text-xs fw-semibold text-uppercase tracking-[0.16em]">Members Count</div>
-                        <div class="mt-3 text-2xl font-bold text-white">{{ number_format($totalMembersCount) }}</div>
-                    </div>
-                    <span class="d-inline-flex h-8 w-8 items-center justify-center rounded-full bg-green-500/10 text-green-400">
-                        <i class="bi bi-people-fill"></i>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+        @endforeach
+    </section>
 
-<div class="row g-4 mb-4">
-    <div class="col-lg-6">
-        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
-            <div class="p-4">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="text-[#8b949e] text-xs fw-semibold text-uppercase tracking-[0.16em]">Total Collections This Month</div>
-                        <div class="mt-3 text-2xl font-bold text-white">P{{ number_format($totalPaymentsThisMonth, 2) }}</div>
-                    </div>
-                    <span class="d-inline-flex h-8 w-8 items-center justify-center rounded-full bg-green-500/10 text-green-400">
-                        <i class="bi bi-wallet2"></i>
-                    </span>
-                </div>
+    <section class="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+        <div class="flex flex-col gap-4 border-b border-white/[0.07] px-6 py-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+                <h3 class="font-heading text-base font-semibold text-white">Recent Loans</h3>
+                <p class="mt-1 text-sm text-slate-400">Latest loan records released or updated in this workspace.</p>
             </div>
+            <a href="{{ route('loans.index', $tenantParameter, false) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                View All
+            </a>
         </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card h-100 rounded-xl border border-[#21262d] bg-[#161b22]">
-            <div class="p-4">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="text-[#8b949e] text-xs fw-semibold text-uppercase tracking-[0.16em]">Loan Types Available</div>
-                        <div class="mt-3 text-2xl font-bold text-white">{{ number_format($loanTypesCount) }}</div>
-                    </div>
-                    <span class="d-inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-blue-400">
-                        <i class="bi bi-journal-bookmark"></i>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row g-4">
-    <div class="col-12">
-        <div class="card rounded-xl border border-[#21262d] bg-[#161b22]">
-            <div class="card-header border-bottom border-[#21262d] bg-[#161b22] py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0 fw-bold">Recent Loans</h2>
-                    <a href="{{ route('loans.index', $tenantParameter) }}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-arrow-right-circle me-1"></i>View All
-                    </a>
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Member Name</th>
-                            <th>Loan Type</th>
-                            <th class="text-end">Amount</th>
-                            <th class="text-end">Monthly Payment</th>
-                            <th class="text-end">Balance</th>
-                            <th>Status</th>
-                            <th>Date Released</th>
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[1040px] text-sm">
+                <thead class="sticky top-0 z-10 bg-[#0F1729]">
+                    <tr class="border-b border-white/[0.06]">
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Member Name</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Loan Type</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Amount</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Monthly Payment</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Balance</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Date Released</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.04]">
+                    @forelse($recentLoans as $loan)
+                        <tr class="transition hover:bg-white/[0.02]">
+                            <td class="px-4 py-4 align-top">
+                                <a href="{{ route('loans.show', [...$tenantParameter, 'loan' => $loan], false) }}" class="font-semibold text-white transition hover:text-emerald-300">
+                                    {{ $loan->member?->full_name ?? 'Unknown Member' }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-4 align-top text-slate-300">{{ $loan->loanType?->name ?? 'N/A' }}</td>
+                            <td class="px-4 py-4 align-top text-slate-300">&#8369;{{ number_format((float) $loan->principal_amount, 2) }}</td>
+                            <td class="px-4 py-4 align-top text-slate-300">&#8369;{{ number_format((float) $loan->monthly_payment, 2) }}</td>
+                            <td class="px-4 py-4 align-top font-semibold text-red-300">&#8369;{{ number_format((float) $loan->outstanding_balance, 2) }}</td>
+                            <td class="px-4 py-4 align-top">
+                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] {{ $loanStatusClasses[$loan->status] ?? 'border border-slate-500/30 bg-slate-500/10 text-slate-300' }}">
+                                    {{ str_replace('_', ' ', $loan->status) }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4 align-top text-slate-400">{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($recentLoans as $loan)
-                            <tr>
-                                <td>
-                                    <a href="{{ route('loans.show', [...$tenantParameter, 'loan' => $loan]) }}" class="text-decoration-none fw-semibold">
-                                        {{ $loan->member?->full_name ?? 'Unknown Member' }}
-                                    </a>
-                                </td>
-                                <td>{{ $loan->loanType?->name ?? 'N/A' }}</td>
-                                <td class="text-end">P{{ number_format((float) $loan->principal_amount, 2) }}</td>
-                                <td class="text-end">P{{ number_format((float) $loan->monthly_payment, 2) }}</td>
-                                <td class="text-end text-danger">P{{ number_format((float) $loan->outstanding_balance, 2) }}</td>
-                                <td>
-                                    <span class="badge bg-{{ $loanStatusClasses[$loan->status] ?? 'secondary' }}">
-                                        {{ str_replace('_', ' ', ucfirst($loan->status)) }}
-                                    </span>
-                                </td>
-                                <td>{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-5">No recent loans found.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-12">
-        <div class="card rounded-xl border border-[#21262d] bg-[#161b22]">
-            <div class="card-header border-bottom border-[#21262d] bg-[#161b22] py-3">
-                <h2 class="h5 mb-0 fw-bold">Overdue Loans</h2>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle mb-0">
-                    <thead class="table-light">
+                    @empty
                         <tr>
-                            <th>Member</th>
-                            <th>Loan #</th>
-                            <th class="text-end">Balance</th>
-                            <th>Due Date</th>
-                            <th class="text-end">Days Overdue</th>
+                            <td colspan="7" class="px-6 py-12 text-center text-sm text-slate-500">No recent loans found.</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($topOverdueLoans as $loan)
-                            <tr>
-                                <td>{{ $loan->member?->full_name ?? 'Unknown Member' }}</td>
-                                <td>
-                                    <a href="{{ route('loans.show', [...$tenantParameter, 'loan' => $loan]) }}" class="text-decoration-none fw-semibold">
-                                        {{ $loan->loan_number }}
-                                    </a>
-                                </td>
-                                <td class="text-end text-danger">P{{ number_format((float) $loan->outstanding_balance, 2) }}</td>
-                                <td>{{ $loan->due_date?->format('M d, Y') ?? 'N/A' }}</td>
-                                <td class="text-end">{{ $loan->due_date ? $loan->due_date->diffInDays(today()) : 'N/A' }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-5">No overdue loans found.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-    </div>
+    </section>
+
+    <section class="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
+        <div class="border-b border-white/[0.07] px-6 py-4">
+            <h3 class="font-heading text-base font-semibold text-white">Overdue Loans</h3>
+            <p class="mt-1 text-sm text-slate-400">Loans requiring immediate collection follow-up.</p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[920px] text-sm">
+                <thead class="sticky top-0 z-10 bg-[#0F1729]">
+                    <tr class="border-b border-white/[0.06]">
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Member</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Loan #</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Balance</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Due Date</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Days Overdue</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/[0.04]">
+                    @forelse($topOverdueLoans as $loan)
+                        <tr class="transition hover:bg-white/[0.02]">
+                            <td class="px-4 py-4 align-top text-slate-300">{{ $loan->member?->full_name ?? 'Unknown Member' }}</td>
+                            <td class="px-4 py-4 align-top">
+                                <a href="{{ route('loans.show', [...$tenantParameter, 'loan' => $loan], false) }}" class="font-semibold text-white transition hover:text-emerald-300">
+                                    {{ $loan->loan_number }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-4 align-top font-semibold text-red-300">&#8369;{{ number_format((float) $loan->outstanding_balance, 2) }}</td>
+                            <td class="px-4 py-4 align-top text-slate-400">{{ $loan->due_date?->format('M d, Y') ?? 'N/A' }}</td>
+                            <td class="px-4 py-4 align-top text-slate-300">{{ $loan->due_date ? $loan->due_date->diffInDays(today()) : 'N/A' }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500">No overdue loans found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 @endsection

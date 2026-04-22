@@ -72,6 +72,12 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::post('/billing/{invoice}/send-receipt', [CentralBillingController::class, 'sendReceipt'])->name('billing.send-receipt');
 
                 Route::get('/versions', [CentralVersionController::class, 'index'])->name('versions.index');
+                Route::post('/versions/sync', [CentralVersionController::class, 'syncReleases'])->name('versions.sync');
+                Route::post('/versions/backfill-tracking', [CentralVersionController::class, 'backfillTracking'])->name('versions.backfill-tracking');
+                Route::post('/versions/{release}/mark-required', [CentralVersionController::class, 'markRequired'])->name('versions.mark-required');
+                Route::delete('/versions/{release}/unmark-required', [CentralVersionController::class, 'unmarkRequired'])->name('versions.unmark-required');
+                Route::post('/versions/{release}/notify-all', [CentralVersionController::class, 'notifyAll'])->name('versions.notify-all');
+                Route::post('/versions/{release}/force-mark-all', [CentralVersionController::class, 'forceMarkAll'])->name('versions.force-mark-all');
                 Route::post('/versions/check', [CentralVersionController::class, 'checkForUpdates'])->name('versions.check');
                 Route::post('/versions/apply', [CentralVersionController::class, 'applyUpdate'])->name('versions.apply');
 

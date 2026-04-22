@@ -51,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.active' => EnsureTenantIsActive::class,
             'tenant.role' => TenantRoleMiddleware::class,
             'tenant.permission' => TenantPermissionMiddleware::class,
+            'tenant.update.required' => \App\Http\Middleware\RequiredUpdateMiddleware::class,
             'role' => RoleMiddleware::class,
         ]);
     })
