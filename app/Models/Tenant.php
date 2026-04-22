@@ -30,6 +30,8 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         'admin_name',
         'status',
         'subscription_due_at',
+        'update_required',
+        'update_required_version',
     ];
 
     protected $hidden = [
@@ -47,6 +49,8 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'admin_name',
             'status',
             'subscription_due_at',
+            'update_required',
+            'update_required_version',
             'created_at',
             'updated_at',
         ];
@@ -65,7 +69,8 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     protected function casts(): array
     {
         return [
-            'subscription_due_at' => 'date',
+            'subscription_due_at'     => 'date',
+            'update_required'         => 'boolean',
         ];
     }
 
