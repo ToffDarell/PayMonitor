@@ -22,6 +22,44 @@
         'needs_attention' => 'Needs Attention',
         default => 'Healthy',
     };
+    $rolloutMetrics = [
+        [
+            'label' => 'Total Tenants',
+            'value' => (int) ($statistics['total_tenants'] ?? 0),
+            'panel_class' => 'border-[#273142] bg-[#0f1319]',
+            'label_class' => 'text-slate-500',
+            'value_class' => 'text-white',
+            'accent_class' => 'bg-slate-400/70',
+            'note' => 'Central-managed tenants included in rollout reporting.',
+        ],
+        [
+            'label' => 'Up to Date',
+            'value' => (int) ($statistics['up_to_date'] ?? 0),
+            'panel_class' => 'border-emerald-500/20 bg-emerald-500/5',
+            'label_class' => 'text-emerald-300',
+            'value_class' => 'text-emerald-200',
+            'accent_class' => 'bg-emerald-300',
+            'note' => 'Already running the latest stable tracked release.',
+        ],
+        [
+            'label' => 'Needs Update',
+            'value' => (int) ($statistics['needs_update'] ?? 0),
+            'panel_class' => 'border-yellow-500/20 bg-yellow-500/5',
+            'label_class' => 'text-yellow-300',
+            'value_class' => 'text-yellow-200',
+            'accent_class' => 'bg-yellow-300',
+            'note' => 'Behind the current stable release and pending rollout.',
+        ],
+        [
+            'label' => 'Failed',
+            'value' => (int) ($statistics['failed'] ?? 0),
+            'panel_class' => 'border-red-500/20 bg-red-500/5',
+            'label_class' => 'text-red-300',
+            'value_class' => 'text-red-200',
+            'accent_class' => 'bg-red-300',
+            'note' => 'Latest recorded tenant update attempt ended in failure.',
+        ],
+    ];
 @endphp
 
 @section('content')
@@ -175,49 +213,48 @@
                 </div>
             @endif
 
-            <div class="mt-6 grid gap-4 sm:grid-cols-2">
-                <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Total Tenants</p>
-                    <p class="mt-3 text-3xl font-semibold text-white">{{ $statistics['total_tenants'] ?? 0 }}</p>
-                </div>
-                <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">Up to Date</p>
-                    <p class="mt-3 text-3xl font-semibold text-emerald-200">{{ $statistics['up_to_date'] ?? 0 }}</p>
-                </div>
-                <div class="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-yellow-300">Needs Update</p>
-                    <p class="mt-3 text-3xl font-semibold text-yellow-200">{{ $statistics['needs_update'] ?? 0 }}</p>
-                </div>
-                <div class="rounded-xl border border-red-500/20 bg-red-500/5 p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-red-300">Failed</p>
-                    <p class="mt-3 text-3xl font-semibold text-red-200">{{ $statistics['failed'] ?? 0 }}</p>
-                </div>
+            <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                @foreach($rolloutMetrics as $metric)
+                    <div class="rounded-2xl border p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] {{ $metric['panel_class'] }}">
+                        <div class="flex min-h-[148px] flex-col justify-between">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-[11px] font-semibold uppercase tracking-[0.18em] {{ $metric['label_class'] }}">{{ $metric['label'] }}</p>
+                                    <p class="mt-2 text-xs leading-5 text-slate-500">{{ $metric['note'] }}</p>
+                                </div>
+                                <span class="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full {{ $metric['accent_class'] }}"></span>
+                            </div>
+
+                            <p class="mt-8 text-4xl font-semibold leading-none {{ $metric['value_class'] }}">
+                                {{ number_format((int) $metric['value']) }}
+                            </p>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </div>
     </section>
 
     <section class="rounded-2xl border border-[#273142] bg-[#161b22] p-6 shadow-sm">
-        <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Release Registry</p>
                 <h3 class="mt-2 text-2xl font-semibold text-white">Tracked Versions</h3>
-                <p class="mt-2 text-sm text-slate-400">Borrowing the cleaner admin-table structure from the reference app: roomy rows, obvious hierarchy, and consistent action spacing.</p>
+                <p class="mt-2 text-sm text-slate-400">
+                    {{ number_format($releaseCount) }} tracked release{{ $releaseCount === 1 ? '' : 's' }} available for rollout review and action.
+                </p>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <span class="inline-flex rounded-full border border-white/10 bg-[#0f1319] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
-                    {{ $releaseCount }} total
-                </span>
-                <button
-                    type="button"
-                    x-on:click="registryOpen = !registryOpen"
-                    class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white"
-                >
-                    <span x-text="registryOpen ? 'Hide Tracked Versions' : 'Show Tracked Versions'"></span>
-                    <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="registryOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
-                    </svg>
-                </button>
-            </div>
+
+            <button
+                type="button"
+                x-on:click="registryOpen = !registryOpen"
+                class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white"
+            >
+                <span x-text="registryOpen ? 'Hide Tracked Versions' : 'Show Tracked Versions'"></span>
+                <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="registryOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                </svg>
+            </button>
         </div>
 
         <div x-cloak x-show="registryOpen" x-transition.opacity.duration.200ms class="mt-6 space-y-5">
