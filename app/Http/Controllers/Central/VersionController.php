@@ -5,20 +5,25 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Central;
 
 use App\Http\Controllers\Controller;
+use App\Mail\TenantUpdateNotificationMail;
+use App\Models\AppRelease;
+use App\Models\Tenant;
+use App\Models\TenantSetting;
+use App\Services\AdminReleaseService;
 use App\Services\GitHubVersionService;
 use App\Services\ReleaseRegistryService;
-use App\Services\AdminReleaseService;
-use App\Models\AppRelease;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class VersionController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private readonly GitHubVersionService $versionService,
+    ) {
         $this->middleware(static function ($request, $next) {
             abort_unless($request->user()?->hasRole('super_admin'), 403);
 
@@ -28,56 +33,53 @@ class VersionController extends Controller
 
     public function index(): View
     {
-        $versionService = app(GitHubVersionService::class);
-        $updateInfo = $versionService->getUpdateInfo();
-        $changelogItems = $versionService->parseChangelog((string) ($updateInfo['changelog'] ?? ''));
-        $updateHistory = $versionService->getUpdateHistory();
+        $updateInfo     = $this->versionService->getUpdateInfo();
+        $changelogItems = $this->versionService->parseChangelog((string) ($updateInfo['changelog'] ?? ''));
+        $updateHistory  = $this->versionService->getUpdateHistory();
+        $releases       = AppRelease::latest('published_at')->paginate(20);
+        $statistics     = app(AdminReleaseService::class)->getUpdateStatistics();
+        $latestVersion  = (string) ($updateInfo['latest_version'] ?? 'v1.0.0');
 
-        $releases = AppRelease::latest('published_at')->paginate(20);
-        $statistics = app(AdminReleaseService::class)->getUpdateStatistics();
+        // Load all tenants with their version info from tenant DBs
+        $tenants = Tenant::with(['plan', 'domains'])->get();
+
+        foreach ($tenants as $tenant) {
+            try {
+                $tenant->current_version  = $tenant->run(fn () => TenantSetting::get('current_version', 'v1.0.0'));
+                $tenant->last_updated_at  = $tenant->run(fn () => TenantSetting::get('last_updated_at', null));
+                $tenant->last_updated_by  = $tenant->run(fn () => TenantSetting::get('last_updated_by', null));
+            } catch (\Throwable) {
+                $tenant->current_version = 'v1.0.0';
+                $tenant->last_updated_at = null;
+                $tenant->last_updated_by = null;
+            }
+        }
 
         return view('central.versions.index', [
-            'updateInfo' => $updateInfo,
+            'updateInfo'     => $updateInfo,
             'changelogItems' => $changelogItems,
-            'updateHistory' => $updateHistory,
-            'releases' => $releases,
-            'statistics' => $statistics,
+            'updateHistory'  => $updateHistory,
+            'releases'       => $releases,
+            'statistics'     => $statistics,
+            'tenants'        => $tenants,
+            'latestVersion'  => $latestVersion,
         ]);
     }
 
     public function checkForUpdates(): JsonResponse
     {
-        // Must forget from the file store — that's what GitHubVersionService::releaseCacheStore() uses.
         Cache::store('file')->forget('github_latest_release');
         Cache::store('file')->forget('github_latest_release_info');
 
-        $updateInfo = app(GitHubVersionService::class)->getUpdateInfo();
+        $updateInfo = $this->versionService->getUpdateInfo();
 
         return response()->json([
             'update_available' => $updateInfo['update_available'] ?? false,
-            'latest_version' => $updateInfo['latest_version'] ?? 'Unknown',
-            'current_version' => $updateInfo['current_version'] ?? 'Unknown',
-            'release_name' => $updateInfo['release_name'] ?? 'Unable to check',
-            'changelog' => $updateInfo['changelog'] ?? '',
+            'latest_version'   => $updateInfo['latest_version'] ?? 'Unknown',
+            'current_version'  => $updateInfo['current_version'] ?? 'Unknown',
+            'release_name'     => $updateInfo['release_name'] ?? 'Unable to check',
+            'changelog'        => $updateInfo['changelog'] ?? '',
         ]);
-    }
-
-    public function applyUpdate(Request $request): RedirectResponse
-    {
-        abort_unless($request->user()?->hasRole('super_admin'), 403);
-
-        $result = app(GitHubVersionService::class)->applyUpdate((string) ($request->user()?->email ?? 'superadmin@paymonitor.com'));
-
-        if ((bool) ($result['success'] ?? false)) {
-            return redirect()
-                ->route('central.versions.index')
-                ->with('success', (string) ($result['message'] ?? 'Update applied successfully'));
-        }
-
-        return redirect()
-            ->route('central.versions.index')
-            ->with('error', (string) ($result['message'] ?? 'Update failed'))
-            ->with('warning', trim((string) ($result['output'] ?? '')));
     }
 
     public function backfillTracking(): RedirectResponse
@@ -118,7 +120,7 @@ class VersionController extends Controller
             'grace_days' => 'nullable|integer|min:0|max:90',
         ]);
 
-        $gracePeriod = $request->input('grace_days') 
+        $gracePeriod = $request->input('grace_days')
             ? now()->addDays($request->input('grace_days'))
             : now()->addDays(7);
 
@@ -150,5 +152,88 @@ class VersionController extends Controller
         $count = app(AdminReleaseService::class)->forceMarkAllAsUpdated($release->id);
 
         return back()->with('warning', "Force-marked {$count} tenants as updated");
+    }
+
+    public function notifyTenant(Tenant $tenant): RedirectResponse
+    {
+        $updateInfo    = $this->versionService->getUpdateInfo();
+        $latestVersion = (string) ($updateInfo['latest_version'] ?? 'Unknown');
+        $changelog     = (string) ($updateInfo['changelog'] ?? '');
+        $releaseName   = (string) ($updateInfo['release_name'] ?? 'New Release');
+
+        $tenantAdminEmail = (string) ($tenant->email ?? '');
+        $tenantAdminName  = (string) ($tenant->admin_name ?? $tenant->name ?? 'Admin');
+
+        $domain = $tenant->domains->first()?->domain ?? '';
+        $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
+        $loginUrl   = $domain ? "{$scheme}://{$domain}/login" : '';
+        $updatesUrl = $domain ? "{$scheme}://{$domain}/updates" : '';
+
+        if (blank($tenantAdminEmail)) {
+            return back()->with('error', "No email address found for {$tenant->name}.");
+        }
+
+        try {
+            Mail::to($tenantAdminEmail)->send(new TenantUpdateNotificationMail(
+                tenant: $tenant,
+                adminName: $tenantAdminName,
+                latestVersion: $latestVersion,
+                releaseName: $releaseName,
+                changelog: $changelog,
+                loginUrl: $loginUrl,
+                updatesUrl: $updatesUrl,
+            ));
+        } catch (\Throwable $e) {
+            return back()->with('error', "Failed to send notification: {$e->getMessage()}");
+        }
+
+        return back()->with('success', "Update notification sent to {$tenantAdminEmail}");
+    }
+
+    public function toggleRequired(Tenant $tenant): RedirectResponse
+    {
+        if ($tenant->update_required) {
+            $tenant->update_required         = false;
+            $tenant->update_required_version = null;
+            $tenant->save();
+
+            return back()->with('success', "Update requirement removed for {$tenant->name}.");
+        }
+
+        $latestRelease  = $this->versionService->getLatestRelease();
+        $latestVersion  = (string) ($latestRelease['version'] ?? 'Unknown');
+        $releaseName    = (string) ($latestRelease['name'] ?? 'New Release');
+        $changelog      = (string) ($latestRelease['changelog'] ?? '');
+
+        $tenant->update_required         = true;
+        $tenant->update_required_version = $latestVersion;
+        $tenant->save();
+
+        // Also send notification email
+        $tenantAdminEmail = (string) ($tenant->email ?? '');
+        $tenantAdminName  = (string) ($tenant->admin_name ?? $tenant->name ?? 'Admin');
+        $tenant->loadMissing('domains');
+        $domain     = $tenant->domains->first()?->domain ?? '';
+        $scheme     = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
+        $loginUrl   = $domain ? "{$scheme}://{$domain}/login" : '';
+        $updatesUrl = $domain ? "{$scheme}://{$domain}/updates" : '';
+
+        if (filled($tenantAdminEmail)) {
+            try {
+                Mail::to($tenantAdminEmail)->send(new TenantUpdateNotificationMail(
+                    tenant: $tenant,
+                    adminName: $tenantAdminName,
+                    latestVersion: $latestVersion,
+                    releaseName: $releaseName,
+                    changelog: $changelog,
+                    loginUrl: $loginUrl,
+                    updatesUrl: $updatesUrl,
+                ));
+            } catch (\Throwable) {
+                // Mail failure doesn't block the save
+            }
+        }
+
+        return back()->with('success', "Update marked as required for {$tenant->name}. Notification sent.");
     }
 }

@@ -889,6 +889,58 @@
     @vite(['resources/css/paymonitor.css', 'resources/js/paymonitor-dashboard.js'])
 </head>
 <body class="tenant-theme-{{ $themeMode }} min-h-screen antialiased" x-data="{ sidebarOpen: false }">
+
+    @php
+    try {
+        $currentTenant = \App\Models\Tenant::find(tenant()?->id);
+        $updateRequired = (bool) ($currentTenant?->update_required ?? false);
+        $requiredVersion = $currentTenant?->update_required_version;
+        $tenantCurrentVersion = \App\Models\TenantSetting::get('current_version', 'v1.0.0');
+        $isAlreadyOnRequired = !$updateRequired || (
+            $requiredVersion && version_compare(
+                ltrim((string)$tenantCurrentVersion, 'v'),
+                ltrim((string)$requiredVersion, 'v'),
+                '>='
+            )
+        );
+    } catch (\Exception $e) {
+        $updateRequired = false;
+        $isAlreadyOnRequired = true;
+    }
+    @endphp
+
+    @if($updateRequired && !$isAlreadyOnRequired)
+    <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-[#161b22] border border-yellow-500/50 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div class="flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 mx-auto mb-6">
+                <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <h2 class="text-white text-xl font-bold text-center mb-2">Update Required</h2>
+            <p class="text-[#8b949e] text-sm text-center mb-1">Your administrator requires you to update to version</p>
+            <p class="text-yellow-400 text-2xl font-black text-center font-mono mb-4">{{ $requiredVersion }}</p>
+            <p class="text-[#8b949e] text-xs text-center mb-6">You must update your portal before continuing. This update includes important improvements and security fixes.</p>
+            <div class="bg-[#0d1117] rounded-xl p-4 mb-6 flex items-center justify-between">
+                <div class="text-center">
+                    <p class="text-[#8b949e] text-xs mb-1">Your Version</p>
+                    <p class="text-white font-mono font-bold">{{ $tenantCurrentVersion }}</p>
+                </div>
+                <div class="text-[#8b949e] text-lg">→</div>
+                <div class="text-center">
+                    <p class="text-[#8b949e] text-xs mb-1">Required Version</p>
+                    <p class="text-yellow-400 font-mono font-bold">{{ $requiredVersion }}</p>
+                </div>
+            </div>
+            <a href="{{ url('/updates') }}"
+               class="block w-full text-center bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition-colors text-sm">
+                Update Now →
+            </a>
+            <p class="text-[#52525b] text-xs text-center mt-3">You cannot dismiss this dialog until your portal is updated.</p>
+        </div>
+    </div>
+    @endif
+
     <div class="relative min-h-screen">
         <div x-cloak x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-black/70 md:hidden" x-on:click="sidebarOpen = false"></div>
 

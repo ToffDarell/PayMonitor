@@ -1,461 +1,331 @@
 @extends('layouts.central')
-
 @section('title', 'Versions')
 
 @php
     $publishedLabel = filled($updateInfo['published_at'] ?? null)
         ? \Illuminate\Support\Carbon::parse((string) $updateInfo['published_at'])->format('M d, Y h:i A')
         : 'Unknown';
-    $releaseCount = method_exists($releases, 'total') ? $releases->total() : $releases->count();
-    $latestTrackedRelease = $statistics['latest_release'] ?? ($releases->first()?->tag ?? 'None');
-    $historyCount = count($updateHistory);
-    $trackedTenants = (int) ($statistics['tracked_tenants'] ?? 0);
-    $untrackedTenants = (int) ($statistics['untracked'] ?? 0);
-    $rolloutState = (string) ($statistics['rollout_state'] ?? 'healthy');
-    $rolloutBadgeClasses = match ($rolloutState) {
+    $releaseCount   = method_exists($releases, 'total') ? $releases->total() : $releases->count();
+    $latestTracked  = $statistics['latest_release'] ?? ($releases->first()?->tag ?? 'None');
+    $rolloutState   = (string) ($statistics['rollout_state'] ?? 'healthy');
+    $rolloutBadge   = match ($rolloutState) {
         'tracking_incomplete' => 'border border-amber-500/30 bg-amber-500/10 text-amber-300',
-        'needs_attention' => 'border border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
-        default => 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+        'needs_attention'     => 'border border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
+        default               => 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
     };
-    $rolloutBadgeLabel = match ($rolloutState) {
+    $rolloutLabel   = match ($rolloutState) {
         'tracking_incomplete' => 'Tracking Incomplete',
-        'needs_attention' => 'Needs Attention',
-        default => 'Healthy',
+        'needs_attention'     => 'Needs Attention',
+        default               => 'Healthy',
     };
-    $rolloutMetrics = [
-        [
-            'label' => 'Total Tenants',
-            'value' => (int) ($statistics['total_tenants'] ?? 0),
-            'panel_class' => 'border-[#273142] bg-[#0f1319]',
-            'label_class' => 'text-slate-500',
-            'value_class' => 'text-white',
-            'accent_class' => 'bg-slate-400/70',
-            'note' => 'Central-managed tenants included in rollout reporting.',
-        ],
-        [
-            'label' => 'Up to Date',
-            'value' => (int) ($statistics['up_to_date'] ?? 0),
-            'panel_class' => 'border-emerald-500/20 bg-emerald-500/5',
-            'label_class' => 'text-emerald-300',
-            'value_class' => 'text-emerald-200',
-            'accent_class' => 'bg-emerald-300',
-            'note' => 'Already running the latest stable tracked release.',
-        ],
-        [
-            'label' => 'Needs Update',
-            'value' => (int) ($statistics['needs_update'] ?? 0),
-            'panel_class' => 'border-yellow-500/20 bg-yellow-500/5',
-            'label_class' => 'text-yellow-300',
-            'value_class' => 'text-yellow-200',
-            'accent_class' => 'bg-yellow-300',
-            'note' => 'Behind the current stable release and pending rollout.',
-        ],
-        [
-            'label' => 'Failed',
-            'value' => (int) ($statistics['failed'] ?? 0),
-            'panel_class' => 'border-red-500/20 bg-red-500/5',
-            'label_class' => 'text-red-300',
-            'value_class' => 'text-red-200',
-            'accent_class' => 'bg-red-300',
-            'note' => 'Latest recorded tenant update attempt ended in failure.',
-        ],
+
+    $deployCommands = [
+        'git pull origin main',
+        'composer install --no-dev --optimize-autoloader',
+        'php artisan optimize:clear',
+        'php artisan tenancy:migrate --force',
     ];
+
+    $totalTenants   = $tenants->count();
+    $upToDate       = $tenants->filter(fn($t) => version_compare(ltrim((string)($t->current_version ?? 'v1.0.0'),'v'), ltrim($latestVersion,'v'), '>='))->count();
+    $outdated       = $totalTenants - $upToDate;
 @endphp
 
 @section('content')
 <div x-data="versionsPage()" class="space-y-8">
+
+    {{-- PAGE HEADER --}}
     <section class="flex flex-wrap items-start justify-between gap-4">
-        <div class="max-w-2xl">
+        <div>
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Central Management</p>
             <h2 class="mt-3 text-3xl font-bold tracking-tight text-white">Versions</h2>
-            <p class="mt-2 text-sm leading-6 text-slate-400">Manage the central application release, tenant rollout coverage, and recovery actions from one screen.</p>
+            <p class="mt-2 text-sm text-slate-400">Manage releases, tenant rollout, and update notifications.</p>
         </div>
-
         <div class="flex flex-wrap gap-3">
             <form method="POST" action="{{ route('central.versions.sync', [], false) }}">
                 @csrf
-                <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 12.867-5.303M19.5 12a7.5 7.5 0 0 1-12.867 5.303M19.5 4.5v3.75h-3.75M4.5 19.5v-3.75h3.75"/>
-                    </svg>
-                    <span>Sync Releases</span>
+                <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 12.867-5.303M19.5 12a7.5 7.5 0 0 1-12.867 5.303M19.5 4.5v3.75h-3.75M4.5 19.5v-3.75h3.75"/></svg>
+                    Sync Releases
                 </button>
             </form>
-
-            <button
-                type="button"
-                x-on:click="checkForUpdates"
-                x-bind:disabled="checking"
-                class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-                <svg x-show="!checking" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 12.867-5.303M19.5 12a7.5 7.5 0 0 1-12.867 5.303M19.5 4.5v3.75h-3.75M4.5 19.5v-3.75h3.75"/>
-                </svg>
-                <svg x-show="checking" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.364-6.364-2.121 2.121M7.757 16.243l-2.121 2.121m0-12.728 2.121 2.121m8.486 8.486 2.121 2.121"/>
-                </svg>
-                <span x-text="checking ? 'Checking...' : 'Check Central App'"></span>
+            <button type="button" x-on:click="checkForUpdates" x-bind:disabled="checking"
+                class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white disabled:opacity-60">
+                <svg x-show="!checking" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 12.867-5.303M19.5 12a7.5 7.5 0 0 1-12.867 5.303M19.5 4.5v3.75h-3.75M4.5 19.5v-3.75h3.75"/></svg>
+                <svg x-show="checking" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3m9-9h-3M6 12H3"/></svg>
+                <span x-text="checking ? 'Checking...' : 'Check for Updates'"></span>
             </button>
         </div>
     </section>
 
-    <section class="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.9fr)]">
-        <div class="rounded-2xl border border-[#273142] bg-[#161b22] p-6 shadow-sm">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Central Release Status</p>
-                    <h3 class="mt-2 text-2xl font-semibold text-white">{{ $updateInfo['release_name'] ?? 'Latest release' }}</h3>
-                    <p class="mt-2 text-sm text-slate-400">Published {{ $publishedLabel }}</p>
-                </div>
+    {{-- VERSION STATUS CARD --}}
+    <section class="rounded-2xl border border-[#273142] bg-[#161b22] p-6 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Central Release Status</p>
+                <h3 class="mt-2 text-2xl font-semibold text-white">{{ $updateInfo['release_name'] ?? 'Latest release' }}</h3>
+                <p class="mt-2 text-sm text-slate-400">Published {{ $publishedLabel }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <span class="inline-flex rounded-full border border-white/10 bg-[#0f1319] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
+                    Current {{ $updateInfo['current_version'] }}
+                </span>
+                <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] {{ ($updateInfo['update_available'] ?? false) ? 'border border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300' }}">
+                    {{ ($updateInfo['update_available'] ?? false) ? 'Update Available' : 'Up to Date' }}
+                </span>
+            </div>
+        </div>
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+            <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Installed</p>
+                <p class="mt-3 text-2xl font-semibold text-white">{{ $updateInfo['current_version'] }}</p>
+            </div>
+            <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Latest</p>
+                <p class="mt-3 text-2xl font-semibold {{ ($updateInfo['update_available'] ?? false) ? 'text-yellow-300' : 'text-emerald-300' }}">{{ $updateInfo['latest_version'] }}</p>
+            </div>
+            <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Tracked Releases</p>
+                <p class="mt-3 text-2xl font-semibold text-white">{{ $releaseCount }}</p>
+            </div>
+        </div>
+        @if(($updateInfo['update_available'] ?? false) && filled($updateInfo['release_url'] ?? null))
+        <div class="mt-4 flex items-center gap-3">
+            <a href="{{ $updateInfo['release_url'] }}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition">
+                View Release on GitHub
+            </a>
+        </div>
+        @endif
+    </section>
 
-                <div class="flex flex-wrap gap-2">
-                    <span class="inline-flex rounded-full border border-white/10 bg-[#0f1319] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
-                        Current {{ $updateInfo['current_version'] }}
-                    </span>
-                    <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] {{ ($updateInfo['update_available'] ?? false) ? 'border border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300' }}">
-                        {{ ($updateInfo['update_available'] ?? false) ? 'Update Available' : 'Up to Date' }}
-                    </span>
+    {{-- DEPLOYMENT INSTRUCTIONS CARD --}}
+    <section class="rounded-xl border border-[#21262d] bg-[#161b22] p-5">
+        <div class="mb-4">
+            <p class="text-white font-semibold text-sm">How to Deploy Updates to Server</p>
+            <p class="text-[#8b949e] text-xs mt-1">Run these commands in your server terminal to deploy new code.</p>
+        </div>
+        <div class="space-y-2">
+            @foreach($deployCommands as $cmd)
+            <div x-data="{ copied: false }" class="flex items-center justify-between bg-[#0d1117] border border-[#21262d] rounded-lg px-4 py-2.5">
+                <code class="font-mono text-sm text-green-400">{{ $cmd }}</code>
+                <button type="button"
+                    x-on:click="navigator.clipboard.writeText('{{ $cmd }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                    class="ml-4 flex-shrink-0 text-xs text-[#8b949e] hover:text-white transition">
+                    <span x-show="!copied">Copy</span>
+                    <span x-show="copied" class="text-green-400">Copied!</span>
+                </button>
+            </div>
+            @endforeach
+        </div>
+        <p class="text-[#8b949e] text-xs mt-3">After deploying, tenants can update their own portal version from their Settings → Updates page.</p>
+    </section>
+
+    {{-- TENANT VERSION TABLE --}}
+    <section x-data="{ filter: 'all' }">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div>
+                <p class="text-white font-semibold text-sm">Tenant Version Status</p>
+                <div class="flex gap-3 mt-2">
+                    <span class="text-xs text-[#8b949e] bg-[#0f1319] border border-[#21262d] rounded-full px-3 py-1">Total: <strong class="text-white">{{ $totalTenants }}</strong></span>
+                    <span class="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1">Up to Date: <strong>{{ $upToDate }}</strong></span>
+                    <span class="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-3 py-1">Outdated: <strong>{{ $outdated }}</strong></span>
                 </div>
             </div>
-
-            <div class="mt-6 grid gap-4 sm:grid-cols-3">
-                <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Installed</p>
-                    <p class="mt-3 text-2xl font-semibold text-white">{{ $updateInfo['current_version'] }}</p>
-                </div>
-                <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Latest</p>
-                    <p class="mt-3 text-2xl font-semibold {{ ($updateInfo['update_available'] ?? false) ? 'text-yellow-300' : 'text-emerald-300' }}">{{ $updateInfo['latest_version'] }}</p>
-                </div>
-                <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Tracked Releases</p>
-                    <p class="mt-3 text-2xl font-semibold text-white">{{ $releaseCount }}</p>
-                </div>
-            </div>
-
-            <div class="mt-6 rounded-2xl border {{ ($updateInfo['update_available'] ?? false) ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-emerald-500/20 bg-emerald-500/5' }} p-5">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm font-semibold {{ ($updateInfo['update_available'] ?? false) ? 'text-yellow-300' : 'text-emerald-300' }}">
-                            {{ ($updateInfo['update_available'] ?? false) ? 'A newer central release is available.' : 'The central app is already on the latest release.' }}
-                        </p>
-                        <p class="mt-1 text-sm text-slate-400">
-                            {{ ($updateInfo['update_available'] ?? false) ? 'Review the changelog below, then apply the update when you are ready.' : 'You can still sync releases or review tenant rollout history below.' }}
-                        </p>
-                    </div>
-
-                    <div class="flex flex-wrap gap-3">
-                        @if(filled($updateInfo['release_url'] ?? null))
-                            <a href="{{ $updateInfo['release_url'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white">
-                                View Release
-                            </a>
-                        @endif
-
-                        @if($updateInfo['update_available'] ?? false)
-                            <form method="POST" action="{{ route('central.versions.apply', [], false) }}" onsubmit="return confirm('Apply update to {{ $updateInfo['latest_version'] }}? This will run git pull and clear cache.');">
-                                @csrf
-                                <button type="submit" class="inline-flex items-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400">
-                                    Apply Central Update
-                                </button>
-                            </form>
-                        @endif
-                    </div>
-                </div>
-
-                @if(($updateInfo['update_available'] ?? false) && $changelogItems !== [])
-                    <div class="mt-5 border-t border-white/10 pt-5">
-                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Latest Changelog</p>
-                        <ul class="mt-3 space-y-2 text-sm text-slate-300">
-                            @foreach($changelogItems as $item)
-                                <li class="flex gap-3">
-                                    <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-yellow-300"></span>
-                                    <span>{{ $item }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
+            <div class="flex gap-2">
+                @foreach(['all' => 'All', 'uptodate' => 'Up to Date', 'outdated' => 'Outdated'] as $key => $label)
+                <button type="button"
+                    x-on:click="filter = '{{ $key }}'"
+                    :class="filter === '{{ $key }}' ? 'bg-[#21262d] text-white border-[#30363d]' : 'text-[#8b949e] border-[#21262d] hover:text-white'"
+                    class="text-xs px-3 py-1.5 rounded-lg border transition">
+                    {{ $label }}
+                </button>
+                @endforeach
             </div>
         </div>
 
-        <div class="rounded-2xl border border-[#273142] bg-[#161b22] p-6 shadow-sm">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Tenant Rollout</p>
-                    <h3 class="mt-2 text-2xl font-semibold text-white">Latest stable {{ $latestTrackedRelease }}</h3>
-                    <p class="mt-2 text-sm text-slate-400">Snapshot of tenant update coverage across the latest stable version.</p>
-                    <p class="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-                        {{ number_format($trackedTenants) }} of {{ number_format((int) ($statistics['total_tenants'] ?? 0)) }} tenants tracked
-                    </p>
-                </div>
-                <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] {{ $rolloutBadgeClasses }}">
-                    {{ $rolloutBadgeLabel }}
-                </span>
-            </div>
-
-            @if($untrackedTenants > 0)
-                <div class="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <p class="text-sm font-semibold text-amber-300">Tenant rollout tracking needs repair.</p>
-                            <p class="mt-1 text-sm text-slate-400">
-                                {{ number_format($untrackedTenants) }} tenant{{ $untrackedTenants === 1 ? '' : 's' }} {{ $untrackedTenants === 1 ? 'is' : 'are' }} missing a current release record, so coverage cannot be summarized correctly yet.
-                            </p>
-                        </div>
-
-                        <form method="POST" action="{{ route('central.versions.backfill-tracking', [], false) }}">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:border-amber-400/50 hover:bg-amber-500/15 hover:text-amber-100">
-                                Backfill Tracking
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            @endif
-
-            <div class="mt-6 grid gap-3 sm:grid-cols-2">
-                @foreach($rolloutMetrics as $metric)
-                    <div class="rounded-2xl border p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] {{ $metric['panel_class'] }}">
-                        <div class="flex min-h-[148px] flex-col justify-between">
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <p class="text-[11px] font-semibold uppercase tracking-[0.18em] {{ $metric['label_class'] }}">{{ $metric['label'] }}</p>
-                                    <p class="mt-2 text-xs leading-5 text-slate-500">{{ $metric['note'] }}</p>
+        <div class="bg-[#161b22] border border-[#21262d] rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead>
+                        <tr class="border-b border-[#21262d] text-xs uppercase tracking-[0.14em] text-slate-500">
+                            <th class="px-4 py-3">#</th>
+                            <th class="px-4 py-3">Cooperative</th>
+                            <th class="px-4 py-3">Plan</th>
+                            <th class="px-4 py-3">Version</th>
+                            <th class="px-4 py-3">Latest</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Last Updated</th>
+                            <th class="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($tenants as $i => $tenant)
+                        @php
+                            $tv = (string) ($tenant->current_version ?? 'v1.0.0');
+                            $isUpToDate = version_compare(ltrim($tv,'v'), ltrim($latestVersion,'v'), '>=');
+                            $rowFilter  = $isUpToDate ? 'uptodate' : 'outdated';
+                            $domain     = $tenant->domains->first()?->domain ?? '';
+                        @endphp
+                        <tr class="border-b border-[#21262d]/60 hover:bg-white/[0.02] transition align-middle"
+                            x-show="filter === 'all' || filter === '{{ $rowFilter }}'">
+                            <td class="px-4 py-3 text-[#8b949e] text-xs">{{ $i + 1 }}</td>
+                            <td class="px-4 py-3">
+                                <p class="font-semibold text-white text-sm">{{ $tenant->name }}</p>
+                                @if($domain)
+                                <p class="text-xs text-[#8b949e] mt-0.5">{{ $domain }}</p>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex rounded-full bg-[#0f1319] border border-[#21262d] px-2.5 py-0.5 text-xs text-slate-300">
+                                    {{ $tenant->plan?->name ?? 'No Plan' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <code class="font-mono text-xs text-slate-200 bg-[#0d1117] border border-[#21262d] rounded px-2 py-0.5">{{ $tv }}</code>
+                            </td>
+                            <td class="px-4 py-3">
+                                <code class="font-mono text-xs text-slate-400 bg-[#0d1117] border border-[#21262d] rounded px-2 py-0.5">{{ $latestVersion }}</code>
+                            </td>
+                            <td class="px-4 py-3">
+                                @if($isUpToDate)
+                                <span class="inline-flex rounded-full bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-0.5 text-xs font-semibold">Up to Date</span>
+                                @else
+                                <span class="inline-flex rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2.5 py-0.5 text-xs font-semibold">Outdated</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-xs text-[#8b949e]">
+                                @if($tenant->last_updated_at)
+                                    {{ \Illuminate\Support\Carbon::parse((string) $tenant->last_updated_at)->format('M d, Y') }}
+                                @else
+                                    <span class="italic">Never updated</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-end gap-2">
+                                    @if(!$isUpToDate)
+                                    <form method="POST" action="{{ route('central.versions.notify', ['tenant' => $tenant->id], false) }}">
+                                        @csrf
+                                        <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition">
+                                            Notify
+                                        </button>
+                                    </form>
+                                    @endif
+                                    <form method="POST" action="{{ route('central.versions.toggle-required', ['tenant' => $tenant->id], false) }}">
+                                        @csrf
+                                        @if($tenant->update_required)
+                                        <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 transition">
+                                            Required ✓
+                                        </button>
+                                        @else
+                                        <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-[#21262d] text-[#8b949e] hover:border-yellow-500 hover:text-yellow-400 transition">
+                                            Set Required
+                                        </button>
+                                        @endif
+                                    </form>
                                 </div>
-                                <span class="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full {{ $metric['accent_class'] }}"></span>
-                            </div>
-
-                            <p class="mt-8 text-4xl font-semibold leading-none {{ $metric['value_class'] }}">
-                                {{ number_format((int) $metric['value']) }}
-                            </p>
-                        </div>
-                    </div>
-                @endforeach
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="8" class="px-4 py-8 text-center text-sm text-slate-500">No tenants found.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
 
+    {{-- TRACKED RELEASES --}}
     <section class="rounded-2xl border border-[#273142] bg-[#161b22] p-6 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Release Registry</p>
                 <h3 class="mt-2 text-2xl font-semibold text-white">Tracked Versions</h3>
-                <p class="mt-2 text-sm text-slate-400">
-                    {{ number_format($releaseCount) }} tracked release{{ $releaseCount === 1 ? '' : 's' }} available for rollout review and action.
-                </p>
             </div>
-
-            <button
-                type="button"
-                x-on:click="registryOpen = !registryOpen"
-                class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white"
-            >
-                <span x-text="registryOpen ? 'Hide Tracked Versions' : 'Show Tracked Versions'"></span>
-                <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="registryOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
-                </svg>
+            <button type="button" x-on:click="registryOpen = !registryOpen"
+                class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition">
+                <span x-text="registryOpen ? 'Hide' : 'Show Tracked Versions'"></span>
+                <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="registryOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
             </button>
         </div>
 
-        <div x-cloak x-show="registryOpen" x-transition.opacity.duration.200ms class="mt-6 space-y-5">
-            <div class="overflow-x-auto">
-                <table class="w-full min-w-[1040px] text-left text-sm text-slate-300">
-                    <thead>
-                        <tr class="border-b border-[#273142] text-xs uppercase tracking-[0.16em] text-slate-500">
-                            <th class="px-4 py-3">Version</th>
-                            <th class="px-4 py-3">Details</th>
-                            <th class="px-4 py-3">Published</th>
-                            <th class="px-4 py-3">Status</th>
-                            <th class="w-[220px] px-4 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($releases as $release)
-                            <tr class="border-b border-[#273142]/80 align-top transition hover:bg-white/[0.02]">
-                                <td class="px-4 py-5">
-                                    <p class="text-base font-semibold text-white">{{ $release->tag }}</p>
-                                    @if(filled($release->release_url))
-                                        <a href="{{ $release->release_url }}" target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex text-sm font-medium text-emerald-300 transition hover:text-emerald-200">
-                                            View release
-                                        </a>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-5">
-                                    <p class="text-base font-medium text-white">{{ $release->title }}</p>
-                                    <p class="mt-1 text-sm leading-6 text-slate-500">{{ \Illuminate\Support\Str::limit(trim(strip_tags((string) $release->changelog)), 150) ?: 'No changelog summary available.' }}</p>
-                                </td>
-                                <td class="px-4 py-5 text-sm text-slate-400">{{ $release->published_at?->format('M d, Y') ?? 'Unknown' }}</td>
-                                <td class="px-4 py-5">
-                                    <div class="flex flex-wrap gap-2">
-                                        @if(($statistics['latest_release'] ?? null) === $release->tag)
-                                            <span class="inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-300">Latest Stable</span>
-                                        @endif
-                                        @if($release->is_required)
-                                            <span class="inline-flex rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-red-300">Required</span>
-                                        @endif
-                                        @if($release->is_stable)
-                                            <span class="inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-300">Stable</span>
-                                        @else
-                                            <span class="inline-flex rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-yellow-300">Pre-release</span>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td class="w-[220px] px-4 py-5">
-                                    <div class="ml-auto flex w-full max-w-[190px] flex-col items-stretch gap-2">
-                                        @if(! $release->is_required)
-                                            <button type="button" class="inline-flex w-full items-center justify-center rounded-lg border border-red-500/30 bg-transparent px-3 py-2 text-center text-sm font-semibold text-red-300 transition hover:border-red-400/50 hover:bg-red-500/5 hover:text-red-200" data-bs-toggle="modal" data-bs-target="#markRequiredModal{{ $release->id }}">
-                                                Mark Required
-                                            </button>
-                                        @else
-                                            <form method="POST" action="{{ route('central.versions.unmark-required', ['release' => $release], false) }}">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg border border-[#2a3340] bg-[#111827] px-3 py-2 text-center text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white">
-                                                    Clear Required
-                                                </button>
-                                            </form>
-                                        @endif
-
-                                        <form method="POST" action="{{ route('central.versions.notify-all', ['release' => $release], false) }}">
-                                            @csrf
-                                            <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg border border-[#2a3340] bg-[#111827] px-3 py-2 text-center text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white">
-                                                Notify Tenants
-                                            </button>
-                                        </form>
-
-                                        <button type="button" class="inline-flex w-full items-center justify-center rounded-lg border border-yellow-500/30 bg-transparent px-3 py-2 text-center text-sm font-semibold text-yellow-300 transition hover:border-yellow-400/50 hover:bg-yellow-500/5 hover:text-yellow-200" data-bs-toggle="modal" data-bs-target="#forceMarkModal{{ $release->id }}">
-                                            Force Mark All
-                                        </button>
-                                    </div>
-
-                                    <div class="modal fade" id="markRequiredModal{{ $release->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST" action="{{ route('central.versions.mark-required', ['release' => $release], false) }}">
-                                                    @csrf
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Mark {{ $release->tag }} as required</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <p class="mb-3">Tenants behind this version will be blocked after the grace period ends.</p>
-                                                        <label for="grace_days_{{ $release->id }}" class="form-label">Grace period (days)</label>
-                                                        <input id="grace_days_{{ $release->id }}" type="number" name="grace_days" value="7" min="0" max="90" class="form-control">
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-danger">Mark Required</button>
-                                                    </div>
-                                                </form>
-                                            </div>
+        <div x-cloak x-show="registryOpen" x-transition.opacity.duration.200ms class="mt-6 overflow-x-auto">
+            <table class="w-full min-w-[900px] text-left text-sm text-slate-300">
+                <thead>
+                    <tr class="border-b border-[#273142] text-xs uppercase tracking-[0.16em] text-slate-500">
+                        <th class="px-4 py-3">Version</th>
+                        <th class="px-4 py-3">Details</th>
+                        <th class="px-4 py-3">Published</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($releases as $release)
+                    <tr class="border-b border-[#273142]/80 hover:bg-white/[0.02] transition">
+                        <td class="px-4 py-4">
+                            <p class="font-semibold text-white">{{ $release->tag }}</p>
+                            @if(filled($release->release_url))
+                            <a href="{{ $release->release_url }}" target="_blank" rel="noopener noreferrer" class="text-xs text-emerald-400 hover:text-emerald-300 mt-1 inline-flex">View release</a>
+                            @endif
+                        </td>
+                        <td class="px-4 py-4">
+                            <p class="font-medium text-white">{{ $release->title }}</p>
+                            <p class="text-xs text-slate-500 mt-1">{{ \Illuminate\Support\Str::limit(strip_tags((string) $release->changelog), 100) }}</p>
+                        </td>
+                        <td class="px-4 py-4 text-slate-400 text-xs">{{ $release->published_at?->format('M d, Y') ?? 'Unknown' }}</td>
+                        <td class="px-4 py-4">
+                            <div class="flex flex-wrap gap-1">
+                                @if($release->is_required)<span class="inline-flex rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-xs text-red-300">Required</span>@endif
+                                @if($release->is_stable)<span class="inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-300">Stable</span>@else<span class="inline-flex rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2 py-0.5 text-xs text-yellow-300">Pre-release</span>@endif
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="flex justify-end gap-2">
+                                <form method="POST" action="{{ route('central.versions.notify-all', ['release' => $release], false) }}">
+                                    @csrf
+                                    <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-[#2a3340] bg-[#111827] text-slate-200 hover:border-slate-500 hover:text-white transition">Notify All</button>
+                                </form>
+                                @if(!$release->is_required)
+                                <button type="button" class="text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-300 hover:bg-red-500/5 transition" data-bs-toggle="modal" data-bs-target="#markRequiredModal{{ $release->id }}">Mark Required</button>
+                                @else
+                                <form method="POST" action="{{ route('central.versions.unmark-required', ['release' => $release], false) }}">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-[#2a3340] bg-[#111827] text-slate-200 hover:border-slate-500 hover:text-white transition">Clear Required</button>
+                                </form>
+                                @endif
+                            </div>
+                            {{-- Mark Required Modal --}}
+                            <div class="modal fade" id="markRequiredModal{{ $release->id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog"><div class="modal-content">
+                                    <form method="POST" action="{{ route('central.versions.mark-required', ['release' => $release], false) }}">
+                                        @csrf
+                                        <div class="modal-header"><h5 class="modal-title">Mark {{ $release->tag }} as required</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                                        <div class="modal-body">
+                                            <p class="mb-3">Tenants behind this version will be blocked after the grace period ends.</p>
+                                            <label class="form-label">Grace period (days)</label>
+                                            <input type="number" name="grace_days" value="7" min="0" max="90" class="form-control">
                                         </div>
-                                    </div>
-
-                                    <div class="modal fade" id="forceMarkModal{{ $release->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST" action="{{ route('central.versions.force-mark-all', ['release' => $release], false) }}">
-                                                    @csrf
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Force mark all tenants</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="alert alert-warning mb-3">
-                                                            This only changes rollout state. It does not run the actual tenant update pipeline.
-                                                        </div>
-                                                        <p class="mb-3">Use this only when the tenant versions are already correct and the tracking data needs to be repaired.</p>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" id="confirm{{ $release->id }}" name="confirm" value="1" required>
-                                                            <label class="form-check-label" for="confirm{{ $release->id }}">
-                                                                I understand this is a state-only correction
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-warning">Force Mark All</button>
-                                                    </div>
-                                                </form>
-                                            </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-danger">Mark Required</button>
                                         </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">
-                                    No releases found yet. Sync GitHub releases to build the version registry.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            @if($releases->hasPages())
-                <div>
-                    {{ $releases->links() }}
-                </div>
-            @endif
+                                    </form>
+                                </div></div>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">No releases found. Sync GitHub to populate.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+            @if($releases->hasPages())<div class="mt-4">{{ $releases->links() }}</div>@endif
         </div>
     </section>
 
-    <section class="rounded-2xl border border-[#273142] bg-[#161b22] p-6 shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Audit Trail</p>
-                <h3 class="mt-2 text-2xl font-semibold text-white">Update History</h3>
-                <p class="mt-2 text-sm text-slate-400">
-                    {{ $historyCount > 0 ? $historyCount.' update attempt'.($historyCount === 1 ? '' : 's').' recorded.' : 'No updates applied yet.' }}
-                </p>
-            </div>
-
-            <button
-                type="button"
-                x-on:click="historyOpen = !historyOpen"
-                class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033] hover:text-white"
-            >
-                <span x-text="historyOpen ? 'Hide Update History' : 'Show Update History'"></span>
-                <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="historyOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
-                </svg>
-            </button>
-        </div>
-
-        <div x-cloak x-show="historyOpen" x-transition.opacity.duration.200ms class="mt-6">
-            @if($updateHistory === [])
-                <p class="text-sm text-slate-500">No updates applied yet.</p>
-            @else
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[640px] text-left text-sm text-slate-300">
-                        <thead>
-                            <tr class="border-b border-[#273142] text-xs uppercase tracking-[0.16em] text-slate-500">
-                                <th class="px-4 py-3">Version</th>
-                                <th class="px-4 py-3">Applied At</th>
-                                <th class="px-4 py-3">Applied By</th>
-                                <th class="px-4 py-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($updateHistory as $entry)
-                                <tr class="border-b border-[#273142]/80 transition hover:bg-white/[0.02]">
-                                    <td class="px-4 py-4 font-semibold text-white">{{ $entry['version'] ?? 'Unknown' }}</td>
-                                    <td class="px-4 py-4 text-slate-400">{{ $entry['applied_at'] ?? '-' }}</td>
-                                    <td class="px-4 py-4 text-slate-400">{{ $entry['applied_by'] ?? '-' }}</td>
-                                    <td class="px-4 py-4">
-                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] {{ ($entry['status'] ?? '') === 'success' ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border border-red-500/30 bg-red-500/10 text-red-300' }}">
-                                            {{ $entry['status'] ?? 'unknown' }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-        </div>
-    </section>
 </div>
 @endsection
 
@@ -465,31 +335,19 @@
         return {
             checking: false,
             registryOpen: false,
-            historyOpen: false,
             async checkForUpdates() {
-                if (this.checking) {
-                    return;
-                }
-
+                if (this.checking) return;
                 this.checking = true;
-
                 try {
-                    const response = await fetch('{{ route('central.versions.check', [], false) }}', {
+                    const res = await fetch('{{ route('central.versions.check', [], false) }}', {
                         method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json',
-                        },
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
                     });
-
-                    if (! response.ok) {
-                        throw new Error('Failed to refresh release info.');
-                    }
-
+                    if (!res.ok) throw new Error('Failed to check.');
                     window.location.reload();
-                } catch (error) {
+                } catch (e) {
                     this.checking = false;
-                    alert(error.message || 'Unable to check for updates right now.');
+                    alert(e.message || 'Unable to check for updates.');
                 }
             },
         };

@@ -79,7 +79,8 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::post('/versions/{release}/notify-all', [CentralVersionController::class, 'notifyAll'])->name('versions.notify-all');
                 Route::post('/versions/{release}/force-mark-all', [CentralVersionController::class, 'forceMarkAll'])->name('versions.force-mark-all');
                 Route::post('/versions/check', [CentralVersionController::class, 'checkForUpdates'])->name('versions.check');
-                Route::post('/versions/apply', [CentralVersionController::class, 'applyUpdate'])->name('versions.apply');
+                Route::post('/versions/{tenant}/notify', [CentralVersionController::class, 'notifyTenant'])->name('versions.notify');
+                Route::post('/versions/{tenant}/toggle-required', [CentralVersionController::class, 'toggleRequired'])->name('versions.toggle-required');
 
                 Route::get('/support', [CentralSupportController::class, 'index'])->name('support.index');
                 Route::get('/support/{supportRequest}', [CentralSupportController::class, 'show'])->name('support.show');

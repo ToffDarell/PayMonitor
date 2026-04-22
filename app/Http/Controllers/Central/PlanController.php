@@ -39,6 +39,7 @@ class PlanController extends Controller
     public function store(StorePlanRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $data['features'] = $request->input('features', []);
 
         if (blank($data['description'] ?? null)) {
             $data['description'] = Plan::defaultDescription();
@@ -57,6 +58,7 @@ class PlanController extends Controller
     public function update(StorePlanRequest $request, Plan $plan): RedirectResponse
     {
         $data = $request->validated();
+        $data['features'] = $request->input('features', []);
 
         if (blank($data['description'] ?? null)) {
             $data['description'] = Plan::defaultDescription();
