@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('tenant_applications', function (Blueprint $table): void {
+            $table->string('paymongo_link_id')->nullable()->after('payment_proof_path');
+            $table->string('paymongo_payment_id')->nullable()->after('paymongo_link_id');
+            $table->string('payment_url')->nullable()->after('paymongo_payment_id');
+            $table->decimal('amount_paid', 10, 2)->nullable()->after('payment_url');
+            $table->timestamp('paid_at')->nullable()->after('amount_paid');
+            $table->string('payment_method')->nullable()->after('paid_at');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('tenant_applications', function (Blueprint $table): void {
+            $table->dropColumn([
+                'paymongo_link_id',
+                'paymongo_payment_id',
+                'payment_url',
+                'amount_paid',
+                'paid_at',
+                'payment_method',
+            ]);
+        });
+    }
+};

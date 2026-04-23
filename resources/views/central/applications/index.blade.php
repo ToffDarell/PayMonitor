@@ -89,7 +89,22 @@
                                     <div class="text-xs">{{ $app->created_at->diffForHumans() }}</div>
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                    @if($app->payment_status === 'verified')
+                                    @if($app->plan && (float) $app->plan->price === 0.0)
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                            Free Plan
+                                        </span>
+                                    @elseif($app->payment_status === 'verified' && $app->paymongo_payment_id)
+                                        {{-- Paid via PayMongo --}}
+                                        <div>
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                                Paid ✓
+                                            </span>
+                                            @if($app->payment_method)
+                                                <p class="mt-1 text-[10px] text-gray-500 capitalize">{{ $app->payment_method }}</p>
+                                            @endif
+                                        </div>
+                                    @elseif($app->payment_status === 'verified')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                                             Verified
@@ -97,12 +112,12 @@
                                     @elseif($app->payment_status === 'rejected')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
                                             <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                                            Rejected
+                                            Failed
                                         </span>
                                     @else
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-400/10 text-yellow-500 border border-yellow-400/20">
                                             <span class="h-1.5 w-1.5 rounded-full bg-yellow-500"></span>
-                                            Pending
+                                            Unpaid
                                         </span>
                                     @endif
                                 </td>

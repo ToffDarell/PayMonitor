@@ -31,6 +31,11 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
         Route::post('/apply', [ApplicationController::class, 'store'])->name('apply.store');
         Route::view('/apply/thank-you', 'apply-thankyou')->name('apply.thank-you');
 
+        // PayMongo payment flow
+        Route::get('/apply/payment/callback', [ApplicationController::class, 'paymentCallback'])->name('apply.payment-callback');
+        Route::get('/apply/payment/{applicationId}/pending', [ApplicationController::class, 'paymentPending'])->name('apply.payment-pending');
+        Route::post('/apply/{applicationId}/verify-payment', [ApplicationController::class, 'verifyPayment'])->name('apply.verify-payment');
+
         Route::middleware('guest')->group(function (): void {
             Route::get('/login', [CentralAuthenticatedSessionController::class, 'create'])->name('central.login');
             Route::post('/login', [CentralAuthenticatedSessionController::class, 'store'])->name('central.login.store');
@@ -54,6 +59,7 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::post('/applications/{application}/reject-payment', [CentralApplicationController::class, 'rejectPayment'])->name('applications.reject-payment');
                 Route::post('/applications/{application}/approve', [CentralApplicationController::class, 'approve'])->name('applications.approve');
                 Route::post('/applications/{application}/reject', [CentralApplicationController::class, 'reject'])->name('applications.reject');
+                Route::post('/applications/{application}/send-payment-link', [CentralApplicationController::class, 'sendPaymentLink'])->name('applications.send-payment-link');
 
                 Route::post('/tenants/{tenant}/suspend', [CentralTenantController::class, 'suspend'])->name('tenants.suspend');
                 Route::post('/tenants/{tenant}/activate', [CentralTenantController::class, 'activate'])->name('tenants.activate');

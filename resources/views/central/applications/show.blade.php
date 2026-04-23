@@ -66,7 +66,7 @@
                         <button type="button" x-on:click="showRejectModal = true" class="inline-flex items-center rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-300 shadow-sm ring-1 ring-inset ring-gray-600 hover:bg-gray-700 hover:text-white transition">
                             Reject
                         </button>
-                        @if($application->payment_status === 'verified')
+                        @if($application->payment_status === 'verified' || $application->isFreePlan())
                             <button type="button" x-on:click="showApproveModal = true" class="inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition">
                                 <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -168,22 +168,13 @@
                                 <dd class="mt-1 text-sm text-white sm:col-span-2 sm:mt-0">{{ $application->cooperative_name }}</dd>
                             </div>
                             <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-800/20 transition">
-                                <dt class="text-sm font-medium text-gray-400">Company Size</dt>
-                                <dd class="mt-1 text-sm text-white sm:col-span-2 sm:mt-0">{{ $application->company_size ?? 'Not specified' }}</dd>
-                            </div>
-                            <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-800/20 transition">
                                 <dt class="text-sm font-medium text-gray-400">CDA Registration Number</dt>
                                 <dd class="mt-1 text-sm text-white sm:col-span-2 sm:mt-0">{{ $application->cda_registration_number ?: 'Not provided' }}</dd>
-                            </div>
-                            <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-800/20 transition">
-                                <dt class="text-sm font-medium text-gray-400">Expected Users</dt>
-                                <dd class="mt-1 text-sm text-white sm:col-span-2 sm:mt-0">{{ $application->expected_users ?? 'Unknown' }}</dd>
                             </div>
                             @if($application->message)
                             <div class="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-800/20 transition">
                                 <dt class="text-sm font-medium text-gray-400">Additional Message</dt>
                                 <dd class="mt-1 text-sm text-gray-300 sm:col-span-2 sm:mt-0 bg-gray-900/50 p-3 rounded border border-gray-800">
-                                    {{ $application->message }}
                                 </dd>
                             </div>
                             @endif
@@ -255,6 +246,104 @@
                             <div class="text-center py-4">
                                 <p class="text-sm text-gray-400">No plan selected</p>
                             </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- PayMongo Payment Details Card --}}
+                <div class="bg-[#111827] shadow-xl sm:rounded-xl border border-gray-800 overflow-hidden ring-1 ring-white/5">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-800/60 bg-gray-800/30 flex items-center justify-between gap-3">
+                        <h3 class="text-base font-semibold leading-6 text-white">PayMongo Payment</h3>
+                        @if($application->payment_status === 'verified' && $application->paymongo_payment_id)
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                Paid
+                            </span>
+                        @elseif($application->plan && (float) $application->plan->price === 0.0)
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">Free Plan</span>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-400/10 text-yellow-500 border border-yellow-400/20">
+                                <span class="h-1.5 w-1.5 rounded-full bg-yellow-500"></span>
+                                Awaiting Payment
+                            </span>
+                        @endif
+                    </div>
+                    <div class="p-5 space-y-4">
+                        @if($application->paymongo_payment_id)
+                            <dl class="space-y-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-xs text-gray-500">Amount Paid</dt>
+                                    <dd class="text-sm font-bold text-white">
+                                        ₱{{ number_format((float) $application->amount_paid, 2) }}/mo
+                                    </dd>
+                                </div>
+                                @if($application->payment_method)
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-xs text-gray-500">Payment Method</dt>
+                                    <dd class="text-sm font-medium text-white capitalize">{{ $application->payment_method }}</dd>
+                                </div>
+                                @endif
+                                @if($application->paid_at)
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-xs text-gray-500">Paid At</dt>
+                                    <dd class="text-sm font-medium text-white">{{ $application->paid_at->format('M j, Y g:i A') }}</dd>
+                                </div>
+                                @endif
+                                <div class="pt-3 border-t border-gray-800">
+                                    <p class="text-xs text-gray-500 mb-1">PayMongo Payment ID</p>
+                                    <p class="font-mono text-xs text-emerald-400 break-all">{{ $application->paymongo_payment_id }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">PayMongo Link ID</p>
+                                    <p class="font-mono text-xs text-slate-400 break-all">{{ $application->paymongo_link_id }}</p>
+                                </div>
+                            </dl>
+                        @elseif($application->plan && (float) $application->plan->price === 0.0)
+                            <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 text-center">
+                                <p class="text-sm text-emerald-300 font-medium">This is a free plan — no payment required.</p>
+                            </div>
+                        @else
+                            {{-- No payment yet — show send link option --}}
+                            <div class="rounded-xl border border-yellow-500/15 bg-yellow-500/5 px-4 py-4 mb-4">
+                                <p class="text-sm text-yellow-200 font-medium">No payment recorded yet.</p>
+                                <p class="text-xs text-yellow-200/60 mt-1">Send a PayMongo payment link to the applicant's email so they can pay online.</p>
+                            </div>
+
+                            @if($application->payment_url)
+                                <div class="mb-3">
+                                    <p class="text-xs text-gray-500 mb-1">Existing Payment Link</p>
+                                    <p class="font-mono text-xs text-blue-400 break-all">{{ $application->payment_url }}</p>
+                                </div>
+                                <form action="{{ route('central.applications.send-payment-link', $application, false) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="w-full inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500">
+                                        <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                        </svg>
+                                        Resend Payment Link Email
+                                    </button>
+                                </form>
+                            @else
+                                <form action="{{ route('central.applications.send-payment-link', $application, false) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500">
+                                        <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                                        </svg>
+                                        Generate & Send Payment Link
+                                    </button>
+                                </form>
+                            @endif
+
+                            {{-- Also allow manual PayMongo API verify if link exists --}}
+                            @if($application->paymongo_link_id)
+                                <form action="{{ route('central.applications.verify-payment', $application, false) }}" method="POST" class="mt-2">
+                                    @csrf
+                                    <button type="submit" class="w-full inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/15">
+                                        Check Payment Status via API
+                                    </button>
+                                </form>
+                            @endif
                         @endif
                     </div>
                 </div>

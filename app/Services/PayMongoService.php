@@ -27,12 +27,21 @@ class PayMongoService
 
         $response = Http::acceptJson()
             ->withBasicAuth($secretKey, '')
-            ->post(self::BASE_URL.'/links', [
+            ->post(self::BASE_URL.'/checkout_sessions', [
                 'data' => [
                     'attributes' => [
-                        'amount' => $amount,
-                        'description' => 'PayMonitor Subscription - '.$invoice->invoice_number,
-                        'remarks' => $invoice->tenant->name ?? 'Tenant Subscription',
+                        'line_items' => [
+                            [
+                                'amount'      => $amount,
+                                'currency'    => 'PHP',
+                                'name'        => 'PayMonitor Subscription - '.$invoice->invoice_number,
+                                'quantity'    => 1,
+                            ],
+                        ],
+                        'payment_method_types' => ['card', 'gcash', 'paymaya', 'qrph'],
+                        'description' => $invoice->tenant->name ?? 'Tenant Subscription',
+                        'success_url' => route('billing.success', ['tenant' => $invoice->tenant_id, 'invoiceId' => $invoice->id], true),
+                        'cancel_url' => route('billing.index', ['tenant' => $invoice->tenant_id], true),
                     ],
                 ],
             ])
@@ -42,7 +51,6 @@ class PayMongoService
         return [
             'link_id' => Arr::get($response, 'data.id'),
             'checkout_url' => Arr::get($response, 'data.attributes.checkout_url'),
-            'status' => Arr::get($response, 'data.attributes.status'),
         ];
     }
 
@@ -56,19 +64,20 @@ class PayMongoService
 
         $response = Http::acceptJson()
             ->withBasicAuth($secretKey, '')
-            ->get(self::BASE_URL.'/links/'.$linkId)
+            ->get(self::BASE_URL.'/checkout_sessions/'.$linkId)
             ->throw()
             ->json();
 
-        $status = (string) Arr::get($response, 'data.attributes.status', 'unpaid');
         $payments = Arr::get($response, 'data.attributes.payments', []);
+        $payment  = $payments[0] ?? null;
+        $status   = $payment ? Arr::get($payment, 'attributes.status') : 'unpaid';
 
         return [
             'status' => $status,
             'is_paid' => $status === 'paid',
-            'payment_id' => Arr::get($payments, '0.id'),
-            'paid_at' => Arr::get($payments, '0.attributes.paid_at'),
-            'method' => Arr::get($payments, '0.attributes.source.type'),
+            'payment_id' => Arr::get($payment, 'id'),
+            'paid_at' => Arr::get($payment, 'attributes.paid_at'),
+            'method' => Arr::get($payment, 'attributes.source.type'),
         ];
     }
 }

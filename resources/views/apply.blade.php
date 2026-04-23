@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Apply | PayMonitor</title>
+    <meta name="description" content="Apply for PayMonitor — the cooperative lending management SaaS platform. Select your plan and pay securely via PayMongo.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -43,6 +44,7 @@
             background-size: 60px 60px;
             mask-image: radial-gradient(ellipse at center, black 38%, transparent 72%);
         }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body class="min-h-screen text-white antialiased">
@@ -50,8 +52,9 @@
         $activeSelectedPlan = (string) old('plan', $selectedPlan);
         $selectedPlanModel = $plans->firstWhere('id', (int) $activeSelectedPlan);
         $selectedPlanName = $selectedPlanModel?->name ?? 'Selected Plan';
+        $selectedPlanPrice = (float) ($selectedPlanModel?->price ?? 0);
         $selectedPlanAmount = $selectedPlanModel
-            ? '₱'.rtrim(rtrim(number_format((float) $selectedPlanModel->price, 2), '0'), '.').'/mo'
+            ? '₱'.rtrim(rtrim(number_format($selectedPlanPrice, 2), '0'), '.').'/mo'
             : 'Choose a plan';
         $selectedPlanFeatures = collect(
             preg_split('/\r\n|\r|\n/', (string) ($selectedPlanModel?->description ?: \App\Models\Plan::defaultDescription()))
@@ -83,7 +86,7 @@
                             Apply for <span class="block text-emerald-300">PayMonitor</span>
                         </h1>
                         <p class="mt-4 text-base leading-8 text-navy-muted">
-                            Submit your cooperative details, pay the selected subscription, and upload the receipt so central admin can verify everything before approval.
+                            Submit your cooperative details and pay securely via PayMongo to complete your application. Admin will review and provision your tenant account within 24 hours.
                         </p>
 
                         <div class="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-4">
@@ -91,7 +94,7 @@
                             <div class="mt-3 flex items-start justify-between gap-4">
                                 <div>
                                     <h2 id="selected-plan-name" class="font-heading text-2xl font-bold text-white">{{ $selectedPlanName }}</h2>
-                                    <p class="mt-1 text-sm text-slate-400">Pay the same amount shown here before uploading your proof.</p>
+                                    <p class="mt-1 text-sm text-slate-400">You'll be billed this amount monthly.</p>
                                 </div>
                                 <div class="rounded-2xl border border-white/10 bg-[#081120] px-4 py-3 text-right">
                                     <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">Amount</p>
@@ -106,9 +109,10 @@
                         </div>
 
                         <div class="mt-6 space-y-3">
-                            <div class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-slate-300">1. Choose your subscription plan.</div>
-                            <div class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-slate-300">2. Send payment using any channel on the right.</div>
-                            <div class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-slate-300">3. Upload your receipt and wait for verification.</div>
+                            <div class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-slate-300">1. Fill in your cooperative details below.</div>
+                            <div class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-slate-300">2. Select your plan and click "Continue to Payment".</div>
+                            <div class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-slate-300">3. Complete payment on PayMongo's secure checkout.</div>
+                            <div class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-slate-300">4. You're redirected back — admin reviews and creates your account.</div>
                         </div>
                     </div>
                 </aside>
@@ -125,9 +129,16 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('apply.store', absolute: false) }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+                    @if(session('warning'))
+                        <div class="mb-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-4">
+                            <p class="text-sm font-semibold text-yellow-300">{{ session('warning') }}</p>
+                        </div>
+                    @endif
+
+                    <form id="apply-form" action="{{ route('apply.store', absolute: false) }}" method="POST" class="space-y-8">
                         @csrf
 
+                        {{-- Plan selector --}}
                         <div>
                             <label class="mb-2 block text-sm font-medium text-slate-300">Selected Plan</label>
                             <div class="relative">
@@ -139,8 +150,15 @@
                                                 preg_split('/\r\n|\r|\n/', (string) ($plan->description ?: \App\Models\Plan::defaultDescription()))
                                             )->filter()->values()->take(3)->pad(3, 'Included in your selected plan')->implode('||');
                                         @endphp
-                                        <option value="{{ $plan->id }}" data-plan-name="{{ $plan->name }}" data-plan-amount="₱{{ $priceLabel }}/mo" data-plan-features="{{ $planFeatures }}" {{ $activeSelectedPlan === (string) $plan->id ? 'selected' : '' }}>
-                                            {{ $plan->name }} Plan - ₱{{ $priceLabel }}/mo
+                                        <option
+                                            value="{{ $plan->id }}"
+                                            data-plan-name="{{ $plan->name }}"
+                                            data-plan-price="{{ $plan->price }}"
+                                            data-plan-amount="{{ $priceLabel == '0' ? 'Free' : '₱'.$priceLabel.'/mo' }}"
+                                            data-plan-features="{{ $planFeatures }}"
+                                            {{ $activeSelectedPlan === (string) $plan->id ? 'selected' : '' }}
+                                        >
+                                            {{ $plan->name }} Plan — {{ $priceLabel == '0' ? 'Free' : '₱'.$priceLabel.'/mo' }}
                                         </option>
                                     @empty
                                         <option value="">No plans available yet</option>
@@ -150,120 +168,124 @@
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
                             </div>
-                            <p class="mt-2 text-sm text-slate-500">Choose the plan you already paid for, then attach the official proof of payment below.</p>
                         </div>
 
-                        <div class="rounded-[1.5rem] border border-emerald-500/20 bg-emerald-500/6 p-5">
-                            <div class="flex items-start justify-between gap-4">
-                                <div>
-                                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">Where To Pay</p>
-                                    <h2 class="mt-2 font-heading text-2xl font-bold text-white">Payment Instructions</h2>
-                                    <p class="mt-2 text-sm leading-7 text-slate-400">Send your selected plan amount first, then upload the receipt below.</p>
-                                </div>
-                                <div class="rounded-2xl border border-white/10 bg-[#081120] px-4 py-3 text-right">
-                                    <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500">Plan Amount</p>
-                                    <p id="selected-plan-amount-summary" class="mt-2 text-2xl font-bold text-white">{{ $selectedPlanAmount }}</p>
-                                </div>
-                            </div>
-
-                            <div class="mt-5 grid gap-4 lg:grid-cols-3">
-                                @php($paymentChannels = [
-                                    ['label' => 'GCash', 'hint' => 'Mobile transfer', 'badge' => 'G', 'badgeClass' => 'bg-[#0070DC]/20 text-[#0070DC]', 'number' => env('GCASH_NUMBER', '09XX-XXX-XXXX')],
-                                    ['label' => 'BDO Transfer', 'hint' => 'Bank transfer', 'badge' => 'BDO', 'badgeClass' => 'bg-[#CC0000]/20 text-[#CC0000]', 'number' => env('BDO_ACCOUNT', 'XXXX-XXXX-XXXX')],
-                                    ['label' => 'BPI Transfer', 'hint' => 'Bank transfer', 'badge' => 'BPI', 'badgeClass' => 'bg-[#C41230]/20 text-[#C41230]', 'number' => env('BPI_ACCOUNT', 'XXXX-XXXX-XXXX')],
-                                ])
-                                @foreach($paymentChannels as $channel)
-                                    <div class="rounded-2xl border border-white/10 bg-[#0A1628] p-4">
-                                        <div class="flex items-center justify-between gap-3">
-                                            <div class="flex items-center gap-3">
-                                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[11px] font-bold {{ $channel['badgeClass'] }}">{{ $channel['badge'] }}</span>
-                                                <div>
-                                                    <p class="text-sm font-semibold text-white">{{ $channel['label'] }}</p>
-                                                    <p class="text-xs text-slate-500">{{ $channel['hint'] }}</p>
-                                                </div>
-                                            </div>
-                                            <button type="button" data-copy="{{ $channel['number'] }}" class="rounded-lg border border-white/10 px-2.5 py-1 text-[11px] font-medium text-slate-300 transition hover:border-emerald-500/40 hover:text-white">Copy</button>
-                                        </div>
-                                        <p class="mt-4 text-[11px] uppercase tracking-[0.16em] text-slate-500">Account Name</p>
-                                        <p class="mt-1 text-sm font-medium text-slate-200">PayMonitor Systems</p>
-                                        <p class="mt-3 text-[11px] uppercase tracking-[0.16em] text-slate-500">Account Number</p>
-                                        <p class="mt-1 text-sm font-semibold text-white">{{ $channel['number'] }}</p>
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            <div class="mt-4 rounded-2xl border border-yellow-500/20 bg-yellow-500/7 px-4 py-3 text-sm text-yellow-200">
-                                Use your cooperative name as the payment note or reference if the payment channel allows it.
-                            </div>
-                        </div>
-
+                        {{-- Cooperative details --}}
                         <div class="grid gap-4 md:grid-cols-2">
                             <div class="md:col-span-2">
                                 <label class="mb-2 block text-sm font-medium text-slate-300">Cooperative Name</label>
-                                <input type="text" name="cooperative_name" value="{{ old('cooperative_name') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="e.g. Metro Manila Lending Coop">
+                                <input type="text" name="cooperative_name" id="cooperative_name" value="{{ old('cooperative_name') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="e.g. Metro Manila Lending Coop">
                                 @error('cooperative_name')<p class="mt-2 text-xs text-red-400">{{ $message }}</p>@enderror
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-slate-300">CDA Registration Number</label>
-                                <input type="text" name="cda_registration_number" value="{{ old('cda_registration_number') }}" class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="e.g. CDA-2024-001234">
+                                <input type="text" name="cda_registration_number" id="cda_registration_number" value="{{ old('cda_registration_number') }}" class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="e.g. CDA-2024-001234">
                                 <p class="mt-2 text-xs text-slate-500">Found on your CDA certificate of registration.</p>
                                 @error('cda_registration_number')<p class="mt-2 text-xs text-red-400">{{ $message }}</p>@enderror
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-slate-300">Work Email</label>
-                                <input type="email" name="email" value="{{ old('email') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="you@cooperative.com">
+                                <input type="email" name="email" id="email" value="{{ old('email') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="you@cooperative.com">
                                 @error('email')<p class="mt-2 text-xs text-red-400">{{ $message }}</p>@enderror
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-slate-300">Phone Number</label>
-                                <input type="text" name="phone" value="{{ old('phone') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="+63 917 000 0000">
+                                <input type="text" name="phone" id="phone" value="{{ old('phone') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="+63 917 000 0000">
                                 @error('phone')<p class="mt-2 text-xs text-red-400">{{ $message }}</p>@enderror
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-slate-300">First Name</label>
-                                <input type="text" name="first_name" value="{{ old('first_name') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+                                <input type="text" name="first_name" id="first_name" value="{{ old('first_name') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
                                 @error('first_name')<p class="mt-2 text-xs text-red-400">{{ $message }}</p>@enderror
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-slate-300">Last Name</label>
-                                <input type="text" name="last_name" value="{{ old('last_name') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+                                <input type="text" name="last_name" id="last_name" value="{{ old('last_name') }}" required class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
                                 @error('last_name')<p class="mt-2 text-xs text-red-400">{{ $message }}</p>@enderror
-                            </div>
-
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-slate-300">Payment Reference</label>
-                                <input type="text" name="payment_reference" value="{{ old('payment_reference') }}" class="w-full rounded-2xl border border-white/10 bg-[#0A1628] px-4 py-3 text-sm text-white transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="Optional reference / transaction number">
-                                <p class="mt-2 text-xs text-slate-500">If your payment channel gave you a reference number, enter it here.</p>
-                                @error('payment_reference')<p class="mt-2 text-xs text-red-400">{{ $message }}</p>@enderror
-                            </div>
-
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-slate-300">Proof of Payment</label>
-                                <label for="payment_proof" class="block cursor-pointer rounded-2xl border border-dashed border-white/15 bg-[#0A1628] p-4 transition hover:border-emerald-500/50 hover:bg-[#0C1528]">
-                                    <div class="flex items-center justify-between gap-4">
-                                        <div>
-                                            <p class="text-sm font-semibold text-white">Upload your receipt</p>
-                                            <p class="mt-1 text-xs text-slate-500">Accepted: JPG, PNG, WEBP, PDF up to 5MB.</p>
-                                        </div>
-                                        <span class="rounded-xl bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300">Choose File</span>
-                                    </div>
-                                    <p id="payment-proof-name" class="mt-4 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-slate-300">No file chosen yet</p>
-                                </label>
-                                <input id="payment_proof" type="file" name="payment_proof" accept=".jpg,.jpeg,.png,.webp,.pdf" required class="sr-only">
-                                @error('payment_proof')<p class="mt-2 text-xs text-red-400">{{ $message }}</p>@enderror
                             </div>
                         </div>
 
-                        <div class="flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                            <p class="max-w-xl text-sm leading-6 text-slate-500">After submission, central admin verifies your payment first. Once approved, your cooperative receives its tenant domain and login details by email.</p>
-                            <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:shadow-emerald-500/30 hover:brightness-110">
-                                Submit Application & Payment Proof
+                        {{-- Payment Summary --}}
+                        <div id="payment-summary" class="rounded-xl border border-[#21262d] bg-[#161b22] p-5">
+                            <p class="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4">Payment Summary</p>
+
+                            {{-- Free plan --}}
+                            <div id="free-plan-notice" class="hidden rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4 text-sm text-emerald-300">
+                                <svg class="inline-block mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                This is a free plan. No payment required.
+                            </div>
+
+                            {{-- Paid plan --}}
+                            <div id="paid-plan-details">
+                                <div class="flex items-center justify-between gap-4 mb-4">
+                                    <div>
+                                        <p class="text-xs text-[#8b949e] mb-1">Selected Plan</p>
+                                        <div class="flex items-center gap-2">
+                                            <span id="summary-plan-name" class="text-white font-semibold text-sm">{{ $selectedPlanName }}</span>
+                                            <span id="summary-plan-badge" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{{ $selectedPlanName }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-[#8b949e] mb-1">Amount Due</p>
+                                        <p id="summary-plan-amount" class="text-white font-bold text-lg">{{ $selectedPlanAmount }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-[#21262d] pt-4 mb-4">
+                                    <p class="text-xs text-[#8b949e] mb-2">Payment Methods Accepted</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0070DC]/10 border border-[#0070DC]/20 text-[#4DA6FF] text-xs font-semibold">
+                                            <span class="h-4 w-4 rounded-full bg-[#0070DC]/20 inline-flex items-center justify-center text-[9px] font-bold text-[#0070DC]">G</span>
+                                            GCash
+                                        </span>
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-semibold">
+                                            <span class="h-4 w-4 rounded-full bg-green-500/20 inline-flex items-center justify-center text-[9px] font-bold text-green-400">M</span>
+                                            Maya
+                                        </span>
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
+                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                            Credit Card
+                                        </span>
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold">
+                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                            Debit Card
+                                        </span>
+                                    </div>
+                                    <p class="mt-2 text-[11px] text-[#8b949e]">Powered by PayMongo · Test mode</p>
+                                </div>
+
+                                <p class="text-[#8b949e] text-xs">
+                                    You will be redirected to a secure PayMongo checkout page to complete payment.
+                                    <strong class="text-yellow-400">Test mode: no real money will be charged.</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Submit --}}
+                        <div class="space-y-3">
+                            <button
+                                id="submit-btn"
+                                type="submit"
+                                class="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all bg-gradient-to-r from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:brightness-110"
+                            >
+                                <span id="submit-btn-text">Continue to Payment →</span>
                             </button>
+
+                            <div id="paymongo-badge" class="flex items-center justify-center gap-1.5 text-[#8b949e] text-xs">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                Secured by PayMongo — Philippine payment gateway
+                            </div>
+
+                            <div id="free-submit-note" class="hidden text-center text-xs text-slate-500">
+                                After submission, central admin will review and set up your account.
+                            </div>
                         </div>
                     </form>
                 </section>
@@ -276,55 +298,72 @@
             const planSelect = document.getElementById('plan');
             const selectedPlanName = document.getElementById('selected-plan-name');
             const selectedPlanAmount = document.getElementById('selected-plan-amount');
-            const selectedPlanAmountSummary = document.getElementById('selected-plan-amount-summary');
             const featureCards = document.querySelectorAll('[data-selected-plan-feature]');
-            const paymentProofInput = document.getElementById('payment_proof');
-            const paymentProofName = document.getElementById('payment-proof-name');
+
+            // Payment summary elements
+            const summaryPlanName   = document.getElementById('summary-plan-name');
+            const summaryPlanBadge  = document.getElementById('summary-plan-badge');
+            const summaryPlanAmount = document.getElementById('summary-plan-amount');
+            const freePlanNotice    = document.getElementById('free-plan-notice');
+            const paidPlanDetails   = document.getElementById('paid-plan-details');
+            const submitBtn         = document.getElementById('submit-btn');
+            const submitBtnText     = document.getElementById('submit-btn-text');
+            const paymongoBadge     = document.getElementById('paymongo-badge');
+            const freeSubmitNote    = document.getElementById('free-submit-note');
 
             const updatePlanSummary = () => {
-                const option = planSelect?.options[planSelect.selectedIndex];
-                const features = (option?.dataset.planFeatures || '').split('||').filter(Boolean);
+                const option    = planSelect?.options[planSelect.selectedIndex];
+                const price     = parseFloat(option?.dataset.planPrice || '0');
+                const name      = option?.dataset.planName || 'Selected Plan';
+                const amount    = option?.dataset.planAmount || '—';
+                const features  = (option?.dataset.planFeatures || '').split('||').filter(Boolean);
+                const isFree    = price === 0;
 
-                if (selectedPlanName) selectedPlanName.textContent = option?.dataset.planName || 'Selected Plan';
-                if (selectedPlanAmount) selectedPlanAmount.textContent = option?.dataset.planAmount || 'Choose a plan';
-                if (selectedPlanAmountSummary) selectedPlanAmountSummary.textContent = option?.dataset.planAmount || 'Choose a plan';
+                // Sidebar
+                if (selectedPlanName)   selectedPlanName.textContent   = name;
+                if (selectedPlanAmount) selectedPlanAmount.textContent = isFree ? 'Free' : amount;
 
                 featureCards.forEach((card, index) => {
                     card.textContent = features[index] || 'Included in your selected plan';
                 });
+
+                // Payment summary card
+                if (summaryPlanName)   summaryPlanName.textContent   = name;
+                if (summaryPlanBadge)  summaryPlanBadge.textContent  = name;
+                if (summaryPlanAmount) summaryPlanAmount.textContent = isFree ? 'Free' : amount;
+
+                if (isFree) {
+                    freePlanNotice?.classList.remove('hidden');
+                    paidPlanDetails?.classList.add('hidden');
+                    submitBtnText && (submitBtnText.textContent = 'Submit Application');
+                    submitBtn?.classList.remove('from-emerald-500', 'to-emerald-600');
+                    submitBtn?.classList.add('from-slate-600', 'to-slate-700');
+                    paymongoBadge?.classList.add('hidden');
+                    freeSubmitNote?.classList.remove('hidden');
+                } else {
+                    freePlanNotice?.classList.add('hidden');
+                    paidPlanDetails?.classList.remove('hidden');
+                    submitBtnText && (submitBtnText.textContent = 'Continue to Payment →');
+                    submitBtn?.classList.add('from-emerald-500', 'to-emerald-600');
+                    submitBtn?.classList.remove('from-slate-600', 'to-slate-700');
+                    paymongoBadge?.classList.remove('hidden');
+                    freeSubmitNote?.classList.add('hidden');
+                }
             };
-
-            document.querySelectorAll('[data-copy]').forEach((button) => {
-                button.addEventListener('click', async () => {
-                    const value = button.getAttribute('data-copy') || '';
-                    const original = button.textContent;
-
-                    try {
-                        await navigator.clipboard.writeText(value);
-                        button.textContent = 'Copied!';
-                        button.classList.add('border-emerald-500/40', 'text-emerald-300');
-                        setTimeout(() => {
-                            button.textContent = original;
-                            button.classList.remove('border-emerald-500/40', 'text-emerald-300');
-                        }, 1600);
-                    } catch (_error) {
-                        button.textContent = 'Copy failed';
-                        setTimeout(() => button.textContent = original, 1600);
-                    }
-                });
-            });
-
-            if (paymentProofInput && paymentProofName) {
-                paymentProofInput.addEventListener('change', () => {
-                    const file = paymentProofInput.files && paymentProofInput.files[0];
-                    paymentProofName.textContent = file ? file.name : 'No file chosen yet';
-                });
-            }
 
             if (planSelect) {
                 planSelect.addEventListener('change', updatePlanSummary);
                 updatePlanSummary();
             }
+
+            // Prevent double-submit
+            document.getElementById('apply-form')?.addEventListener('submit', function() {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+                    submitBtnText && (submitBtnText.textContent = 'Processing…');
+                }
+            });
         });
     </script>
 </body>

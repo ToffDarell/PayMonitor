@@ -26,6 +26,13 @@ class TenantApplication extends Model
         'payment_status',
         'payment_verified_by',
         'payment_verified_at',
+        // PayMongo online payment fields
+        'paymongo_link_id',
+        'paymongo_payment_id',
+        'payment_url',
+        'amount_paid',
+        'paid_at',
+        'payment_method',
         'message',
         'status',
         'reviewed_by',
@@ -33,9 +40,11 @@ class TenantApplication extends Model
     ];
 
     protected $casts = [
-        'payment_amount' => 'decimal:2',
-        'payment_verified_at' => 'datetime',
-        'reviewed_at' => 'datetime',
+        'payment_amount'     => 'decimal:2',
+        'amount_paid'        => 'decimal:2',
+        'payment_verified_at'=> 'datetime',
+        'paid_at'            => 'datetime',
+        'reviewed_at'        => 'datetime',
     ];
 
     public function plan(): BelongsTo
@@ -65,5 +74,21 @@ class TenantApplication extends Model
         }
 
         return in_array(strtolower((string) pathinfo($this->payment_proof_path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'], true);
+    }
+
+    /**
+     * Whether this application was paid via PayMongo online payment.
+     */
+    public function isPaidOnline(): bool
+    {
+        return $this->payment_status === 'paid' && $this->paymongo_payment_id !== null;
+    }
+
+    /**
+     * Whether this application is for a free plan.
+     */
+    public function isFreePlan(): bool
+    {
+        return $this->plan && (float) $this->plan->price === 0.0;
     }
 }
