@@ -214,10 +214,35 @@ class SettingsController extends Controller
         $result = $selfUpdateService->applyUpdate($tenantId, $releaseId);
 
         if ($result['success']) {
-            return redirect('/settings?tab=updates')->with('success', 'Update applied successfully');
+            $details = $result['details'] ?? [];
+            $version = $result['release']?->tag ?? 'Unknown';
+            $migrations = $details['migrations_run'] ?? 0;
+            $codeDeployed = ($details['code_deployed'] ?? false) ? ' with code deployment' : '';
+
+            $message = "Successfully updated to {$version}{$codeDeployed}.";
+            if ($migrations > 0) {
+                $message .= " {$migrations} migration(s) applied.";
+            }
+
+            return redirect('/settings?tab=updates')->with('success', $message);
         }
 
-        return back()->with('error', 'Update failed: ' . $result['error']);
+        return back()->with('error', 'Update failed: ' . ($result['error'] ?? 'Unknown error'));
+    }
+
+    public function createBackup(Request $request): RedirectResponse
+    {
+        $tenantId = (string) (tenant()?->id ?? $request->route('tenant'));
+        $tenant = \App\Models\Tenant::findOrFail($tenantId);
+
+        $backupService = app(\App\Services\TenantBackupService::class);
+        $result = $backupService->createBackup($tenant, 'manual');
+
+        if ($result['success']) {
+            return redirect('/settings?tab=updates')->with('success', 'Backup created successfully.');
+        }
+
+        return back()->with('error', 'Backup failed: ' . ($result['error'] ?? 'Unknown error'));
     }
 
     public function syncReleases(): RedirectResponse

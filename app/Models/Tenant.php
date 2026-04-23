@@ -135,4 +135,26 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             return 0;
         }
     }
+
+    /**
+     * Get all update records for this tenant.
+     */
+    public function updates(): HasMany
+    {
+        return $this->hasMany(TenantUpdate::class);
+    }
+
+    /**
+     * Get the current version tag for this tenant.
+     */
+    public function currentVersion(): string
+    {
+        $current = $this->updates()
+            ->where('is_current', true)
+            ->with('appRelease')
+            ->first();
+
+        return $current?->appRelease?->tag ?? 'v0.0.0';
+    }
 }
+

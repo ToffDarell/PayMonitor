@@ -137,6 +137,7 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::post('/settings/support', [SettingsController::class, 'submitSupport'])->name('settings.support');
                     Route::post('/settings/updates/sync', [SettingsController::class, 'syncReleases'])->name('settings.updates.sync');
                     Route::post('/settings/updates/apply', [SettingsController::class, 'applyUpdate'])->name('settings.updates.apply');
+                    Route::post('/settings/updates/backup', [SettingsController::class, 'createBackup'])->name('settings.updates.backup');
                 });
 
                 Route::fallback(static function (): void {

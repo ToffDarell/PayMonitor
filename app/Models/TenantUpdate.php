@@ -11,8 +11,10 @@ class TenantUpdate extends Model
     use CentralConnection;
 
     public const STATUS_UPDATE_AVAILABLE = 'update_available';
+    public const STATUS_UPDATING = 'updating';
     public const STATUS_UPDATED = 'updated';
     public const STATUS_FAILED = 'failed';
+    public const STATUS_ROLLED_BACK = 'rolled_back';
 
     protected $fillable = [
         'tenant_id',
