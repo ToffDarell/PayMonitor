@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
 <head>
     <meta charset="utf-8">
@@ -258,16 +258,13 @@
                                     ? 'Unlimited Staff Users'
                                     : number_format($plan->max_users) . ' Staff ' . \Illuminate\Support\Str::plural('User', $plan->max_users),
                             ]);
-                            $baseItems = collect(preg_split('/\r\n|\r|\n/', \App\Models\Plan::defaultDescription()))
-                                ->map(fn ($item) => trim((string) $item))
-                                ->filter();
-                            $customDescriptionItems = $descriptionItems
-                                ->reject(fn ($item) => $baseItems->contains($item));
-                            $featureItems = $limitItems
-                                ->concat($baseItems)
-                                ->concat($customDescriptionItems)
-                                ->unique()
+                            $allAvailable = \App\Models\Plan::getAvailableFeatures();
+                            $checkedFeatures = collect($plan->features ?? [])
+                                ->map(fn ($key) => $allAvailable[$key]['name'] ?? null)
+                                ->filter()
                                 ->values();
+
+                            $featureItems = $limitItems->concat($checkedFeatures);
                         @endphp
 
                         <div @class([

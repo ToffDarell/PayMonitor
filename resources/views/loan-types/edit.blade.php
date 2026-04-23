@@ -9,42 +9,47 @@
     }
 
     .loan-type-preset-panel {
-        border: 1px solid rgba(148, 163, 184, 0.18);
+        border: 1px solid var(--pm-panel-border);
         border-radius: 1.25rem;
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(10, 22, 40, 0.96) 100%);
-        box-shadow: 0 24px 50px rgba(2, 6, 23, 0.28);
+        background: var(--pm-panel-bg);
+        box-shadow: 0 24px 50px rgba(2, 6, 23, 0.1);
     }
 
     .loan-type-preset {
         width: 100%;
         min-height: 100%;
-        border: 1px solid rgba(148, 163, 184, 0.16);
+        border: 1px solid var(--pm-border);
         border-radius: 1rem;
-        background: rgba(15, 23, 42, 0.92);
-        color: #e2e8f0;
+        background: var(--pm-surface-bg);
+        color: var(--pm-text-secondary);
         padding: 1rem;
         text-align: left;
         transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-        box-shadow: 0 18px 40px rgba(2, 6, 23, 0.2);
+        box-shadow: 0 4px 12px rgba(2, 6, 23, 0.05);
     }
 
     .loan-type-preset:hover {
         transform: translateY(-2px);
-        border-color: rgba(52, 211, 153, 0.45);
-        background: rgba(15, 23, 42, 0.98);
+        border-color: rgba(var(--pm-accent-rgb), 0.45);
+        background: var(--pm-card-bg);
+        box-shadow: 0 8px 24px rgba(2, 6, 23, 0.08);
     }
 
     .loan-type-preset--active {
-        border-color: rgba(16, 185, 129, 0.9);
-        background: linear-gradient(180deg, rgba(6, 78, 59, 0.45) 0%, rgba(15, 23, 42, 0.96) 100%);
-        box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.18), 0 22px 44px rgba(5, 150, 105, 0.18);
+        border-color: var(--pm-accent);
+        background: rgba(var(--pm-accent-rgb), 0.08);
+        box-shadow: 0 0 0 1px rgba(var(--pm-accent-rgb), 0.18), 0 12px 24px rgba(var(--pm-accent-rgb), 0.1);
+    }
+
+    .loan-type-preset--active:hover {
+        background: rgba(var(--pm-accent-rgb), 0.12);
     }
 
     .loan-type-divider {
         display: flex;
         align-items: center;
         gap: 1rem;
-        color: #64748b;
+        color: var(--pm-text-muted);
         font-size: 0.85rem;
         font-weight: 600;
         letter-spacing: 0.08em;
@@ -56,7 +61,11 @@
         content: '';
         flex: 1;
         height: 1px;
-        background: rgba(148, 163, 184, 0.18);
+        background: var(--pm-border);
+    }
+
+    body.tenant-theme-light .text-white.h4 {
+        color: var(--pm-text-primary) !important;
     }
 </style>
 @endpush
@@ -183,11 +192,11 @@
                                         <div class="fw-semibold fs-6" x-text="preset.name"></div>
                                         <div class="small text-secondary mt-2" x-text="preset.description"></div>
                                     </div>
-                                    <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle" x-text="`${preset.interest_rate}%`"></span>
+                                    <span class="badge rounded-pill border" style="background-color: var(--pm-surface-bg); color: var(--pm-text-primary); border-color: var(--pm-border) !important;" x-text="`${preset.interest_rate}%`"></span>
                                 </div>
                                 <div class="d-flex gap-2 mt-3 flex-wrap">
-                                    <span class="badge rounded-pill text-bg-dark border border-light-subtle text-uppercase" x-text="preset.interest_type"></span>
-                                    <span class="badge rounded-pill text-bg-dark border border-light-subtle" x-text="`${preset.max_term_months} months`"></span>
+                                    <span class="badge rounded-pill border text-uppercase" style="background-color: var(--pm-surface-bg); color: var(--pm-text-primary); border-color: var(--pm-border) !important;" x-text="preset.interest_type"></span>
+                                    <span class="badge rounded-pill border" style="background-color: var(--pm-surface-bg); color: var(--pm-text-primary); border-color: var(--pm-border) !important;" x-text="`${preset.max_term_months} months`"></span>
                                 </div>
                             </button>
                         </div>

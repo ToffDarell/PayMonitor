@@ -80,7 +80,7 @@ class SendBillingReminders extends Command
                 $tenant,
                 $invoice,
                 'overdue',
-                $dueDate->diffInDays(today()),
+                (int) $dueDate->diffInDays(today()),
             ));
         }
 

@@ -50,22 +50,7 @@
             </div>
 
             <?php
-            $availableFeatures = [
-                'basic_members' => ['name' => 'Member Management', 'desc' => 'Register and manage cooperative borrowers.', 'requires' => null],
-                'loan_management' => ['name' => 'Loan Management', 'desc' => 'Create and track loans with amortization.', 'requires' => null],
-                'loan_types' => ['name' => 'Loan Type Configuration', 'desc' => 'Configure custom loan products and interest rates.', 'requires' => null],
-                'payment_tracking' => ['name' => 'Payment Tracking', 'desc' => 'Record and monitor loan payment collections.', 'requires' => null],
-                'basic_reports' => ['name' => 'Basic Reports', 'desc' => 'Generate PDF and Excel lending reports.', 'requires' => null],
-                'branch_management' => ['name' => 'Branch Management', 'desc' => 'Manage multiple cooperative branches.', 'requires' => null],
-                'multi_user' => ['name' => 'Multi-User Access', 'desc' => 'Add staff with role-based access control.', 'requires' => null],
-                'collections_dashboard' => ['name' => 'Collections Dashboard', 'desc' => 'Real-time collection monitoring and analytics.', 'requires' => 'payment_tracking'],
-                'advanced_reports' => ['name' => 'Advanced Reports', 'desc' => 'Full analytics with trend analysis and exports.', 'requires' => 'basic_reports'],
-                'audit_logs' => ['name' => 'Audit Logs', 'desc' => 'Complete action history and change tracking.', 'requires' => null],
-                'member_documents' => ['name' => 'Member Documents', 'desc' => 'Attach files and documents to member profiles.', 'requires' => 'basic_members'],
-                'loan_documents' => ['name' => 'Loan Documents', 'desc' => 'Attach supporting documents to loan records.', 'requires' => 'loan_management'],
-                'custom_roles' => ['name' => 'Custom Roles', 'desc' => 'Create custom staff roles and permissions.', 'requires' => 'multi_user'],
-                'advanced_analytics' => ['name' => 'Advanced Analytics', 'desc' => 'Business performance insights and forecasting.', 'requires' => 'advanced_reports'],
-            ];
+            $availableFeatures = \App\Models\Plan::getAvailableFeatures();
             $selectedFeatures = old('features', []);
             ?>
 

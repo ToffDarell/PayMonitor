@@ -67,6 +67,21 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->seedBravoTenant($bravoTenant);
+
+        $this->deleteExistingTenantDatabase('charlie');
+
+        $charlieTenant = $this->tenantService->createTenant([
+            'name' => 'Charlie Cooperative',
+            'address' => 'Quezon City, Metro Manila',
+            'domain' => 'charlie',
+            'admin_name' => 'Carlos Ramos',
+            'admin_email' => 'carlos@charlie.com',
+            'plan_id' => $plans['Standard']->id,
+            'subscription_due_at' => now()->subDays(5)->toDateString(), // 5 days OVERDUE
+        ]);
+
+        // Seed basic tenant data for charlie
+        $this->seedAlphaTenant($charlieTenant);
     }
 
     /**
