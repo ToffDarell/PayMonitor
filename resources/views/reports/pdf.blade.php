@@ -31,7 +31,7 @@
 
         .header {
             padding-bottom: 14px;
-            border-bottom: 3px solid #4f46e5;
+            border-bottom: 3px solid #1f2937;
             margin-bottom: 20px;
         }
 
@@ -59,12 +59,12 @@
             width: 64px;
             height: 64px;
             border-radius: 10px;
-            background: #4f46e5;
+            background: #1f2937;
             color: #ffffff;
             font-size: 28px;
             font-weight: bold;
-            line-height: 64px;
             text-align: center;
+            padding-top: 16px;
         }
 
         .coop-name {
@@ -83,7 +83,7 @@
         .report-title {
             font-size: 16px;
             font-weight: bold;
-            color: #4f46e5;
+            color: #1f2937;
             text-transform: uppercase;
         }
 
@@ -95,7 +95,7 @@
         }
 
         .section-header {
-            background: #4f46e5;
+            background: #1f2937;
             color: #ffffff;
             font-size: 11px;
             font-weight: bold;
@@ -142,11 +142,11 @@
         }
 
         .summary-value.currency {
-            color: #059669;
+            color: #111827;
         }
 
         .summary-value.danger {
-            color: #dc2626;
+            color: #111827;
         }
 
         .data-table thead tr {
@@ -198,8 +198,8 @@
         }
 
         .badge-danger {
-            background: #fee2e2;
-            color: #dc2626;
+            background: #e5e7eb;
+            color: #374151;
         }
 
         p {
