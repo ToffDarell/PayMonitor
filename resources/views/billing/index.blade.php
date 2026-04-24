@@ -98,15 +98,30 @@
             <tbody class="divide-y divide-white/[0.04]">
                 @forelse($invoices as $invoice)
                     @php
+                        $themeMode = \App\Models\TenantSetting::allKeyed()['theme_mode'] ?? 'dark';
+                        $isDark = $themeMode === 'dark';
+
                         $statusClass = match ($invoice->status) {
-                            'paid' => 'bg-emerald-500/15 text-emerald-300',
-                            'overdue' => 'bg-red-500/15 text-red-300',
-                            'pending_verification' => 'bg-blue-500/15 text-blue-300',
-                            default => 'bg-amber-500/15 text-amber-300',
+                            'paid' => $isDark 
+                                ? 'bg-emerald-500/15 text-emerald-300' 
+                                : 'bg-emerald-100 text-emerald-900 border border-emerald-300',
+                            'overdue' => $isDark 
+                                ? 'bg-red-500/15 text-red-300' 
+                                : 'bg-red-100 text-red-900 border border-red-300',
+                            'pending_verification' => $isDark 
+                                ? 'bg-blue-500/15 text-blue-300' 
+                                : 'bg-blue-100 text-blue-900 border border-blue-300',
+                            default => $isDark 
+                                ? 'bg-amber-500/15 text-amber-300' 
+                                : 'bg-amber-100 text-amber-900 border border-amber-300',
                         };
                         $statusLabel = $invoice->status === 'pending_verification'
                             ? 'Processing'
                             : ucfirst((string) $invoice->status);
+                        
+                        $receiptClass = $isDark
+                            ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'
+                            : 'bg-emerald-100 text-emerald-900 border border-emerald-300 hover:bg-emerald-200';
                     @endphp
                     <tr class="hover:bg-white/[0.02]">
                         <td class="px-4 py-3 text-slate-400">{{ $loop->iteration }}</td>
@@ -138,7 +153,7 @@
                                     </form>
                                 </div>
                             @else
-                                <a href="{{ route('billing.receipt', [...$tenantParameter, 'invoiceId' => $invoice->id], false) }}" target="_blank" class="inline-flex items-center rounded-lg border border-emerald-400/25 px-3 py-1.5 text-xs font-medium text-emerald-500 hover:bg-emerald-500/10">
+                                <a href="{{ route('billing.receipt', [...$tenantParameter, 'invoiceId' => $invoice->id], false) }}" target="_blank" class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors {{ $receiptClass }}">
                                     View Receipt
                                 </a>
                             @endif

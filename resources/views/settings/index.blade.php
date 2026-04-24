@@ -234,7 +234,7 @@
             <input type="hidden" name="theme_mode" value="{{ old('theme_mode', $settings['theme_mode'] ?? 'dark') }}">
             <input type="hidden" name="font_scale" value="{{ old('font_scale', $settings['font_scale'] ?? 'comfortable') }}">
 
-            <div class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+            <div class="max-w-4xl space-y-8">
                 <div class="space-y-6">
                     <div>
                         <p class="text-sm font-semibold text-white">Logo Upload</p>
@@ -279,9 +279,7 @@
                         </div>
                         @error('accent_color') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
                     </div>
-                </div>
-
-                <div class="space-y-4">
+                <div class="space-y-6">
                     <div class="rounded-2xl border border-white/[0.07] bg-[#0f1319] p-5">
                         <p class="text-sm font-semibold text-white">Display Preferences</p>
                         <p class="mt-1 text-sm text-slate-500">Choose how your tenant portal feels for your staff.</p>
