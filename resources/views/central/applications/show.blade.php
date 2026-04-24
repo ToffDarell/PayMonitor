@@ -152,9 +152,9 @@
             </div>
         @endif
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <!-- Left Column: Details -->
-            <div class="lg:col-span-2 space-y-6">
+            <div class="space-y-6">
                 <!-- Cooperative Info Card -->
                 <div class="bg-[#111827] shadow-xl sm:rounded-xl border border-gray-800 overflow-hidden ring-1 ring-white/5">
                     <div class="px-4 py-5 sm:px-6 border-b border-gray-800/60 bg-gray-800/30">
@@ -214,6 +214,92 @@
                         </dl>
                     </div>
                 </div>
+
+                <!-- Payment Verification Card -->
+                <div class="bg-[#111827] shadow-xl sm:rounded-xl border border-gray-800 overflow-hidden ring-1 ring-white/5">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-800/60 bg-gray-800/30">
+                        <h3 class="text-base font-semibold leading-6 text-white">Payment Verification</h3>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <p class="text-xs text-gray-500">Expected Amount</p>
+                                <p class="text-sm font-medium text-white">
+                                    @if($application->payment_amount !== null)
+                                        &#8369;{{ number_format((float) $application->payment_amount, 2) }}
+                                    @elseif($application->plan)
+                                        &#8369;{{ number_format((float) $application->plan->price, 2) }}
+                                    @else
+                                        Not set
+                                    @endif
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Payment Reference</p>
+                                <p class="text-sm font-medium text-white">{{ $application->payment_reference ?: 'Not provided' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Payment Status</p>
+                                <div class="mt-1">
+                                    @if($application->payment_status === 'verified')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                            Verified
+                                        </span>
+                                    @elseif($application->payment_status === 'rejected')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                                            Rejected
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-400/10 text-yellow-500 border border-yellow-400/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-yellow-500"></span>
+                                            Pending Review
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Verified By</p>
+                                @if($application->paymentVerifier)
+                                    <p class="text-sm font-medium text-white">{{ $application->paymentVerifier->name }}</p>
+                                @elseif($application->payment_status === 'verified')
+                                    <p class="text-sm font-medium text-emerald-400">System (Auto-verified)</p>
+                                @else
+                                    <p class="text-sm font-medium text-gray-400">Not verified yet</p>
+                                @endif
+                                @if($application->payment_verified_at)
+                                    <p class="mt-1 text-xs text-gray-500">{{ $application->payment_verified_at->format('M j, Y g:i A') }}</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        @if($application->status === 'pending')
+                            <div class="flex flex-wrap gap-3">
+                                @if($application->payment_status !== 'verified')
+                                    <form action="{{ route('central.applications.verify-payment', $application, false) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500">
+                                            Verify Payment
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if($application->payment_status !== 'rejected')
+                                    <form action="{{ route('central.applications.reject-payment', $application, false) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="inline-flex items-center rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/15">
+                                            Reject Payment
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+
+
             </div>
 
             <!-- Right Column: Sidebar -->
@@ -228,7 +314,7 @@
                             <div class="text-center">
                                 <h4 class="text-lg font-bold text-indigo-400">{{ $application->plan->name }}</h4>
                                 <div class="mt-2 flex items-baseline justify-center text-3xl font-extrabold text-white">
-                                    ${{ number_format($application->plan->price, 2) }}
+                                    &#8369;{{ number_format($application->plan->price, 2) }}
                                     <span class="ml-1 text-sm font-medium text-gray-500">/mo</span>
                                 </div>
                                 <p class="mt-4 text-sm text-gray-400">{{ $application->plan->description }}</p>
@@ -344,112 +430,6 @@
                                     </button>
                                 </form>
                             @endif
-                        @endif
-                    </div>
-                </div>
-
-                <div class="bg-[#111827] shadow-xl sm:rounded-xl border border-gray-800 overflow-hidden ring-1 ring-white/5">
-                    <div class="px-4 py-5 sm:px-6 border-b border-gray-800/60 bg-gray-800/30">
-                        <h3 class="text-base font-semibold leading-6 text-white">Payment Verification</h3>
-                    </div>
-                    <div class="p-4 space-y-4">
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div>
-                                <p class="text-xs text-gray-500">Expected Amount</p>
-                                <p class="text-sm font-medium text-white">
-                                    @if($application->payment_amount !== null)
-                                        &#8369;{{ number_format((float) $application->payment_amount, 2) }}
-                                    @elseif($application->plan)
-                                        &#8369;{{ number_format((float) $application->plan->price, 2) }}
-                                    @else
-                                        Not set
-                                    @endif
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-gray-500">Payment Reference</p>
-                                <p class="text-sm font-medium text-white">{{ $application->payment_reference ?: 'Not provided' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-gray-500">Payment Status</p>
-                                <div class="mt-1">
-                                    @if($application->payment_status === 'verified')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                            Verified
-                                        </span>
-                                    @elseif($application->payment_status === 'rejected')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                                            Rejected
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-400/10 text-yellow-500 border border-yellow-400/20">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-yellow-500"></span>
-                                            Pending Review
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-xs text-gray-500">Verified By</p>
-                                <p class="text-sm font-medium text-white">{{ $application->paymentVerifier?->name ?? 'Not verified yet' }}</p>
-                                @if($application->payment_verified_at)
-                                    <p class="mt-1 text-xs text-gray-500">{{ $application->payment_verified_at->format('M j, Y g:i A') }}</p>
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="rounded-xl border border-gray-800 bg-gray-900/40 p-4">
-                            <div class="mb-3 flex items-center justify-between gap-3">
-                                <div>
-                                    <p class="text-sm font-semibold text-white">Attached Proof of Payment</p>
-                                    <p class="text-xs text-gray-500">Upload submitted by the applicant during the apply flow.</p>
-                                </div>
-                                @if($application->payment_proof_path)
-                                    <a href="{{ route('central.applications.payment-proof', $application, false) }}" target="_blank" rel="noopener" class="inline-flex items-center rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white">
-                                        Open File
-                                    </a>
-                                @endif
-                            </div>
-
-                            @if($application->payment_proof_path)
-                                @if($application->paymentProofIsImage())
-                                    <img src="{{ route('central.applications.payment-proof', $application, false) }}" alt="Payment proof" class="w-full rounded-xl border border-gray-800 object-cover">
-                                @else
-                                    <div class="rounded-xl border border-dashed border-gray-700 px-4 py-8 text-center">
-                                        <p class="text-sm font-medium text-white">Receipt file uploaded</p>
-                                        <p class="mt-1 text-xs text-gray-500">This proof is a PDF or document file. Use the button above to open it in a new tab.</p>
-                                    </div>
-                                @endif
-                            @else
-                                <div class="rounded-xl border border-dashed border-yellow-500/20 bg-yellow-500/5 px-4 py-6 text-center">
-                                    <p class="text-sm font-medium text-yellow-200">No payment proof was uploaded with this application.</p>
-                                    <p class="mt-1 text-xs text-yellow-200/70">For new applications, require applicants to upload a receipt on the apply page before approval.</p>
-                                </div>
-                            @endif
-                        </div>
-
-                        @if($application->status === 'pending')
-                            <div class="flex flex-wrap gap-3">
-                                @if($application->payment_status !== 'verified')
-                                    <form action="{{ route('central.applications.verify-payment', $application, false) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500">
-                                            Verify Payment
-                                        </button>
-                                    </form>
-                                @endif
-
-                                @if($application->payment_status !== 'rejected')
-                                    <form action="{{ route('central.applications.reject-payment', $application, false) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="inline-flex items-center rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/15">
-                                            Reject Payment
-                                        </button>
-                                    </form>
-                                @endif
-                            </div>
                         @endif
                     </div>
                 </div>

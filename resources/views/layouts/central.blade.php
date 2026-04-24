@@ -23,6 +23,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $pageTitle }} | PayMonitor Central</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet">
@@ -484,9 +485,6 @@
                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.04] md:hidden" x-on:click="sidebarOpen = true">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
                         </button>
-                        <div>
-                            <h1 class="font-heading text-xl font-bold tracking-tight text-white">{{ $pageTitle }}</h1>
-                        </div>
                     </div>
 
                     <div class="flex items-center gap-3">

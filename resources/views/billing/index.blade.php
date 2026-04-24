@@ -138,9 +138,9 @@
                                     </form>
                                 </div>
                             @else
-                                <button type="button" disabled class="inline-flex items-center rounded-lg border border-emerald-400/25 px-3 py-1.5 text-xs font-medium text-emerald-200/80">
+                                <a href="{{ route('billing.receipt', [...$tenantParameter, 'invoiceId' => $invoice->id], false) }}" target="_blank" class="inline-flex items-center rounded-lg border border-emerald-400/25 px-3 py-1.5 text-xs font-medium text-emerald-500 hover:bg-emerald-500/10">
                                     View Receipt
-                                </button>
+                                </a>
                             @endif
                         </td>
                     </tr>

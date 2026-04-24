@@ -1111,9 +1111,6 @@
                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border transition md:hidden" style="border-color: rgba(148, 163, 184, 0.2); color: var(--pm-text-secondary);" x-on:click="sidebarOpen = true">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
                         </button>
-                        <div>
-                            <h1 class="tenant-heading font-heading text-xl font-bold tracking-tight">{{ $pageTitle }}</h1>
-                        </div>
                     </div>
 
                     <div class="flex items-center gap-3">
