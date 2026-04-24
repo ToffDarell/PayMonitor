@@ -279,6 +279,7 @@
                         </div>
                         @error('accent_color') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
                     </div>
+                </div>
                 <div class="space-y-6">
                     <div class="rounded-2xl border border-white/[0.07] bg-[#0f1319] p-5">
                         <p class="text-sm font-semibold text-white">Display Preferences</p>

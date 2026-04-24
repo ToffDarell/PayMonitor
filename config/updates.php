@@ -25,7 +25,7 @@ return [
 
     'deployment' => [
         'backup_before_deploy' => true,
-        'run_composer_install' => true,
+        'run_composer_install' => env('DEPLOY_RUN_COMPOSER', true),
         'run_npm_build' => false,
         'run_database_migrations' => true,
         'run_tenant_migrations' => true,
