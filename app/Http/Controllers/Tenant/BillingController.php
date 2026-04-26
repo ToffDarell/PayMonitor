@@ -115,6 +115,24 @@ class BillingController extends Controller
         return $this->completePaymentVerification($invoice);
     }
 
+    public function showReceipt(Request $request, string $tenant, string $invoiceId): View|RedirectResponse
+    {
+        $invoice = $this->findInvoiceForCurrentTenant($invoiceId, $request);
+
+        if (! $invoice instanceof BillingInvoice || $invoice->status !== 'paid') {
+            return $this->billingRedirect('error', 'Receipt not available.');
+        }
+
+        $tenantModel = $invoice->tenant ?? tenant();
+        $nextBillingDate = $tenantModel?->subscription_due_at;
+
+        return view('emails.tenant-receipt', [
+            'tenant' => $tenantModel,
+            'invoice' => $invoice,
+            'nextBillingDate' => $nextBillingDate,
+        ]);
+    }
+
     protected function findInvoiceForCurrentTenant(string $invoiceId, ?Request $request = null): ?BillingInvoice
     {
         $tenantId = $this->resolveTenantId($request);

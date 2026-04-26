@@ -52,27 +52,27 @@
             'table_hover_bg' => '#1f2937',
         ],
         'light' => [
-            'shell_bg' => '#e5edf5',
+            'shell_bg' => '#f1f5f9',
             'page_bg' => '#f8fafc',
             'card_bg' => '#ffffff',
-            'surface_bg' => '#f1f5f9',
+            'surface_bg' => '#ffffff',
             'input_bg' => '#ffffff',
-            'input_border' => '#b8c5d6',
-            'sidebar_bg' => '#ffffff',
-            'header_bg' => 'rgba(248, 250, 252, 0.9)',
-            'border' => '#dbe4ee',
+            'input_border' => '#cbd5e1',
+            'sidebar_bg' => '#0f172a',
+            'header_bg' => 'rgba(255, 255, 255, 0.9)',
+            'border' => '#e2e8f0',
             'border_hover' => '#cbd5e1',
             'text_primary' => '#0f172a',
-            'text_secondary' => '#1e293b',
+            'text_secondary' => '#334155',
             'text_muted' => '#64748b',
             'text_subtle' => '#94a3b8',
             'panel_bg' => '#ffffff',
             'panel_border' => 'rgba(148,163,184,0.28)',
-            'nav_text' => '#475569',
-            'nav_hover_bg' => 'rgba(15,23,42,0.05)',
-            'nav_hover_text' => '#0f172a',
-            'table_striped_bg' => '#f1f5f9',
-            'table_hover_bg' => '#e2e8f0',
+            'nav_text' => '#94a3b8',
+            'nav_hover_bg' => 'rgba(255,255,255,0.08)',
+            'nav_hover_text' => '#ffffff',
+            'table_striped_bg' => '#f8fafc',
+            'table_hover_bg' => '#f1f5f9',
         ],
     ];
     $themeConfig = $themePalette[$themeMode] ?? $themePalette['dark'];
@@ -782,7 +782,15 @@
             border-color: var(--pm-panel-border) !important;
         }
 
-        body.tenant-theme-light .legacy-content [class~="text-white"]:not(.btn):not(button):not([role='button']):not([style*='background-color']):not([class*='bg-']) {
+        body.tenant-theme-light .legacy-content [class~="text-white"]:not(.btn):not(button):not([role='button']):not([style*='background-color']):not([class*='bg-']):not(.alert *),
+        body.tenant-theme-light .alert.text-white,
+        body.tenant-theme-light .alert .text-white,
+        body.tenant-theme-light [class*="alert-"] *,
+        body.tenant-theme-light [class*="alert-"] {
+            color: #000000 !important;
+        }
+
+        body.tenant-theme-light .legacy-content [class~="text-white"]:not(.btn):not(button):not([role='button']):not([style*='background-color']):not([class*='bg-']):not(.alert *):not([class*="alert-"] *) {
             color: var(--pm-text-primary) !important;
         }
 
@@ -1111,9 +1119,6 @@
                         <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border transition md:hidden" style="border-color: rgba(148, 163, 184, 0.2); color: var(--pm-text-secondary);" x-on:click="sidebarOpen = true">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
                         </button>
-                        <div>
-                            <h1 class="tenant-heading font-heading text-xl font-bold tracking-tight">{{ $pageTitle }}</h1>
-                        </div>
                     </div>
 
                     <div class="flex items-center gap-3">
@@ -1161,18 +1166,25 @@
 
                     @if($subscriptionAlert !== null)
                         <?php
+                            $isLightMode = $themeMode === 'light';
                             $subscriptionAlertStyles = match ($subscriptionAlert['tone']) {
                                 'danger' => [
-                                    'container' => 'border-red-500/40 bg-red-500/10 text-red-100',
-                                    'icon' => 'text-red-300',
+                                    'container' => $isLightMode
+                                        ? 'border-red-400/60 bg-red-500/10 text-red-900'
+                                        : 'border-red-500/40 bg-red-500/10 text-red-100',
+                                    'icon' => $isLightMode ? 'text-red-700' : 'text-red-300',
                                 ],
                                 'warning' => [
-                                    'container' => 'border-amber-400/40 bg-amber-500/10 text-amber-100',
-                                    'icon' => 'text-amber-300',
+                                    'container' => $isLightMode
+                                        ? 'border-amber-400/60 bg-amber-500/10 text-amber-900'
+                                        : 'border-amber-400/40 bg-amber-500/10 text-amber-100',
+                                    'icon' => $isLightMode ? 'text-amber-700' : 'text-amber-300',
                                 ],
                                 default => [
-                                    'container' => 'border-sky-400/40 bg-sky-500/10 text-sky-100',
-                                    'icon' => 'text-sky-300',
+                                    'container' => $isLightMode
+                                        ? 'border-sky-400/60 bg-sky-500/10 text-sky-900'
+                                        : 'border-sky-400/40 bg-sky-500/10 text-sky-100',
+                                    'icon' => $isLightMode ? 'text-sky-700' : 'text-sky-300',
                                 ],
                             };
                         ?>
@@ -1183,7 +1195,7 @@
                                 </span>
                                 <div>
                                     <p class="text-sm font-semibold">{{ $subscriptionAlert['title'] }}</p>
-                                    <p class="mt-1 text-sm text-white/80">{{ $subscriptionAlert['message'] }}</p>
+                                    <p class="mt-1 text-sm {{ $themeMode === 'light' ? 'text-slate-900' : 'text-white/80' }}">{{ $subscriptionAlert['message'] }}</p>
                                 </div>
                             </div>
                         </div>

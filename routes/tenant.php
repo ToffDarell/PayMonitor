@@ -60,6 +60,7 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/billing/{invoiceId}/success', [BillingController::class, 'paymentSuccess'])->name('billing.success');
                     Route::get('/billing/{invoiceId}/failed', [BillingController::class, 'paymentFailed'])->name('billing.failed');
                     Route::post('/billing/{invoiceId}/verify', [BillingController::class, 'verifyPayment'])->name('billing.verify');
+                    Route::get('/billing/{invoiceId}/receipt', [BillingController::class, 'showReceipt'])->name('billing.receipt');
 
                     Route::resource('members', MemberController::class);
                     Route::post('/loans/compute-preview', [LoanController::class, 'computePreview'])->name('loans.compute-preview');

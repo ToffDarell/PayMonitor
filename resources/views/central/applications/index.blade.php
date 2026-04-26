@@ -5,7 +5,7 @@
         <!-- Header -->
         <div class="md:flex md:items-center md:justify-between mb-8 pb-4 border-b border-gray-700/50">
             <div>
-                <h1 class="text-2xl font-semibold text-white tracking-tight">Applications</h1>
+                <h1 class="text-base font-semibold text-white tracking-tight">Applications</h1>
                 <p class="mt-2 text-sm text-gray-400 max-w-2xl">
                     Review and manage incoming tenant cooperative applications. Approve applications to automatically create their tenant instance and super-admin user.
                 </p>
@@ -95,15 +95,13 @@
                                         </span>
                                     @elseif($app->payment_status === 'verified' && $app->paymongo_payment_id)
                                         {{-- Paid via PayMongo --}}
-                                        <div>
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                                Paid ✓
-                                            </span>
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                            Paid ✓
                                             @if($app->payment_method)
-                                                <p class="mt-1 text-[10px] text-gray-500 capitalize">{{ $app->payment_method }}</p>
+                                                <span class="text-emerald-500/70 capitalize ml-0.5 border-l border-emerald-500/30 pl-1.5">{{ $app->payment_method }}</span>
                                             @endif
-                                        </div>
+                                        </span>
                                     @elseif($app->payment_status === 'verified')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>

@@ -38,7 +38,7 @@
     ];
 @endphp
 <div class="mb-5">
-    <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Central Dashboard</h2>
+    <h2 class="text-base font-semibold tracking-tight text-white">Central Dashboard</h2>
     <p class="mt-1 text-sm text-slate-400">Revenue, billing risk, application flow, and tenant health in one place.</p>
 </div>
 
