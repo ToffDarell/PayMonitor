@@ -9,7 +9,7 @@
 
 @include('users._tabs')
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width: 860px;">
     <div>
         <h1 class="h3 fw-bold mb-1">Edit Custom Role</h1>
         <p class="text-muted mb-0">Update role access and permission coverage for your team.</p>
@@ -19,7 +19,7 @@
     </a>
 </div>
 
-<div class="card border-0 shadow-sm" style="max-width: 860px;">
+<div class="card border-0 shadow-sm mx-auto" style="max-width: 860px;">
     <div class="card-body p-4">
         <form action="{{ route('users.roles.update', [...$tenantParameter, 'role' => $role]) }}" method="POST" class="row g-3">
             @csrf

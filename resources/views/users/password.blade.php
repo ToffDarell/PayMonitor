@@ -3,7 +3,7 @@
 @section('title', 'User Credentials')
 
 @section('content')
-<div class="card border-0 shadow-sm" style="max-width: 720px;">
+<div class="card border-0 shadow-sm mx-auto" style="max-width: 720px;">
     <div class="card-body">
         <h5 class="fw-bold mb-3">User created successfully</h5>
         <p class="text-muted">Copy these credentials now. The temporary password is shown only once.</p>

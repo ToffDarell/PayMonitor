@@ -11,7 +11,7 @@
 
 @include('users._tabs')
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width: 760px;">
     <div>
         <h1 class="h3 fw-bold mb-1">Edit User</h1>
         <p class="text-muted mb-0">Update staff role assignments and branch placement.</p>
@@ -22,7 +22,7 @@
 </div>
 
 <div
-    class="card border-0 shadow-sm"
+    class="card border-0 shadow-sm mx-auto"
     style="max-width: 760px;"
     x-data="{
         selectedRole: @js($currentRole),

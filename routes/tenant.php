@@ -116,11 +116,6 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::resource('branches', BranchController::class);
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::USERS_VIEW])->group(function (): void {
-                    Route::resource('users', UserController::class);
-                    Route::post('/users/{user}/resend-credentials', [UserController::class, 'resendCredentials'])->name('users.resend-credentials');
-                });
-
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:custom_roles', 'tenant.permission:'.TenantPermissions::USERS_VIEW])->group(function (): void {
                     Route::get('/users/roles', [RoleController::class, 'index'])->name('users.roles.index');
                     Route::get('/users/roles/create', [RoleController::class, 'create'])->name('users.roles.create');
@@ -128,6 +123,11 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/users/roles/{role}/edit', [RoleController::class, 'edit'])->name('users.roles.edit');
                     Route::put('/users/roles/{role}', [RoleController::class, 'update'])->name('users.roles.update');
                     Route::delete('/users/roles/{role}', [RoleController::class, 'destroy'])->name('users.roles.destroy');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::USERS_VIEW])->group(function (): void {
+                    Route::resource('users', UserController::class);
+                    Route::post('/users/{user}/resend-credentials', [UserController::class, 'resendCredentials'])->name('users.resend-credentials');
                 });
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::SETTINGS_VIEW])->group(function (): void {

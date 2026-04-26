@@ -17,7 +17,7 @@
 
 @include('users._tabs')
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width: 820px;">
     <div>
         <h1 class="h3 fw-bold mb-1">User Profile</h1>
         <p class="text-muted mb-0">Review staff account details and access role.</p>
@@ -41,7 +41,7 @@
     </div>
 </div>
 
-<div class="card border-0 shadow-sm" style="max-width: 820px;">
+<div class="card border-0 shadow-sm mx-auto" style="max-width: 820px;">
     <div class="card-body p-4">
         <h2 class="h3 fw-bold mb-2">{{ $user->name }}</h2>
         <div class="d-flex flex-wrap gap-2 mb-4">
