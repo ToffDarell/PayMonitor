@@ -196,7 +196,11 @@
                                             Download
                                         </a>
                                         @if($canDeleteDocuments)
-                                            <form action="{{ route('member.documents.destroy', [...$tenantParameter, 'document' => $document]) }}" method="POST" onsubmit="return confirm('Delete this document?')">
+                                            <form action="{{ route('member.documents.destroy', [...$tenantParameter, 'document' => $document]) }}" method="POST"
+                                                data-confirm="Delete this document?"
+                                                data-confirm-title="Delete document?"
+                                                data-confirm-confirm-text="Delete"
+                                                data-confirm-tone="danger">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>

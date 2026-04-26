@@ -50,9 +50,9 @@
                 </button>
             </form>
             <button type="button" x-on:click="checkForUpdates" x-bind:disabled="checking"
-                class="inline-flex items-center gap-2 rounded-xl border border-[#2a3340] bg-[#111827] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white disabled:opacity-60">
-                <svg x-show="!checking" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 12.867-5.303M19.5 12a7.5 7.5 0 0 1-12.867 5.303M19.5 4.5v3.75h-3.75M4.5 19.5v-3.75h3.75"/></svg>
-                <svg x-show="checking" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3m9-9h-3M6 12H3"/></svg>
+                class="inline-flex items-center gap-1.5 rounded-xl border border-[#2a3340] bg-[#111827] px-3.5 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white disabled:opacity-60">
+                <svg x-show="!checking" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 12.867-5.303M19.5 12a7.5 7.5 0 0 1-12.867 5.303M19.5 4.5v3.75h-3.75M4.5 19.5v-3.75h3.75"/></svg>
+                <svg x-show="checking" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3m9-9h-3M6 12H3"/></svg>
                 <span x-text="checking ? 'Checking...' : 'Check for Updates'"></span>
             </button>
         </div>
@@ -347,7 +347,11 @@
                     window.location.reload();
                 } catch (e) {
                     this.checking = false;
-                    alert(e.message || 'Unable to check for updates.');
+                    await window.PayMonitorDialog.alert({
+                        title: 'Update check failed',
+                        message: e.message || 'Unable to check for updates.',
+                        tone: 'danger',
+                    });
                 }
             },
         };

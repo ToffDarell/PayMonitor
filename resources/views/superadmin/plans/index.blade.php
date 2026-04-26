@@ -41,7 +41,11 @@
                         </td>
                         <td class="text-end">
                             <a href="{{ route('superadmin.plans.edit', $plan) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form action="{{ route('superadmin.plans.destroy', $plan) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this plan?')">
+                            <form action="{{ route('superadmin.plans.destroy', $plan) }}" method="POST" class="d-inline"
+                                data-confirm="Delete this plan?"
+                                data-confirm-title="Delete plan?"
+                                data-confirm-confirm-text="Delete"
+                                data-confirm-tone="danger">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger">Delete</button>
                             </form>

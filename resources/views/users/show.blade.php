@@ -26,9 +26,12 @@
         <a href="{{ route('users.index', $tenantParameter) }}" class="btn btn-light border">
             <i class="bi bi-arrow-left me-2"></i>Back
         </a>
-        <form action="{{ route('users.resend-credentials', [...$tenantParameter, 'user' => $user]) }}" method="POST">
+        <form action="{{ route('users.resend-credentials', [...$tenantParameter, 'user' => $user]) }}" method="POST"
+            data-confirm="Resend credentials to this user?"
+            data-confirm-title="Resend credentials?"
+            data-confirm-confirm-text="Resend">
             @csrf
-            <button type="submit" class="btn btn-outline-info" onclick="return confirm('Resend credentials to this user?')">
+            <button type="submit" class="btn btn-outline-info">
                 <i class="bi bi-envelope me-2"></i>Resend Credentials
             </button>
         </form>
