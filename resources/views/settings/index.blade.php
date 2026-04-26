@@ -565,29 +565,10 @@
             <div class="space-y-6">
                 @if($updateAvailable)
                     <div class="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-6">
-                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                            <div class="min-w-0">
-                                <p class="text-sm font-semibold text-yellow-300">Release: {{ $releaseName }}</p>
-                                <p class="mt-1 text-xs text-slate-500">Published: {{ $releasePublishedLabel }}</p>
-
-                                <div class="mt-4">
-                                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Changelog</p>
-                                    <ul class="mt-3 space-y-2 text-sm text-slate-300">
-                                        @forelse($changelogItems as $item)
-                                            <li class="flex gap-3">
-                                                <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-yellow-300"></span>
-                                                <span>{{ $item }}</span>
-                                            </li>
-                                        @empty
-                                            <li class="text-slate-500">No changelog details available.</li>
-                                        @endforelse
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="settings-update-panel flex w-full max-w-sm flex-col gap-3 rounded-2xl border p-5">
+                        <div class="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
+                            <div class="settings-update-panel flex w-full flex-col gap-3 rounded-2xl border p-5">
                                 <div class="flex items-center gap-3">
-                                    <div class="flex h-11 w-11 items-center justify-center rounded-full border border-yellow-500/20 bg-yellow-500/10 text-yellow-300">
+                                    <div class="flex h-11 w-11 items-center justify-center rounded-full border border-yellow-500/20 bg-yellow-500/10 text-yellow-500">
                                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.25 2.25M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                         </svg>
@@ -636,6 +617,25 @@
                                             </button>
                                         </form>
                                     @endif
+                                </div>
+                            </div>
+                            
+                            <div class="min-w-0 rounded-2xl border border-transparent p-2 lg:p-5">
+                                <p class="text-sm font-semibold text-yellow-500">Release: {{ $releaseName }}</p>
+                                <p class="mt-1 text-xs text-slate-500">Published: {{ $releasePublishedLabel }}</p>
+
+                                <div class="mt-6">
+                                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Changelog</p>
+                                    <ul class="mt-4 space-y-3 text-sm text-slate-500">
+                                        @forelse($changelogItems as $item)
+                                            <li class="flex gap-3">
+                                                <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-500"></span>
+                                                <span class="settings-update-body">{{ $item }}</span>
+                                            </li>
+                                        @empty
+                                            <li class="settings-update-muted">No changelog details available.</li>
+                                        @endforelse
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -765,42 +765,7 @@
                     </div>
                 </div>
 
-                <div class="mt-8">
-                    <div class="mb-3 flex items-center justify-between gap-4">
-                        <p class="settings-update-body text-sm font-semibold">Progress</p>
-                        <p class="font-mono text-sm text-emerald-500" x-text="`${progress}%`"></p>
-                    </div>
-                    <div class="settings-update-surface h-4 w-full overflow-hidden rounded-full border">
-                        <div class="h-full rounded-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-700 ease-out" x-bind:style="`width: ${progress}%`"></div>
-                    </div>
-                </div>
 
-                <div class="mt-8 overflow-x-auto">
-                    <div class="min-w-[760px]">
-                        <div class="flex items-center gap-3">
-                            <template x-for="(step, index) in steps" :key="step.key">
-                                <div class="flex flex-1 items-center gap-3">
-                                    <div class="flex flex-col items-center">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all duration-500" x-bind:class="stepCircleClass(index + 1)">
-                                            <template x-if="isStepCompleted(index + 1)">
-                                                <svg class="h-5 w-5 settings-scale-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7" />
-                                                </svg>
-                                            </template>
-                                            <template x-if="!isStepCompleted(index + 1)">
-                                                <span x-text="index + 1"></span>
-                                            </template>
-                                        </div>
-                                        <p class="mt-2 text-center text-xs" x-bind:class="stepLabelClass(index + 1)" x-text="step.label"></p>
-                                    </div>
-                                    <template x-if="index < steps.length - 1">
-                                        <div class="h-0.5 flex-1 rounded-full transition-colors duration-500" x-bind:class="stepConnectorClass(index + 1)"></div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="mt-8">
                     <p class="settings-update-subtle mb-2 text-xs uppercase tracking-[0.18em]">Process Log</p>
