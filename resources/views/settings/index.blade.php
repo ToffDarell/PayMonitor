@@ -1303,12 +1303,22 @@ function updateProgress(config) {
                     }),
                 });
 
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+
                 let data = null;
 
                 try {
                     data = await response.clone().json();
                 } catch (error) {
                     data = null;
+                }
+
+                if (!data && response.ok) {
+                    window.location.reload();
+                    return;
                 }
 
                 if (data && data.success === false) {
@@ -1320,6 +1330,11 @@ function updateProgress(config) {
 
                 if (data && data.version) {
                     this.version = data.version;
+                }
+                
+                if (data && data.success) {
+                    window.location.reload();
+                    return;
                 }
             } catch (error) {
                 this.stopElapsedTimer();
