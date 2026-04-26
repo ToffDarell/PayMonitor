@@ -57,10 +57,14 @@
                                     <a href="{{ route('users.roles.edit', [...$tenantParameter, 'role' => $role]) }}" class="btn btn-outline-secondary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <form action="{{ route('users.roles.destroy', [...$tenantParameter, 'role' => $role]) }}" method="POST">
+                                    <form action="{{ route('users.roles.destroy', [...$tenantParameter, 'role' => $role]) }}" method="POST"
+                                        data-confirm="Delete this custom role?"
+                                        data-confirm-title="Delete custom role?"
+                                        data-confirm-confirm-text="Delete"
+                                        data-confirm-tone="danger">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Delete this custom role?')">
+                                        <button type="submit" class="btn btn-outline-danger">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>

@@ -86,9 +86,17 @@
         <div class="d-flex align-items-center gap-3">
             <span class="text-muted small">{{ auth()->user()->name }}</span>
             <span class="badge bg-secondary text-uppercase">{{ str_replace('_', ' ', $role) }}</span>
-            <a href="{{ $logoutUrl }}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-box-arrow-right"></i> Logout
-            </a>
+            <form method="POST" action="{{ $logoutUrl }}"
+                data-confirm="You will be signed out of the current portal."
+                data-confirm-title="Log out now?"
+                data-confirm-confirm-text="Log out"
+                data-confirm-tone="danger"
+                class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </form>
         </div>
     </div>
 
@@ -110,6 +118,8 @@
         @yield('content')
     </div>
 </div>
+
+@include('partials.dialogs')
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 @stack('scripts')

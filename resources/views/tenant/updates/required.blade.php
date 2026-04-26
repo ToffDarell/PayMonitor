@@ -35,9 +35,16 @@
                     </a>
 
                     <div class="mt-4">
-                        <a href="{{ route('tenant.logout', ['tenant' => $tenantId], false) }}" class="text-muted small">
-                            <i class="bi bi-box-arrow-right me-1"></i>Sign Out
-                        </a>
+                        <form method="POST" action="{{ route('tenant.logout', ['tenant' => $tenantId], false) }}"
+                            data-confirm="You will be signed out of this tenant portal."
+                            data-confirm-title="Sign out now?"
+                            data-confirm-confirm-text="Sign out"
+                            data-confirm-tone="danger">
+                            @csrf
+                            <button type="submit" class="border-0 bg-transparent p-0 text-muted small">
+                                <i class="bi bi-box-arrow-right me-1"></i>Sign Out
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>

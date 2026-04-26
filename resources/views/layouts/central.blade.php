@@ -470,10 +470,17 @@
                 </div>
 
                 <div class="mt-4 shrink-0 border-t border-white/[0.1] pt-4">
-                    <a href="{{ route('central.logout', absolute: false) }}" class="group flex w-full items-center gap-3 rounded-md border-l-[3px] border-transparent px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white">
-                        <svg class="h-5 w-5 text-slate-500 transition group-hover:text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
-                        <span>Logout</span>
-                    </a>
+                    <form method="POST" action="{{ route('central.logout', absolute: false) }}"
+                        data-confirm="You will be signed out of the central portal."
+                        data-confirm-title="Log out of central?"
+                        data-confirm-confirm-text="Log out"
+                        data-confirm-tone="danger">
+                        @csrf
+                        <button type="submit" class="group flex w-full appearance-none items-center gap-3 rounded-md border-0 border-l-[3px] border-transparent bg-transparent px-3 py-2 text-left text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white">
+                            <svg class="h-5 w-5 text-slate-500 transition group-hover:text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
+                            <span>Logout</span>
+                        </button>
+                    </form>
                 </div>
             </div>
         </aside>
@@ -522,6 +529,8 @@
         </div>
     </div>
 
+
+    @include('partials.dialogs')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')

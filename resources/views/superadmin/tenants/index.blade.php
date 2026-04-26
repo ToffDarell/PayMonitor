@@ -44,7 +44,11 @@
                         <td class="text-end">
                             <a href="{{ route('superadmin.tenants.show', $tenant) }}" class="btn btn-sm btn-outline-secondary">View</a>
                             <a href="{{ route('superadmin.tenants.edit', $tenant) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form action="{{ route('superadmin.tenants.destroy', $tenant) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this tenant?')">
+                            <form action="{{ route('superadmin.tenants.destroy', $tenant) }}" method="POST" class="d-inline"
+                                data-confirm="Delete this tenant?"
+                                data-confirm-title="Delete tenant?"
+                                data-confirm-confirm-text="Delete"
+                                data-confirm-tone="danger">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger">Delete</button>
                             </form>

@@ -669,6 +669,44 @@
             vertical-align: middle;
         }
 
+        /* ── Global text-color overrides for light/dark theme ── */
+        .legacy-content .text-dark,
+        .legacy-content .text-body {
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content .text-white {
+            color: var(--pm-text-primary) !important;
+        }
+
+        .legacy-content .text-slate-200,
+        .legacy-content .text-slate-300 {
+            color: var(--pm-text-secondary) !important;
+        }
+
+        .legacy-content .table td,
+        .legacy-content .table th {
+            color: var(--pm-text-secondary);
+        }
+
+        .legacy-content .table td a:not(.btn):not(.badge) {
+            color: var(--pm-accent) !important;
+        }
+
+        .legacy-content .table td a:not(.btn):not(.badge):hover {
+            opacity: 0.8;
+        }
+
+        .legacy-content .table td .fw-semibold,
+        .legacy-content .table td .fw-bold,
+        .legacy-content .table td strong {
+            color: var(--pm-text-primary);
+        }
+
+        .legacy-content .table thead th {
+            color: var(--pm-text-muted) !important;
+        }
+
         .legacy-content table thead,
         .legacy-content table thead tr,
         .legacy-content table thead th {
@@ -1096,10 +1134,17 @@
                 </div>
 
                 <div class="mt-4 shrink-0 border-t pt-4" style="border-color: rgba(148, 163, 184, 0.16);">
-                    <a href="{{ route('tenant.logout', $tenantParameter, false) }}" class="tenant-nav-item group flex w-full items-center gap-3 rounded-md border-l-[3px] border-transparent px-3 py-2 text-sm font-medium transition">
-                        <svg class="tenant-nav-icon h-5 w-5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
-                        <span>Logout</span>
-                    </a>
+                    <form method="POST" action="{{ route('tenant.logout', $tenantParameter, false) }}"
+                        data-confirm="You will be signed out of this tenant portal."
+                        data-confirm-title="Log out of portal?"
+                        data-confirm-confirm-text="Log out"
+                        data-confirm-tone="danger">
+                        @csrf
+                        <button type="submit" class="tenant-nav-item group flex w-full appearance-none items-center gap-3 rounded-md border-0 border-l-[3px] border-transparent bg-transparent px-3 py-2 text-left text-sm font-medium transition">
+                            <svg class="tenant-nav-icon h-5 w-5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5V5.25A2.25 2.25 0 0 0 12.75 3h-6A2.25 2.25 0 0 0 4.5 5.25v13.5A2.25 2.25 0 0 0 6.75 21h6A2.25 2.25 0 0 0 15 18.75V16.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m13.5 15 3-3m0 0-3-3m3 3H9"/></svg>
+                            <span>Logout</span>
+                        </button>
+                    </form>
                 </div>
             </div>
         </aside>
@@ -1190,13 +1235,20 @@
                         <div class="space-y-3">
                             @foreach($flashMessages as $flash)
                                 <?php
-                                    $flashStyle = match ($flash['key']) {
-                                        'success' => 'border-l-green-500 bg-green-500/10 text-green-100',
-                                        'error' => 'border-l-red-500 bg-red-500/10 text-red-100',
-                                        default => 'border-l-amber-400 bg-amber-500/10 text-amber-100',
+                                    [$flashBorder, $flashBg, $flashIcon] = match ($flash['key']) {
+                                        'success' => ['#22c55e', 'rgba(34,197,94,0.12)', '#16a34a'],
+                                        'error'   => ['#ef4444', 'rgba(239,68,68,0.12)',  '#dc2626'],
+                                        default   => ['#f59e0b', 'rgba(245,158,11,0.12)', '#d97706'],
                                     };
                                 ?>
-                                <div x-data="{ visible: true }" x-init="setTimeout(() => visible = false, 4000)" x-show="visible" x-transition.opacity.duration.300ms class="rounded-xl border border-white/10 border-l-4 px-4 py-3 text-sm {{ $flashStyle }}">
+                                <div
+                                    x-data="{ visible: true }"
+                                    x-init="setTimeout(() => visible = false, 5000)"
+                                    x-show="visible"
+                                    x-transition.opacity.duration.300ms
+                                    class="rounded-xl border-l-4 px-4 py-3 text-sm font-medium"
+                                    style="border-left-color: {{ $flashBorder }}; background-color: {{ $flashBg }}; color: var(--pm-text-primary); border: 1px solid {{ $flashBorder }}33; border-left: 4px solid {{ $flashBorder }};"
+                                >
                                     {{ $flash['message'] }}
                                 </div>
                             @endforeach
@@ -1211,6 +1263,8 @@
         </div>
     </div>
 
+
+    @include('partials.dialogs')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')

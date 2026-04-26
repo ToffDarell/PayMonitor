@@ -115,7 +115,11 @@ if ($plans->count() > 0) {
                         Delete
                     </button>
                 @else
-                    <form method="POST" action="{{ route('central.plans.destroy', $plan, false) }}" class="inline" onsubmit="return confirm('Delete this plan?')">
+                    <form method="POST" action="{{ route('central.plans.destroy', $plan, false) }}" class="inline"
+                        data-confirm="Delete this plan?"
+                        data-confirm-title="Delete plan?"
+                        data-confirm-confirm-text="Delete"
+                        data-confirm-tone="danger">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="inline-flex items-center rounded border border-red-500/20 bg-[#161b22] px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10 hover:border-red-500/40">

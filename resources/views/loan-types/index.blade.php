@@ -69,10 +69,14 @@
                                     </a>
                                 @endcan
                                 @can('delete', $loanType)
-                                    <form action="{{ route('loan-types.destroy', [...$tenantParameter, 'loan_type' => $loanType]) }}" method="POST">
+                                    <form action="{{ route('loan-types.destroy', [...$tenantParameter, 'loan_type' => $loanType]) }}" method="POST"
+                                        data-confirm="Delete this loan type?"
+                                        data-confirm-title="Delete loan type?"
+                                        data-confirm-confirm-text="Delete"
+                                        data-confirm-tone="danger">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Delete this loan type?')">
+                                        <button type="submit" class="btn btn-outline-danger">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>

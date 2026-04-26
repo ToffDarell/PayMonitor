@@ -115,11 +115,20 @@
                                         @endif
                                     </td>
                                     <td class="text-end">
-                                        <form action="{{ route('tenant.updates.apply', ['tenant' => request()->route('tenant')]) }}" method="POST" class="d-inline">
+                                        <form action="{{ route('tenant.updates.apply', ['tenant' => request()->route('tenant')]) }}" method="POST" class="d-inline"
+                                            x-data="{ isUpdating: false }"
+                                            x-on:submit="if (isUpdating) { $event.preventDefault(); return; }"
+                                            x-on:pm:confirmed-submit="isUpdating = true"
+                                            data-confirm="This will run migrations for your tenant."
+                                            data-confirm-title="Apply this update?"
+                                            data-confirm-confirm-text="Apply update"
+                                            data-pm-confirm-loading="true">
                                             @csrf
                                             <input type="hidden" name="release_id" value="{{ $release['id'] }}">
-                                            <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('Apply this update? This will run migrations for your tenant.')">
-                                                <i class="bi bi-download me-1"></i>Apply Update
+                                            <button type="submit" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1.5 px-3 py-1.5" x-bind:disabled="isUpdating">
+                                                <i x-show="!isUpdating" class="bi bi-download small"></i>
+                                                <span x-cloak x-show="isUpdating" class="spinner-border spinner-border-sm" style="width: .8rem; height: .8rem;" role="status" aria-hidden="true"></span>
+                                                <span x-text="isUpdating ? 'Applying Update...' : 'Apply Update'"></span>
                                             </button>
                                         </form>
                                     </td>

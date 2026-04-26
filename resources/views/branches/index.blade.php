@@ -63,10 +63,14 @@
                                 <a href="{{ route('branches.edit', [...$tenantParameter, 'branch' => $branch]) }}" class="btn btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('branches.destroy', [...$tenantParameter, 'branch' => $branch]) }}" method="POST">
+                                <form action="{{ route('branches.destroy', [...$tenantParameter, 'branch' => $branch]) }}" method="POST"
+                                    data-confirm="Delete this branch?"
+                                    data-confirm-title="Delete branch?"
+                                    data-confirm-confirm-text="Delete"
+                                    data-confirm-tone="danger">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Delete this branch?')">
+                                    <button type="submit" class="btn btn-outline-danger">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>

@@ -111,16 +111,23 @@
                                 <a href="{{ route('users.edit', [...$tenantParameter, 'user' => $user]) }}" class="btn btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('users.resend-credentials', [...$tenantParameter, 'user' => $user]) }}" method="POST">
+                                <form action="{{ route('users.resend-credentials', [...$tenantParameter, 'user' => $user]) }}" method="POST"
+                                    data-confirm="Resend credentials to this user?"
+                                    data-confirm-title="Resend credentials?"
+                                    data-confirm-confirm-text="Resend">
                                     @csrf
-                                    <button type="submit" class="btn btn-outline-info" onclick="return confirm('Resend credentials to this user?')">
+                                    <button type="submit" class="btn btn-outline-info">
                                         <i class="bi bi-envelope"></i>
                                     </button>
                                 </form>
-                                <form action="{{ route('users.destroy', [...$tenantParameter, 'user' => $user]) }}" method="POST">
+                                <form action="{{ route('users.destroy', [...$tenantParameter, 'user' => $user]) }}" method="POST"
+                                    data-confirm="Delete this user?"
+                                    data-confirm-title="Delete user?"
+                                    data-confirm-confirm-text="Delete"
+                                    data-confirm-tone="danger">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Delete this user?')">
+                                    <button type="submit" class="btn btn-outline-danger">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>

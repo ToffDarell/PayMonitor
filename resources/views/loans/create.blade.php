@@ -137,8 +137,8 @@
                                     x-cloak
                                     x-show="memberPickerOpen"
                                     x-transition.opacity
-                                    class="position-absolute start-0 end-0 z-3 mt-2 overflow-hidden rounded-3 border border-white/10 bg-dark shadow-lg"
-                                    style="max-height: 18rem;"
+                                    class="position-absolute start-0 end-0 z-3 mt-2 overflow-hidden rounded-3 border shadow-lg"
+                                    style="max-height: 18rem; background-color: var(--pm-card-bg); border-color: var(--pm-border);"
                                 >
                                     <div class="overflow-auto" style="max-height: 18rem;">
                                         <template x-if="filteredMembers.length > 0">
@@ -146,11 +146,14 @@
                                                 <template x-for="member in filteredMembers" :key="member.id">
                                                     <button
                                                         type="button"
-                                                        class="list-group-item list-group-item-action border-0 bg-transparent px-3 py-3 text-start text-white"
+                                                        class="list-group-item list-group-item-action border-0 px-3 py-3 text-start"
+                                                        style="background-color: transparent; color: var(--pm-text-primary);"
                                                         @click="selectMember(member)"
+                                                        @mouseenter="$el.style.backgroundColor = 'var(--pm-nav-hover-bg)'"
+                                                        @mouseleave="$el.style.backgroundColor = 'transparent'"
                                                     >
                                                         <div class="fw-semibold" x-text="member.label"></div>
-                                                        <div class="small text-secondary" x-text="member.branchId ? branchLabel(member.branchId) : 'Unassigned branch'"></div>
+                                                        <div class="small" style="color: var(--pm-text-muted);" x-text="member.branchId ? branchLabel(member.branchId) : 'Unassigned branch'"></div>
                                                     </button>
                                                 </template>
                                             </div>
