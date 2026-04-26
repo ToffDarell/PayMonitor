@@ -19,6 +19,7 @@ use App\Http\Controllers\Tenant\MemberDocumentController;
 use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\RoleController;
 use App\Http\Controllers\Tenant\SettingsController;
+use App\Http\Controllers\Tenant\SampleXController;
 use App\Http\Controllers\Tenant\UserController;
 use App\Support\TenantPermissions;
 use Illuminate\Http\RedirectResponse;
@@ -70,6 +71,9 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
                     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
                     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+                    Route::resource('samplexs', SampleXController::class)
+                        ->parameters(['samplexs' => 'sampleX'])
+                        ->names('tenant.samplexs');
                 });
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_UPLOAD])->group(function (): void {
