@@ -17,8 +17,8 @@ class SampleXFactory extends Factory
     public function definition(): array
     {
         return [
-            'number' => (string) fake()->randomNumber(),
-            'description' => fake()->sentence(),
+            'number' => (string) $this->faker->randomNumber(),
+            'description' => $this->faker->sentence(),
         ];
     }
 }
