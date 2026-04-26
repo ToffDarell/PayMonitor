@@ -22,6 +22,7 @@
             },
         };
     </script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     @vite(['resources/css/paymonitor.css'])
@@ -126,6 +127,13 @@
                         <input id="remember" name="remember" type="checkbox" value="1" @checked(old('remember')) class="pm-check h-4 w-4 rounded border-white/10">
                         <span>Remember me</span>
                     </label>
+
+                    <div>
+                        <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+                        @error('g-recaptcha-response')
+                            <p class="mt-2 text-sm text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
 
                     <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:shadow-emerald-500/30 hover:brightness-110">
                         Log In

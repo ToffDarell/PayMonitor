@@ -32,6 +32,7 @@
             },
         };
     </script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     @vite(['resources/css/paymonitor.css'])
@@ -154,6 +155,13 @@
 
                     <div class="flex justify-end">
                         <a href="{{ route('tenant.password.request', ['tenant' => request()->route('tenant')], false) }}" class="text-sm text-slate-400 transition hover:text-white">Forgot password?</a>
+                    </div>
+
+                    <div>
+                        <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+                        @error('g-recaptcha-response')
+                            <p class="mt-2 text-sm text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:shadow-emerald-500/30 hover:brightness-110">

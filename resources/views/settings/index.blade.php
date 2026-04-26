@@ -102,6 +102,36 @@
         background-color: rgba(59, 130, 246, 0.1);
         color: #bfdbfe;
     }
+
+    @keyframes settingsScaleIn {
+        from {
+            transform: scale(0.85);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes settingsFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .settings-scale-in {
+        animation: settingsScaleIn 320ms ease-out both;
+    }
+
+    .settings-log-line {
+        animation: settingsFadeIn 240ms ease-out both;
+    }
 </style>
 @endpush
 
@@ -457,7 +487,21 @@
     </div>
     @endif
 
-    <div x-cloak x-show="activeTab === 'updates'" class="space-y-6">
+    <div
+        x-cloak
+        x-show="activeTab === 'updates'"
+        x-data="updateProgress({
+            applyUrl: @js(route('settings.updates.apply', $tenantParameter, false)),
+            statusUrl: @js(url('/updates/status')),
+            csrfToken: @js(csrf_token()),
+            latestReleaseId: @js($availableUpdates[0]['id'] ?? null),
+            latestVersion: @js($latestVersionLabel),
+            updateAvailable: @js($updateAvailable),
+            latestReleaseName: @js($releaseName),
+        })"
+        x-init="init()"
+        class="space-y-6"
+    >
         <div class="grid gap-4 md:grid-cols-3">
             <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Current Version</p>
@@ -476,138 +520,21 @@
             </div>
         </div>
 
-        @if($updateAvailable)
-            <div class="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-6">
-                <p class="text-sm font-semibold text-yellow-300">Release: {{ $releaseName }}</p>
-                <p class="mt-1 text-xs text-slate-500">Published: {{ $releasePublishedLabel }}</p>
-
-                <div class="mt-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Changelog</p>
-                    <ul class="mt-3 space-y-2 text-sm text-slate-300">
-                        @forelse($changelogItems as $item)
-                            <li class="flex gap-3">
-                                <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-yellow-300"></span>
-                                <span>{{ $item }}</span>
-                            </li>
-                        @empty
-                            <li class="text-slate-500">No changelog details available.</li>
-                        @endforelse
-                    </ul>
-                </div>
-
-                <div class="mt-5 flex flex-wrap items-center gap-3">
-                    @if(!empty($availableUpdates) && $canManageSettings)
-                        <form method="POST" action="{{ route('settings.updates.apply', $tenantParameter, false) }}"
-                            x-data="{ isUpdating: false }"
-                            x-on:submit="if (isUpdating) { $event.preventDefault(); return; }"
-                            x-on:pm:confirmed-submit="isUpdating = true"
-                            data-confirm="This will run migrations for your tenant."
-                            data-confirm-title="Apply this update?"
-                            data-confirm-confirm-text="Apply update"
-                            data-pm-confirm-loading="true">
-                            @csrf
-                            <input type="hidden" name="release_id" value="{{ $availableUpdates[0]['id'] ?? '' }}">
-                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110 disabled:opacity-75 disabled:cursor-not-allowed" x-bind:disabled="isUpdating">
-                                <svg x-show="!isUpdating" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                                </svg>
-                                <svg x-cloak x-show="isUpdating" class="h-3.5 w-3.5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span x-text="isUpdating ? 'Applying Update...' : 'Apply Update Now'"></span>
-                            </button>
-                        </form>
-                    @elseif(!empty($availableUpdates))
-                        <div class="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                            You can review this release, but only users with update access can apply it.
-                        </div>
-                    @endif
-                    @if($releaseUrl !== '')
-                        <a href="{{ $releaseUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
-                            View Full Release Notes
-                        </a>
-                    @endif
-                    @if($canManageSettings)
-                        <form method="POST" action="{{ route('settings.updates.sync', $tenantParameter, false) }}" class="inline-block">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                </svg>
-                                Sync Releases
-                            </button>
-                        </form>
-                    @endif
-                </div>
-            </div>
-
-            @if($availableUpdateCount > 1)
-                <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
-                    <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Available Updates</p>
-                            <h3 class="mt-2 font-heading text-xl font-bold text-white">{{ $availableUpdateCount }} releases available</h3>
-                            <p class="mt-2 text-sm text-slate-400">The newest release is highlighted above. Older pending releases are listed here for review.</p>
-                        </div>
-                        <div class="flex flex-col items-start gap-3 md:items-end">
-                            <p class="text-xs text-slate-500">Only the latest release can be applied from this screen.</p>
-                            <button
-                                type="button"
-                                x-on:click="availableUpdatesOpen = !availableUpdatesOpen"
-                                class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0f1319] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:text-white"
-                            >
-                                <span x-text="availableUpdatesOpen ? 'Hide Available Updates' : 'Show Available Updates'"></span>
-                                <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="availableUpdatesOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div x-cloak x-show="availableUpdatesOpen" x-transition.opacity.duration.200ms class="mt-6 space-y-4">
-                        @foreach($availableUpdates as $index => $release)
-                            @php
-                                $releaseTag = (string) ($release['tag'] ?? $release['version'] ?? 'Unknown');
-                                $releaseTitle = (string) ($release['title'] ?? 'Untitled release');
-                                $releasePublished = filled($release['published_at'] ?? null)
-                                    ? \Illuminate\Support\Carbon::parse((string) $release['published_at'])->format('M d, Y h:i A')
-                                    : 'Unknown';
-                                $releaseChangelogItems = $release['changelog_items'] ?? [];
-                            @endphp
-
-                            <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-5">
-                                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                                    <div class="min-w-0">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <span class="inline-flex rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200">{{ $releaseTag }}</span>
-                                            @if($index === 0)
-                                                <span class="inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-yellow-300">Latest</span>
-                                            @endif
-                                            @if($release['is_required'] ?? false)
-                                                <span class="inline-flex rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-red-300">Required</span>
-                                            @elseif($release['is_stable'] ?? false)
-                                                <span class="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-300">Stable</span>
-                                            @endif
-                                        </div>
-
-                                        <h4 class="mt-3 text-lg font-semibold text-white">{{ $releaseTitle }}</h4>
-                                        <p class="mt-1 text-xs text-slate-500">Published {{ $releasePublished }}</p>
-                                    </div>
-
-                                    @if(($release['release_url'] ?? '') !== '')
-                                        <a href="{{ $release['release_url'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
-                                            View Release Notes
-                                        </a>
-                                    @endif
-                                </div>
+        <template x-if="state === 'idle'">
+            <div class="space-y-6">
+                @if($updateAvailable)
+                    <div class="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-6">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-yellow-300">Release: {{ $releaseName }}</p>
+                                <p class="mt-1 text-xs text-slate-500">Published: {{ $releasePublishedLabel }}</p>
 
                                 <div class="mt-4">
                                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Changelog</p>
                                     <ul class="mt-3 space-y-2 text-sm text-slate-300">
-                                        @forelse($releaseChangelogItems as $item)
+                                        @forelse($changelogItems as $item)
                                             <li class="flex gap-3">
-                                                <span class="mt-1.5 h-1.5 w-1.5 rounded-full {{ $index === 0 ? 'bg-yellow-300' : 'bg-emerald-300' }}"></span>
+                                                <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-yellow-300"></span>
                                                 <span>{{ $item }}</span>
                                             </li>
                                         @empty
@@ -616,27 +543,330 @@
                                     </ul>
                                 </div>
                             </div>
-                        @endforeach
+
+                            <div class="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-[#21262d] bg-[#0d1117] p-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex h-11 w-11 items-center justify-center rounded-full border border-yellow-500/20 bg-yellow-500/10 text-yellow-300">
+                                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.25 2.25M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold text-white">Update ready</p>
+                                        <p class="text-xs text-slate-500" x-text="latestReleaseName"></p>
+                                    </div>
+                                </div>
+
+                                <p class="text-sm leading-6 text-slate-400">Start the tenant update when you are ready. The interface will stay on this page and show each deployment stage as it runs.</p>
+
+                                <div class="flex flex-wrap gap-3">
+                                    @if(!empty($availableUpdates) && $canManageSettings)
+                                        <button
+                                            type="button"
+                                            x-on:click="startUpdate(latestReleaseId)"
+                                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                                            x-bind:disabled="!latestReleaseId"
+                                        >
+                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v11.25m0 0 4.5-4.5m-4.5 4.5-4.5-4.5M4.5 18.75h15" />
+                                            </svg>
+                                            Update Now
+                                        </button>
+                                    @elseif(!empty($availableUpdates))
+                                        <div class="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                                            You can review this release, but only users with update access can apply it.
+                                        </div>
+                                    @endif
+
+                                    @if($releaseUrl !== '')
+                                        <a href="{{ $releaseUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
+                                            View Full Release Notes
+                                        </a>
+                                    @endif
+
+                                    @if($canManageSettings)
+                                        <form method="POST" action="{{ route('settings.updates.sync', $tenantParameter, false) }}">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
+                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                                </svg>
+                                                Sync Releases
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            @endif
-        @else
-            <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-                <p class="text-sm font-semibold text-emerald-300">PayMonitor is up to date.</p>
-                <p class="mt-1 text-sm text-slate-400">When a new release arrives, you can apply it here.</p>
-                @if($canManageSettings)
-                    <form method="POST" action="{{ route('settings.updates.sync', $tenantParameter, false) }}" class="mt-4">
-                        @csrf
-                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 px-4 py-2 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/10">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                            </svg>
-                            Check for Updates
-                        </button>
-                    </form>
+
+                    @if($availableUpdateCount > 1)
+                        <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+                            <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Available Updates</p>
+                                    <h3 class="mt-2 font-heading text-xl font-bold text-white">{{ $availableUpdateCount }} releases available</h3>
+                                    <p class="mt-2 text-sm text-slate-400">The newest release is highlighted above. Older pending releases are listed here for review.</p>
+                                </div>
+                                <div class="flex flex-col items-start gap-3 md:items-end">
+                                    <p class="text-xs text-slate-500">Only the latest release can be applied from this screen.</p>
+                                    <button
+                                        type="button"
+                                        x-on:click="availableUpdatesOpen = !availableUpdatesOpen"
+                                        class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0f1319] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:text-white"
+                                    >
+                                        <span x-text="availableUpdatesOpen ? 'Hide Available Updates' : 'Show Available Updates'"></span>
+                                        <svg class="h-4 w-4 transition-transform duration-200" x-bind:class="availableUpdatesOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div x-cloak x-show="availableUpdatesOpen" x-transition.opacity.duration.200ms class="mt-6 space-y-4">
+                                @foreach($availableUpdates as $index => $release)
+                                    @php
+                                        $releaseTag = (string) ($release['tag'] ?? $release['version'] ?? 'Unknown');
+                                        $releaseTitle = (string) ($release['title'] ?? 'Untitled release');
+                                        $releasePublished = filled($release['published_at'] ?? null)
+                                            ? \Illuminate\Support\Carbon::parse((string) $release['published_at'])->format('M d, Y h:i A')
+                                            : 'Unknown';
+                                        $releaseChangelogItems = $release['changelog_items'] ?? [];
+                                    @endphp
+
+                                    <div class="rounded-2xl border border-white/10 bg-[#0f1319] p-5">
+                                        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                            <div class="min-w-0">
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <span class="inline-flex rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200">{{ $releaseTag }}</span>
+                                                    @if($index === 0)
+                                                        <span class="inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-yellow-300">Latest</span>
+                                                    @endif
+                                                    @if($release['is_required'] ?? false)
+                                                        <span class="inline-flex rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-red-300">Required</span>
+                                                    @elseif($release['is_stable'] ?? false)
+                                                        <span class="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-300">Stable</span>
+                                                    @endif
+                                                </div>
+
+                                                <h4 class="mt-3 text-lg font-semibold text-white">{{ $releaseTitle }}</h4>
+                                                <p class="mt-1 text-xs text-slate-500">Published {{ $releasePublished }}</p>
+                                            </div>
+
+                                            @if(($release['release_url'] ?? '') !== '')
+                                                <a href="{{ $release['release_url'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white">
+                                                    View Release Notes
+                                                </a>
+                                            @endif
+                                        </div>
+
+                                        <div class="mt-4">
+                                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Changelog</p>
+                                            <ul class="mt-3 space-y-2 text-sm text-slate-300">
+                                                @forelse($releaseChangelogItems as $item)
+                                                    <li class="flex gap-3">
+                                                        <span class="mt-1.5 h-1.5 w-1.5 rounded-full {{ $index === 0 ? 'bg-yellow-300' : 'bg-emerald-300' }}"></span>
+                                                        <span>{{ $item }}</span>
+                                                    </li>
+                                                @empty
+                                                    <li class="text-slate-500">No changelog details available.</li>
+                                                @endforelse
+                                            </ul>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                @else
+                    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-emerald-300">PayMonitor is up to date.</p>
+                                <p class="mt-1 text-sm text-slate-400">When a new release arrives, you can apply it from here and watch the progress live.</p>
+                            </div>
+                            @if($canManageSettings)
+                                <form method="POST" action="{{ route('settings.updates.sync', $tenantParameter, false) }}">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 px-4 py-2 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/10">
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                        </svg>
+                                        Check for Updates
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
                 @endif
             </div>
-        @endif
+        </template>
+
+        <template x-if="state === 'updating'">
+            <div class="rounded-2xl border border-[#21262d] bg-[#161b22] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+                            <svg class="h-7 w-7 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0 1 12.73-5.303M19.5 12a7.5 7.5 0 0 1-12.73 5.303" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.75h.75V7.5M7.5 20.25h-.75V16.5" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Tenant Update</p>
+                            <h3 class="mt-2 text-2xl font-bold text-white">Updating to <span class="text-emerald-400" x-text="version || latestVersion || 'latest release'"></span></h3>
+                            <p class="mt-1 text-sm text-slate-400">Elapsed: <span class="font-mono text-slate-200" x-text="formatElapsed(elapsedSeconds)"></span></p>
+                        </div>
+                    </div>
+                    <div class="rounded-xl border border-white/10 bg-[#0d1117] px-4 py-3 text-sm text-slate-300">
+                        <p class="font-mono text-xs uppercase tracking-[0.14em] text-slate-500">Current Stage</p>
+                        <p class="mt-2 font-medium text-white" x-text="statusMessage || 'Preparing update...'"></p>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <div class="mb-3 flex items-center justify-between gap-4">
+                        <p class="text-sm font-semibold text-slate-200">Progress</p>
+                        <p class="font-mono text-sm text-emerald-400" x-text="`${progress}%`"></p>
+                    </div>
+                    <div class="h-4 w-full overflow-hidden rounded-full border border-[#21262d] bg-[#0d1117]">
+                        <div class="h-full rounded-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-700 ease-out" x-bind:style="`width: ${progress}%`"></div>
+                    </div>
+                </div>
+
+                <div class="mt-8 overflow-x-auto">
+                    <div class="min-w-[760px]">
+                        <div class="flex items-center gap-3">
+                            <template x-for="(step, index) in steps" :key="step.key">
+                                <div class="flex flex-1 items-center gap-3">
+                                    <div class="flex flex-col items-center">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all duration-500" x-bind:class="stepCircleClass(index + 1)">
+                                            <template x-if="isStepCompleted(index + 1)">
+                                                <svg class="h-5 w-5 settings-scale-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7" />
+                                                </svg>
+                                            </template>
+                                            <template x-if="!isStepCompleted(index + 1)">
+                                                <span x-text="index + 1"></span>
+                                            </template>
+                                        </div>
+                                        <p class="mt-2 text-center text-xs" x-bind:class="stepLabelClass(index + 1)" x-text="step.label"></p>
+                                    </div>
+                                    <template x-if="index < steps.length - 1">
+                                        <div class="h-0.5 flex-1 rounded-full transition-colors duration-500" x-bind:class="stepConnectorClass(index + 1)"></div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <p class="mb-2 text-xs uppercase tracking-[0.18em] text-[#52525b]">Process Log</p>
+                    <div id="process-log" x-ref="processLog" class="h-48 overflow-y-auto rounded-xl border border-[#21262d] bg-[#0d1117] p-4 font-mono text-xs">
+                        <template x-if="logEntries.length === 0">
+                            <p class="text-slate-500">Waiting for update logs...</p>
+                        </template>
+                        <template x-for="(entry, index) in logEntries" :key="`${entry.time}-${entry.message}-${index}`">
+                            <div class="settings-log-line flex items-start gap-3 leading-6">
+                                <span class="shrink-0 text-[#52525b]" x-text="`[${entry.time}]`"></span>
+                                <span x-bind:class="entry.color" x-text="entry.message"></span>
+                                <template x-if="index === logEntries.length - 1">
+                                    <span class="animate-pulse text-green-400">▋</span>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="mt-6 rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3 text-sm text-yellow-100">
+                    <p class="font-semibold">Warning</p>
+                    <p class="mt-1 leading-6 text-slate-300">Do not close or refresh this page. Update is running in background. Estimated time: 2-5 minutes.</p>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="state === 'completed'">
+            <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+                <div class="mx-auto max-w-3xl text-center">
+                    <div class="settings-scale-in mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500/10 text-emerald-400">
+                        <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-6 text-xl font-bold text-white">Update Successful!</h3>
+                    <p class="mt-2 text-sm text-emerald-300">Updated to <span class="font-semibold" x-text="version || latestVersion"></span></p>
+                    <p class="mt-2 text-sm text-slate-400">Completed in <span class="font-medium text-slate-200" x-text="formatElapsedDetailed(elapsedSeconds)"></span></p>
+
+                    <div class="mt-8 rounded-xl border border-[#21262d] bg-[#0d1117] p-4 text-left">
+                        <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Recent Update Log</p>
+                        <div class="mt-3 space-y-2 font-mono text-xs">
+                            <template x-for="entry in recentLogEntries()" :key="`${entry.time}-${entry.message}`">
+                                <div class="flex items-start gap-3">
+                                    <span class="shrink-0 text-[#52525b]" x-text="`[${entry.time}]`"></span>
+                                    <span x-bind:class="entry.color" x-text="entry.message"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <p class="text-sm text-slate-400">Reloading in <span class="font-semibold text-white" x-text="reloadCountdown"></span> seconds...</p>
+                        <div class="mx-auto mt-3 h-2 w-full max-w-md overflow-hidden rounded-full border border-[#21262d] bg-[#0d1117]">
+                            <div class="h-full rounded-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-700 ease-linear" x-bind:style="`width: ${((5 - reloadCountdown) / 5) * 100}%`"></div>
+                        </div>
+                        <button type="button" x-on:click="reloadNow()" class="mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
+                            Reload Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="state === 'failed'">
+            <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
+                <div class="mx-auto max-w-4xl">
+                    <div class="text-center">
+                        <div class="settings-scale-in mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-red-500 bg-red-500/10 text-red-400">
+                            <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6 6 18" />
+                            </svg>
+                        </div>
+                        <h3 class="mt-6 text-xl font-bold text-red-400">Update Failed</h3>
+                        <p class="mt-2 text-sm text-slate-400">The update did not complete. Review the error details and log below.</p>
+                    </div>
+
+                    <div class="mt-8 rounded-lg border border-red-500/30 bg-[#0d1117] p-4 font-mono text-xs text-red-400">
+                        <p class="uppercase tracking-[0.14em] text-red-300">Error Details</p>
+                        <p class="mt-3 whitespace-pre-wrap leading-6" x-text="errorMessage || 'Unknown update error.'"></p>
+                    </div>
+
+                    <div class="mt-6 rounded-xl border border-[#21262d] bg-[#0d1117] p-4">
+                        <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Full Process Log</p>
+                        <div class="mt-3 h-56 overflow-y-auto space-y-2 font-mono text-xs">
+                            <template x-if="logEntries.length === 0">
+                                <p class="text-slate-500">No log entries available.</p>
+                            </template>
+                            <template x-for="(entry, index) in logEntries" :key="`${entry.time}-${entry.message}-${index}`">
+                                <div class="flex items-start gap-3">
+                                    <span class="shrink-0 text-[#52525b]" x-text="`[${entry.time}]`"></span>
+                                    <span x-bind:class="entry.color" x-text="entry.message"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                        <button type="button" x-on:click="resetUpdate()" class="inline-flex items-center rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/20 hover:text-white">
+                            Try Again
+                        </button>
+                        <button type="button" x-on:click="copyLogWithFeedback()" class="inline-flex items-center rounded-xl bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/20">
+                            <span x-text="copiedLog ? 'Copied!' : 'Copy Log'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
 
         <section class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -869,3 +1099,379 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function updateProgress(config) {
+    return {
+        state: 'idle',
+        progress: 0,
+        currentStep: 0,
+        totalSteps: 7,
+        currentStage: '',
+        statusMessage: '',
+        version: config.latestVersion || '',
+        latestVersion: config.latestVersion || '',
+        latestReleaseId: config.latestReleaseId || null,
+        latestReleaseName: config.latestReleaseName || '',
+        errorMessage: '',
+        logEntries: [],
+        startTime: null,
+        elapsedSeconds: 0,
+        elapsedTimer: null,
+        pollInterval: null,
+        reloadCountdown: 5,
+        copiedLog: false,
+        applyUrl: config.applyUrl,
+        statusUrl: config.statusUrl,
+        csrfToken: config.csrfToken,
+        updateAvailable: !!config.updateAvailable,
+        steps: [
+            { key: 'download', label: 'Download', stages: ['start', 'download', 'preflight'] },
+            { key: 'extract', label: 'Extract', stages: ['extract', 'backup-db'] },
+            { key: 'backup', label: 'Backup', stages: ['backup'] },
+            { key: 'deploy', label: 'Deploy', stages: ['swap', 'deploy'] },
+            { key: 'composer', label: 'Composer', stages: ['composer'] },
+            { key: 'migrate', label: 'Migrate', stages: ['migrate', 'finalize'] },
+            { key: 'cache', label: 'Cache', stages: ['cache', 'queue'] },
+        ],
+
+        init() {
+            this.checkStatus();
+        },
+
+        getStepIndex(stage) {
+            for (let i = 0; i < this.steps.length; i++) {
+                if (this.steps[i].stages.includes(stage)) {
+                    return i + 1;
+                }
+            }
+
+            return 0;
+        },
+
+        getLogColor(stage) {
+            const colors = {
+                start: 'text-blue-400',
+                download: 'text-blue-400',
+                preflight: 'text-blue-400',
+                extract: 'text-slate-400',
+                'backup-db': 'text-slate-400',
+                backup: 'text-slate-400',
+                swap: 'text-yellow-400',
+                deploy: 'text-yellow-400',
+                composer: 'text-purple-400',
+                npm: 'text-purple-400',
+                migrate: 'text-orange-400',
+                finalize: 'text-green-400',
+                cache: 'text-green-400',
+                queue: 'text-green-400',
+                rollback: 'text-red-400',
+                failed: 'text-red-400',
+                error: 'text-red-400',
+            };
+
+            return colors[stage] || 'text-slate-400';
+        },
+
+        formatTime(isoString) {
+            if (!isoString) {
+                return '';
+            }
+
+            const date = new Date(isoString);
+
+            return date.toLocaleTimeString('en-PH', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            });
+        },
+
+        formatElapsed(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainder = seconds % 60;
+
+            return minutes > 0 ? `${minutes}m ${remainder}s` : `${remainder}s`;
+        },
+
+        formatElapsedDetailed(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainder = seconds % 60;
+
+            if (minutes <= 0) {
+                return `${remainder} second${remainder === 1 ? '' : 's'}`;
+            }
+
+            return `${minutes} minute${minutes === 1 ? '' : 's'} ${remainder} second${remainder === 1 ? '' : 's'}`;
+        },
+
+        startElapsedTimer() {
+            if (this.elapsedTimer) {
+                return;
+            }
+
+            this.startTime = Date.now() - (this.elapsedSeconds * 1000);
+            this.elapsedTimer = setInterval(() => {
+                this.elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+            }, 1000);
+        },
+
+        stopElapsedTimer() {
+            if (this.elapsedTimer) {
+                clearInterval(this.elapsedTimer);
+                this.elapsedTimer = null;
+            }
+        },
+
+        isStepCompleted(stepNumber) {
+            return stepNumber < this.currentStep || (this.state === 'completed' && stepNumber <= this.totalSteps);
+        },
+
+        stepCircleClass(stepNumber) {
+            if (this.isStepCompleted(stepNumber)) {
+                return 'bg-green-500 text-black scale-100';
+            }
+
+            if (stepNumber === this.currentStep && this.state === 'updating') {
+                return 'bg-yellow-500 text-black animate-pulse';
+            }
+
+            return 'bg-[#21262d] text-[#52525b]';
+        },
+
+        stepLabelClass(stepNumber) {
+            if (this.isStepCompleted(stepNumber)) {
+                return 'text-green-400';
+            }
+
+            if (stepNumber === this.currentStep && this.state === 'updating') {
+                return 'text-yellow-400';
+            }
+
+            return 'text-[#8b949e]';
+        },
+
+        stepConnectorClass(stepNumber) {
+            return this.isStepCompleted(stepNumber + 1) || (this.state === 'completed' && stepNumber < this.totalSteps)
+                ? 'bg-green-500'
+                : 'bg-[#21262d]';
+        },
+
+        recentLogEntries() {
+            return this.logEntries.slice(-5);
+        },
+
+        async startUpdate(releaseId) {
+            if (!releaseId || !this.applyUrl) {
+                this.showFailed('No release is available to start this update.');
+                return;
+            }
+
+            this.state = 'updating';
+            this.progress = 0;
+            this.currentStep = 0;
+            this.currentStage = '';
+            this.statusMessage = 'Starting update...';
+            this.errorMessage = '';
+            this.logEntries = [];
+            this.elapsedSeconds = 0;
+            this.version = this.latestVersion || '';
+            this.startElapsedTimer();
+
+            try {
+                const response = await fetch(this.applyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: new URLSearchParams({
+                        release_id: String(releaseId),
+                    }),
+                });
+
+                let data = null;
+
+                try {
+                    data = await response.clone().json();
+                } catch (error) {
+                    data = null;
+                }
+
+                if (data && data.success === false) {
+                    this.stopElapsedTimer();
+                    this.showFailed(data.message || 'Failed to start update.');
+                    return;
+                }
+
+                if (data && data.version) {
+                    this.version = data.version;
+                }
+
+                this.startPolling();
+            } catch (error) {
+                this.stopElapsedTimer();
+                this.showFailed('Network error: ' + error.message);
+            }
+        },
+
+        startPolling() {
+            if (this.pollInterval) {
+                return;
+            }
+
+            this.pollInterval = setInterval(() => {
+                this.checkStatus();
+            }, 3000);
+        },
+
+        stopPolling() {
+            if (this.pollInterval) {
+                clearInterval(this.pollInterval);
+                this.pollInterval = null;
+            }
+        },
+
+        async checkStatus() {
+            if (!this.statusUrl) {
+                return;
+            }
+
+            try {
+                const response = await fetch(this.statusUrl, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!data || data.state === 'idle') {
+                    return;
+                }
+
+                this.progress = data.progress || 0;
+                this.currentStage = data.stage || '';
+                this.statusMessage = data.message || '';
+                this.currentStep = this.getStepIndex(data.stage || '');
+                this.version = data.version || this.version || this.latestVersion;
+
+                if (Array.isArray(data.history)) {
+                    this.logEntries = data.history.map((entry) => ({
+                        time: this.formatTime(entry.at),
+                        message: entry.message,
+                        stage: entry.stage,
+                        color: this.getLogColor(entry.stage),
+                    }));
+
+                    this.$nextTick(() => {
+                        const log = this.$refs.processLog;
+                        if (log) {
+                            log.scrollTop = log.scrollHeight;
+                        }
+                    });
+                }
+
+                if (data.state === 'running' && this.state !== 'updating') {
+                    this.state = 'updating';
+                }
+
+                if (data.state === 'running') {
+                    this.startElapsedTimer();
+                    this.startPolling();
+                }
+
+                if (data.state === 'completed') {
+                    this.stopPolling();
+                    this.stopElapsedTimer();
+                    this.progress = 100;
+                    this.currentStep = this.totalSteps;
+                    this.statusMessage = data.message || 'Update complete.';
+
+                    setTimeout(() => {
+                        this.state = 'completed';
+                        this.startReloadCountdown();
+                    }, 800);
+                }
+
+                if (data.state === 'failed') {
+                    this.stopPolling();
+                    this.stopElapsedTimer();
+                    this.showFailed(data.error || 'Update failed.');
+                }
+            } catch (error) {
+                console.warn('Status poll error:', error);
+            }
+        },
+
+        showFailed(message) {
+            this.state = 'failed';
+            this.errorMessage = message;
+        },
+
+        resetUpdate() {
+            this.stopPolling();
+            this.stopElapsedTimer();
+            this.state = 'idle';
+            this.progress = 0;
+            this.currentStep = 0;
+            this.currentStage = '';
+            this.statusMessage = '';
+            this.errorMessage = '';
+            this.logEntries = [];
+            this.elapsedSeconds = 0;
+            this.reloadCountdown = 5;
+            this.copiedLog = false;
+            this.version = this.latestVersion || '';
+        },
+
+        startReloadCountdown() {
+            this.reloadCountdown = 5;
+            const timer = setInterval(() => {
+                this.reloadCountdown--;
+
+                if (this.reloadCountdown <= 0) {
+                    clearInterval(timer);
+                    this.reloadNow();
+                }
+            }, 1000);
+        },
+
+        reloadNow() {
+            window.location.href = window.location.pathname + '?updated=1&t=' + Date.now();
+        },
+
+        async copyLog() {
+            const text = this.logEntries.map((entry) => `[${entry.time}] ${entry.message}`).join('\n');
+
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        },
+
+        async copyLogWithFeedback() {
+            this.copiedLog = await this.copyLog();
+
+            if (this.copiedLog) {
+                setTimeout(() => {
+                    this.copiedLog = false;
+                }, 2000);
+            }
+        },
+    };
+}
+</script>
+@endpush

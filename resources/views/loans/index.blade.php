@@ -30,7 +30,7 @@
         <form method="GET" action="{{ route('loans.index', $tenantParameter) }}" class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label for="branch" class="form-label fw-semibold">Branch</label>
-                <select name="branch" id="branch" class="form-select">
+                <select name="branch" id="branch" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Branches</option>
                     @foreach($branches as $branch)
                         <option value="{{ $branch->id }}" @selected((string) request('branch') === (string) $branch->id)>{{ $branch->name }}</option>
@@ -39,7 +39,7 @@
             </div>
             <div class="col-md-3">
                 <label for="status" class="form-label fw-semibold">Status</label>
-                <select name="status" id="status" class="form-select">
+                <select name="status" id="status" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Statuses</option>
                     @foreach(['active', 'fully_paid', 'overdue', 'restructured'] as $status)
                         <option value="{{ $status }}" @selected(request('status') === $status)>{{ str_replace('_', ' ', ucfirst($status)) }}</option>
@@ -48,7 +48,7 @@
             </div>
             <div class="col-md-3">
                 <label for="loan_type" class="form-label fw-semibold">Loan Type</label>
-                <select name="loan_type" id="loan_type" class="form-select">
+                <select name="loan_type" id="loan_type" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Loan Types</option>
                     @foreach($loanTypes as $loanType)
                         <option value="{{ $loanType->id }}" @selected((string) request('loan_type') === (string) $loanType->id)>{{ $loanType->name }}</option>
@@ -57,11 +57,11 @@
             </div>
             <div class="col-md-3">
                 <label for="date_from" class="form-label fw-semibold">Date From</label>
-                <input type="date" id="date_from" name="date_from" value="{{ request('date_from') }}" class="form-control">
+                <input type="date" id="date_from" name="date_from" value="{{ request('date_from') }}" class="form-control" onchange="this.form.requestSubmit()">
             </div>
             <div class="col-md-3">
                 <label for="date_to" class="form-label fw-semibold">Date To</label>
-                <input type="date" id="date_to" name="date_to" value="{{ request('date_to') }}" class="form-control">
+                <input type="date" id="date_to" name="date_to" value="{{ request('date_to') }}" class="form-control" onchange="this.form.requestSubmit()">
             </div>
             <div class="col-md-3 d-grid">
                 <button type="submit" class="btn btn-outline-primary">

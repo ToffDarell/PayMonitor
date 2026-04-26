@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureTenantIsActive;
+use App\Http\Middleware\TenantFeatureMiddleware;
 use App\Http\Middleware\TenantPermissionMiddleware;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\TenantRoleMiddleware;
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.active' => EnsureTenantIsActive::class,
             'tenant.role' => TenantRoleMiddleware::class,
             'tenant.permission' => TenantPermissionMiddleware::class,
+            'tenant.feature' => TenantFeatureMiddleware::class,
             'tenant.update.required' => \App\Http\Middleware\RequiredUpdateMiddleware::class,
             'role' => RoleMiddleware::class,
         ]);

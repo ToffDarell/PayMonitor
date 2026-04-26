@@ -7,7 +7,7 @@
     $tenantParameter = ['tenant' => request()->route('tenant')];
 @endphp
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
         <h1 class="h3 fw-bold mb-1">Add Branch</h1>
         <p class="text-muted mb-0">Create a new branch location for this cooperative.</p>
@@ -17,10 +17,15 @@
     </a>
 </div>
 
-<div class="card border-0 shadow-sm" style="max-width: 760px;">
+<div class="card border-0 shadow-sm mx-auto w-100" style="max-width: 760px;">
     <div class="card-body p-4">
         <form action="{{ route('branches.store', $tenantParameter) }}" method="POST">
             @csrf
+            <div class="border rounded-3 p-3 mb-4 bg-light">
+                <div class="small text-muted text-uppercase fw-semibold">Branch Setup</div>
+                <div class="fw-semibold">Add the branch details and set whether it is active right away.</div>
+            </div>
+
             <div class="mb-3">
                 <label for="name" class="form-label fw-semibold">Branch Name *</label>
                 <input type="text" id="name" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required>
@@ -34,9 +39,11 @@
             </div>
 
             <input type="hidden" name="is_active" value="0">
-            <div class="form-check form-switch mb-4">
-                <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked((bool) old('is_active', true))>
-                <label class="form-check-label fw-semibold" for="is_active">Is Active</label>
+            <div class="border rounded-3 p-3 mb-4 bg-light">
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked((bool) old('is_active', true))>
+                    <label class="form-check-label fw-semibold" for="is_active">Is Active</label>
+                </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2">

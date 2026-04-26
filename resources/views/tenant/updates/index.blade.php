@@ -115,7 +115,7 @@
                                         @endif
                                     </td>
                                     <td class="text-end">
-                                        <form action="{{ route('tenant.updates.apply', ['tenant' => request()->route('tenant')]) }}" method="POST" class="d-inline"
+                                        <form action="{{ route('settings.updates.apply', ['tenant' => request()->route('tenant')], false) }}" method="POST" class="d-inline"
                                             x-data="{ isUpdating: false }"
                                             x-on:submit="if (isUpdating) { $event.preventDefault(); return; }"
                                             x-on:pm:confirmed-submit="isUpdating = true"

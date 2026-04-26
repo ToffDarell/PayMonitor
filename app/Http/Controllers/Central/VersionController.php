@@ -167,7 +167,7 @@ class VersionController extends Controller
         $domain = $tenant->domains->first()?->domain ?? '';
         $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
         $loginUrl   = $domain ? "{$scheme}://{$domain}/login" : '';
-        $updatesUrl = $domain ? "{$scheme}://{$domain}/updates" : '';
+        $updatesUrl = $domain ? "{$scheme}://{$domain}/settings/updates" : '';
 
         if (blank($tenantAdminEmail)) {
             return back()->with('error', "No email address found for {$tenant->name}.");
@@ -216,7 +216,7 @@ class VersionController extends Controller
         $domain     = $tenant->domains->first()?->domain ?? '';
         $scheme     = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
         $loginUrl   = $domain ? "{$scheme}://{$domain}/login" : '';
-        $updatesUrl = $domain ? "{$scheme}://{$domain}/updates" : '';
+        $updatesUrl = $domain ? "{$scheme}://{$domain}/settings/updates" : '';
 
         if (filled($tenantAdminEmail)) {
             try {

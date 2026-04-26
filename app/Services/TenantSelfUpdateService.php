@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\AppRelease;
+use App\Models\TenantSetting;
 use App\Models\TenantUpdate;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -211,6 +212,15 @@ class TenantSelfUpdateService
             'updated_by' => auth()->id(),
             'updated_at' => now()->toIso8601String(),
         ]);
+
+        $tenant = $this->resolveTenant($tenantId);
+        $updatedBy = auth()->user()?->email ?? auth()->user()?->name ?? 'system';
+
+        $tenant->run(static function () use ($release, $updatedBy): void {
+            TenantSetting::set('current_version', $release->tag);
+            TenantSetting::set('last_updated_at', now()->toIso8601String());
+            TenantSetting::set('last_updated_by', (string) $updatedBy);
+        });
     }
 
     /**

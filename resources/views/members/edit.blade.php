@@ -29,6 +29,7 @@
                     <div class="fw-bold">{{ $member->member_number }}</div>
                 </div>
                 <div class="form-check form-switch m-0">
+                    <input type="hidden" name="is_active" value="0">
                     <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $member->is_active))>
                     <label class="form-check-label fw-semibold" for="is_active">Active / Inactive</label>
                 </div>

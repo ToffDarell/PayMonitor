@@ -38,7 +38,7 @@
             </div>
             <div class="col-md-3">
                 <label for="branch" class="form-label fw-semibold">Branch</label>
-                <select name="branch" id="branch" class="form-select">
+                <select name="branch" id="branch" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Branches</option>
                     @foreach($branches as $branch)
                         <option value="{{ $branch->id }}" @selected((string) request('branch') === (string) $branch->id)>{{ $branch->name }}</option>
@@ -47,7 +47,7 @@
             </div>
             <div class="col-md-2">
                 <label for="status" class="form-label fw-semibold">Status</label>
-                <select name="status" id="status" class="form-select">
+                <select name="status" id="status" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Statuses</option>
                     <option value="active" @selected(request('status') === 'active')>Active</option>
                     <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>

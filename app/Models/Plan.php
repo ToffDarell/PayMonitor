@@ -37,6 +37,11 @@ class Plan extends Model
         return $this->hasMany(Tenant::class);
     }
 
+    public static function defaultDescription(): string
+    {
+        return self::DEFAULT_DESCRIPTION;
+    }
+
     public static function getAvailableFeatures(): array
     {
         return [

@@ -110,10 +110,10 @@ class MemberController extends Controller
     {
         $this->authorize('update', $member);
 
-        $member->update($request->validated());
-        $member->forceFill([
-            'is_active' => $request->boolean('is_active', true),
-        ])->save();
+        $member->update([
+            ...$request->validated(),
+            'is_active' => $request->boolean('is_active'),
+        ]);
 
         return redirect('/members/'.$member->id)->with('success', 'Member updated successfully.');
     }

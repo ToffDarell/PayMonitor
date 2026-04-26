@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Auth\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\RecaptchaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -29,12 +30,21 @@ class AuthenticatedSessionController extends Controller
             ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, RecaptchaService $recaptcha): RedirectResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'g-recaptcha-response' => ['required', 'string'],
         ]);
+
+        if (! $recaptcha->verify($request->input('g-recaptcha-response'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'g-recaptcha-response' => 'reCAPTCHA verification failed. Please try again.',
+            ]);
+        }
+
+        unset($credentials['g-recaptcha-response']);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([

@@ -76,35 +76,35 @@ collect(config('tenancy.central_domains', ['localhost']))
                         ->names('tenant.samplexs');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_UPLOAD])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:member_documents', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_UPLOAD])->group(function (): void {
                     Route::post('/members/{member}/documents', [MemberDocumentController::class, 'store'])->name('member.documents.store');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_DELETE])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:member_documents', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_DELETE])->group(function (): void {
                     Route::delete('/members/documents/{document}', [MemberDocumentController::class, 'destroy'])->name('member.documents.destroy');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_VIEW])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:member_documents', 'tenant.permission:'.TenantPermissions::MEMBER_DOCUMENTS_VIEW])->group(function (): void {
                     Route::get('/members/documents/{document}/download', [MemberDocumentController::class, 'download'])->name('member.documents.download');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_UPLOAD])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:loan_documents', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_UPLOAD])->group(function (): void {
                     Route::post('/loans/{loan}/documents', [LoanDocumentController::class, 'store'])->name('loan.documents.store');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_DELETE])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:loan_documents', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_DELETE])->group(function (): void {
                     Route::delete('/loans/documents/{document}', [LoanDocumentController::class, 'destroy'])->name('loan.documents.destroy');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_VIEW])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:loan_documents', 'tenant.permission:'.TenantPermissions::LOAN_DOCUMENTS_VIEW])->group(function (): void {
                     Route::get('/loans/documents/{document}/download', [LoanDocumentController::class, 'download'])->name('loan.documents.download');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::COLLECTIONS_VIEW])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:collections_dashboard', 'tenant.permission:'.TenantPermissions::COLLECTIONS_VIEW])->group(function (): void {
                     Route::get('/collections', [CollectionController::class, 'index'])->name('tenant.collections');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::AUDIT_LOGS_VIEW])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:audit_logs', 'tenant.permission:'.TenantPermissions::AUDIT_LOGS_VIEW])->group(function (): void {
                     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('tenant.audit-logs');
                 });
 
@@ -117,15 +117,17 @@ collect(config('tenancy.central_domains', ['localhost']))
                 });
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::USERS_VIEW])->group(function (): void {
+                    Route::resource('users', UserController::class);
+                    Route::post('/users/{user}/resend-credentials', [UserController::class, 'resendCredentials'])->name('users.resend-credentials');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:custom_roles', 'tenant.permission:'.TenantPermissions::USERS_VIEW])->group(function (): void {
                     Route::get('/users/roles', [RoleController::class, 'index'])->name('users.roles.index');
                     Route::get('/users/roles/create', [RoleController::class, 'create'])->name('users.roles.create');
                     Route::post('/users/roles', [RoleController::class, 'store'])->name('users.roles.store');
                     Route::get('/users/roles/{role}/edit', [RoleController::class, 'edit'])->name('users.roles.edit');
                     Route::put('/users/roles/{role}', [RoleController::class, 'update'])->name('users.roles.update');
                     Route::delete('/users/roles/{role}', [RoleController::class, 'destroy'])->name('users.roles.destroy');
-
-                    Route::resource('users', UserController::class);
-                    Route::post('/users/{user}/resend-credentials', [UserController::class, 'resendCredentials'])->name('users.resend-credentials');
                 });
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::SETTINGS_VIEW])->group(function (): void {

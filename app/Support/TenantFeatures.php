@@ -69,7 +69,9 @@ final class TenantFeatures
         }
 
         // Switch to central DB to get plan features
-        $planFeatures = DB::connection('mysql')
+        $centralConnection = (string) config('tenancy.database.central_connection', config('database.default'));
+
+        $planFeatures = DB::connection($centralConnection)
             ->table('plans')
             ->join('tenants', 'plans.id', '=', 'tenants.plan_id')
             ->where('tenants.id', $tenant->id)

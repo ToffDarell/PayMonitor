@@ -6,6 +6,7 @@
 @php
     $tenantParameter = ['tenant' => request()->route('tenant')];
     $passwordValue = old('generated_password', $generatedPassword);
+    $customRolesEnabled = \App\Support\TenantFeatures::tenantHasFeature('custom_roles');
 @endphp
 
 @include('users._tabs')
@@ -84,9 +85,11 @@
                         <option value="{{ $role->name }}" @selected(old('role', $selectedRole) === $role->name)>{{ \App\Support\TenantPermissions::displayRoleName($role->name) }}</option>
                     @endforeach
                 </select>
-                <div class="form-text">
-                    Need a reusable role like collector? <a href="{{ route('users.roles.index', $tenantParameter) }}">Manage roles</a>.
-                </div>
+                @if($customRolesEnabled)
+                    <div class="form-text">
+                        Need a reusable role like collector? <a href="{{ route('users.roles.index', $tenantParameter) }}">Manage roles</a>.
+                    </div>
+                @endif
                 @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 

@@ -166,7 +166,7 @@
         <form method="GET" action="{{ route('tenant.collections', $tenantParameter) }}" class="row g-3">
             <div class="col-md-6 col-xl-2">
                 <label for="branch_id" class="form-label fw-semibold">Branch</label>
-                <select id="branch_id" name="branch_id" class="form-select">
+                <select id="branch_id" name="branch_id" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Branches</option>
                     @foreach($branches as $branch)
                         <option value="{{ $branch->id }}" @selected((string) ($filters['branch_id'] ?? '') === (string) $branch->id)>{{ $branch->name }}</option>
@@ -175,7 +175,7 @@
             </div>
             <div class="col-md-6 col-xl-2">
                 <label for="collector" class="form-label fw-semibold">Collector</label>
-                <select id="collector" name="collector" class="form-select">
+                <select id="collector" name="collector" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Collectors</option>
                     @foreach($collectors as $collector)
                         <option value="{{ $collector->id }}" @selected((string) ($filters['collector'] ?? '') === (string) $collector->id)>{{ $collector->name }}</option>
@@ -184,7 +184,7 @@
             </div>
             <div class="col-md-6 col-xl-2">
                 <label for="status" class="form-label fw-semibold">Status</label>
-                <select id="status" name="status" class="form-select">
+                <select id="status" name="status" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Statuses</option>
                     <option value="active" @selected(($filters['status'] ?? '') === 'active')>Active</option>
                     <option value="overdue" @selected(($filters['status'] ?? '') === 'overdue')>Overdue</option>
@@ -194,11 +194,11 @@
             </div>
             <div class="col-md-6 col-xl-2">
                 <label for="date_from" class="form-label fw-semibold">Date From</label>
-                <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control">
+                <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" onchange="this.form.requestSubmit()">
             </div>
             <div class="col-md-6 col-xl-2">
                 <label for="date_to" class="form-label fw-semibold">Date To</label>
-                <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control">
+                <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" onchange="this.form.requestSubmit()">
             </div>
             <div class="col-md-6 col-xl-2 d-flex align-items-end gap-2">
                 <button type="submit" class="btn btn-primary flex-fill">Apply</button>
