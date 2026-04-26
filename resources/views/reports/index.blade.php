@@ -15,10 +15,10 @@
         <h1 class="h3 fw-bold mb-1">Reports</h1>
         <p class="text-muted mb-0">Monitor lending performance, collections, overdue exposure, and borrower concentration.</p>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="d-flex align-items-center gap-2">
         <a href="{{ $pdfExportUrl }}"
-           class="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           class="btn btn-danger btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 fw-medium">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
@@ -28,8 +28,8 @@
         </a>
 
         <a href="{{ $excelExportUrl }}"
-           class="flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-400 transition-colors hover:bg-green-500/20">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           class="btn btn-success btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 fw-medium">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"

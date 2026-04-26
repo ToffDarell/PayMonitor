@@ -1285,6 +1285,9 @@ function updateProgress(config) {
             this.elapsedSeconds = 0;
             this.version = this.latestVersion || '';
             this.startElapsedTimer();
+            
+            // Start polling immediately in case applyUrl runs synchronously
+            this.startPolling();
 
             try {
                 const response = await fetch(this.applyUrl, {
@@ -1310,6 +1313,7 @@ function updateProgress(config) {
 
                 if (data && data.success === false) {
                     this.stopElapsedTimer();
+                    this.stopPolling();
                     this.showFailed(data.message || 'Failed to start update.');
                     return;
                 }
@@ -1317,10 +1321,9 @@ function updateProgress(config) {
                 if (data && data.version) {
                     this.version = data.version;
                 }
-
-                this.startPolling();
             } catch (error) {
                 this.stopElapsedTimer();
+                this.stopPolling();
                 this.showFailed('Network error: ' + error.message);
             }
         },
@@ -1329,6 +1332,9 @@ function updateProgress(config) {
             if (this.pollInterval) {
                 return;
             }
+
+            // Do an immediate check, then interval
+            this.checkStatus();
 
             this.pollInterval = setInterval(() => {
                 this.checkStatus();
@@ -1348,11 +1354,17 @@ function updateProgress(config) {
             }
 
             try {
-                const response = await fetch(this.statusUrl, {
+                const separator = this.statusUrl.includes('?') ? '&' : '?';
+                const cacheBusterUrl = `${this.statusUrl}${separator}_t=${new Date().getTime()}`;
+
+                const response = await fetch(cacheBusterUrl, {
                     headers: {
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': this.csrfToken,
                         'X-Requested-With': 'XMLHttpRequest',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
                     },
                 });
 
