@@ -132,6 +132,47 @@
     .settings-log-line {
         animation: settingsFadeIn 240ms ease-out both;
     }
+
+    .settings-update-panel {
+        background-color: var(--pm-card-bg) !important;
+        border-color: var(--pm-border) !important;
+    }
+
+    .settings-update-surface {
+        background-color: var(--pm-surface-bg) !important;
+        border-color: var(--pm-border) !important;
+    }
+
+    .settings-update-soft {
+        background-color: var(--pm-panel-bg) !important;
+        border-color: var(--pm-panel-border) !important;
+    }
+
+    .settings-update-heading {
+        color: var(--pm-text-primary) !important;
+    }
+
+    .settings-update-body {
+        color: var(--pm-text-secondary) !important;
+    }
+
+    .settings-update-muted {
+        color: var(--pm-text-muted) !important;
+    }
+
+    .settings-update-subtle {
+        color: var(--pm-text-subtle) !important;
+    }
+
+    .settings-step-pending {
+        background-color: var(--pm-surface-bg) !important;
+        color: var(--pm-text-muted) !important;
+        border: 2px solid var(--pm-border) !important;
+    }
+
+    .settings-step-line {
+        background-color: var(--pm-border) !important;
+    }
 </style>
 @endpush
 
@@ -544,7 +585,7 @@
                                 </div>
                             </div>
 
-                            <div class="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-[#21262d] bg-[#0d1117] p-5">
+                            <div class="settings-update-panel flex w-full max-w-sm flex-col gap-3 rounded-2xl border p-5">
                                 <div class="flex items-center gap-3">
                                     <div class="flex h-11 w-11 items-center justify-center rounded-full border border-yellow-500/20 bg-yellow-500/10 text-yellow-300">
                                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
@@ -552,12 +593,12 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-semibold text-white">Update ready</p>
-                                        <p class="text-xs text-slate-500" x-text="latestReleaseName"></p>
+                                        <p class="settings-update-heading text-sm font-semibold">Update ready</p>
+                                        <p class="settings-update-muted text-xs" x-text="latestReleaseName"></p>
                                     </div>
                                 </div>
 
-                                <p class="text-sm leading-6 text-slate-400">Start the tenant update when you are ready. The interface will stay on this page and show each deployment stage as it runs.</p>
+                                <p class="settings-update-body text-sm leading-6">Start the tenant update when you are ready. The interface will stay on this page and show each deployment stage as it runs.</p>
 
                                 <div class="flex flex-wrap gap-3">
                                     @if(!empty($availableUpdates) && $canManageSettings)
@@ -703,7 +744,7 @@
         </template>
 
         <template x-if="state === 'updating'">
-            <div class="rounded-2xl border border-[#21262d] bg-[#161b22] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+            <div class="settings-update-panel rounded-2xl border p-6 shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div class="flex items-center gap-4">
                         <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
@@ -713,23 +754,23 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Tenant Update</p>
-                            <h3 class="mt-2 text-2xl font-bold text-white">Updating to <span class="text-emerald-400" x-text="version || latestVersion || 'latest release'"></span></h3>
-                            <p class="mt-1 text-sm text-slate-400">Elapsed: <span class="font-mono text-slate-200" x-text="formatElapsed(elapsedSeconds)"></span></p>
+                            <p class="settings-update-muted text-xs font-semibold uppercase tracking-[0.18em]">Tenant Update</p>
+                            <h3 class="settings-update-heading mt-2 text-2xl font-bold">Updating to <span class="text-emerald-500" x-text="version || latestVersion || 'latest release'"></span></h3>
+                            <p class="settings-update-muted mt-1 text-sm">Elapsed: <span class="font-mono settings-update-body" x-text="formatElapsed(elapsedSeconds)"></span></p>
                         </div>
                     </div>
-                    <div class="rounded-xl border border-white/10 bg-[#0d1117] px-4 py-3 text-sm text-slate-300">
-                        <p class="font-mono text-xs uppercase tracking-[0.14em] text-slate-500">Current Stage</p>
-                        <p class="mt-2 font-medium text-white" x-text="statusMessage || 'Preparing update...'"></p>
+                    <div class="settings-update-surface rounded-xl border px-4 py-3 text-sm">
+                        <p class="settings-update-muted font-mono text-xs uppercase tracking-[0.14em]">Current Stage</p>
+                        <p class="settings-update-heading mt-2 font-medium" x-text="statusMessage || 'Preparing update...'"></p>
                     </div>
                 </div>
 
                 <div class="mt-8">
                     <div class="mb-3 flex items-center justify-between gap-4">
-                        <p class="text-sm font-semibold text-slate-200">Progress</p>
-                        <p class="font-mono text-sm text-emerald-400" x-text="`${progress}%`"></p>
+                        <p class="settings-update-body text-sm font-semibold">Progress</p>
+                        <p class="font-mono text-sm text-emerald-500" x-text="`${progress}%`"></p>
                     </div>
-                    <div class="h-4 w-full overflow-hidden rounded-full border border-[#21262d] bg-[#0d1117]">
+                    <div class="settings-update-surface h-4 w-full overflow-hidden rounded-full border">
                         <div class="h-full rounded-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-700 ease-out" x-bind:style="`width: ${progress}%`"></div>
                     </div>
                 </div>
@@ -762,14 +803,14 @@
                 </div>
 
                 <div class="mt-8">
-                    <p class="mb-2 text-xs uppercase tracking-[0.18em] text-[#52525b]">Process Log</p>
-                    <div id="process-log" x-ref="processLog" class="h-48 overflow-y-auto rounded-xl border border-[#21262d] bg-[#0d1117] p-4 font-mono text-xs">
+                    <p class="settings-update-subtle mb-2 text-xs uppercase tracking-[0.18em]">Process Log</p>
+                    <div id="process-log" x-ref="processLog" class="h-48 overflow-y-auto rounded-xl border border-[#21262d] bg-[#0d1117] p-4 font-mono text-xs shadow-inner">
                         <template x-if="logEntries.length === 0">
                             <p class="text-slate-500">Waiting for update logs...</p>
                         </template>
                         <template x-for="(entry, index) in logEntries" :key="`${entry.time}-${entry.message}-${index}`">
                             <div class="settings-log-line flex items-start gap-3 leading-6">
-                                <span class="shrink-0 text-[#52525b]" x-text="`[${entry.time}]`"></span>
+                                <span class="shrink-0 text-slate-500" x-text="`[${entry.time}]`"></span>
                                 <span x-bind:class="entry.color" x-text="entry.message"></span>
                                 <template x-if="index === logEntries.length - 1">
                                     <span class="animate-pulse text-green-400">▋</span>
@@ -781,7 +822,7 @@
 
                 <div class="mt-6 rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3 text-sm text-yellow-100">
                     <p class="font-semibold">Warning</p>
-                    <p class="mt-1 leading-6 text-slate-300">Do not close or refresh this page. Update is running in background. Estimated time: 2-5 minutes.</p>
+                    <p class="settings-update-body mt-1 leading-6">Do not close or refresh this page. Update is running in background. Estimated time: 2-5 minutes.</p>
                 </div>
             </div>
         </template>
@@ -789,21 +830,21 @@
         <template x-if="state === 'completed'">
             <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
                 <div class="mx-auto max-w-3xl text-center">
-                    <div class="settings-scale-in mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500/10 text-emerald-400">
+                    <div class="settings-scale-in mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500/10 text-emerald-500">
                         <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7" />
                         </svg>
                     </div>
-                    <h3 class="mt-6 text-xl font-bold text-white">Update Successful!</h3>
-                    <p class="mt-2 text-sm text-emerald-300">Updated to <span class="font-semibold" x-text="version || latestVersion"></span></p>
-                    <p class="mt-2 text-sm text-slate-400">Completed in <span class="font-medium text-slate-200" x-text="formatElapsedDetailed(elapsedSeconds)"></span></p>
+                    <h3 class="settings-update-heading mt-6 text-xl font-bold">Update Successful!</h3>
+                    <p class="settings-update-body mt-2 text-sm">Updated to <span class="font-semibold text-emerald-500" x-text="version || latestVersion"></span></p>
+                    <p class="settings-update-muted mt-2 text-sm">Completed in <span class="font-medium settings-update-body" x-text="formatElapsedDetailed(elapsedSeconds)"></span></p>
 
-                    <div class="mt-8 rounded-xl border border-[#21262d] bg-[#0d1117] p-4 text-left">
+                    <div class="mt-8 rounded-xl border border-[#21262d] bg-[#0d1117] p-4 text-left shadow-inner">
                         <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Recent Update Log</p>
                         <div class="mt-3 space-y-2 font-mono text-xs">
                             <template x-for="entry in recentLogEntries()" :key="`${entry.time}-${entry.message}`">
                                 <div class="flex items-start gap-3">
-                                    <span class="shrink-0 text-[#52525b]" x-text="`[${entry.time}]`"></span>
+                                    <span class="shrink-0 text-slate-500" x-text="`[${entry.time}]`"></span>
                                     <span x-bind:class="entry.color" x-text="entry.message"></span>
                                 </div>
                             </template>
@@ -811,8 +852,8 @@
                     </div>
 
                     <div class="mt-8">
-                        <p class="text-sm text-slate-400">Reloading in <span class="font-semibold text-white" x-text="reloadCountdown"></span> seconds...</p>
-                        <div class="mx-auto mt-3 h-2 w-full max-w-md overflow-hidden rounded-full border border-[#21262d] bg-[#0d1117]">
+                        <p class="settings-update-muted text-sm">Reloading in <span class="font-semibold settings-update-heading" x-text="reloadCountdown"></span> seconds...</p>
+                        <div class="settings-update-surface mx-auto mt-3 h-2 w-full max-w-md overflow-hidden rounded-full border">
                             <div class="h-full rounded-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-700 ease-linear" x-bind:style="`width: ${((5 - reloadCountdown) / 5) * 100}%`"></div>
                         </div>
                         <button type="button" x-on:click="reloadNow()" class="mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
@@ -827,29 +868,29 @@
             <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
                 <div class="mx-auto max-w-4xl">
                     <div class="text-center">
-                        <div class="settings-scale-in mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-red-500 bg-red-500/10 text-red-400">
+                        <div class="settings-scale-in mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-red-500 bg-red-500/10 text-red-500">
                             <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6 6 18" />
                             </svg>
                         </div>
-                        <h3 class="mt-6 text-xl font-bold text-red-400">Update Failed</h3>
-                        <p class="mt-2 text-sm text-slate-400">The update did not complete. Review the error details and log below.</p>
+                        <h3 class="mt-6 text-xl font-bold text-red-500">Update Failed</h3>
+                        <p class="settings-update-body mt-2 text-sm">The update did not complete. Review the error details and log below.</p>
                     </div>
 
-                    <div class="mt-8 rounded-lg border border-red-500/30 bg-[#0d1117] p-4 font-mono text-xs text-red-400">
-                        <p class="uppercase tracking-[0.14em] text-red-300">Error Details</p>
+                    <div class="mt-8 rounded-lg border border-red-500/30 bg-[#0d1117] p-4 font-mono text-xs text-red-500">
+                        <p class="uppercase tracking-[0.14em] text-red-500/70">Error Details</p>
                         <p class="mt-3 whitespace-pre-wrap leading-6" x-text="errorMessage || 'Unknown update error.'"></p>
                     </div>
 
-                    <div class="mt-6 rounded-xl border border-[#21262d] bg-[#0d1117] p-4">
+                    <div class="mt-6 rounded-xl border border-[#21262d] bg-[#0d1117] p-4 shadow-inner">
                         <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Full Process Log</p>
-                        <div class="mt-3 h-56 overflow-y-auto space-y-2 font-mono text-xs">
+                        <div class="mt-3 h-56 space-y-2 overflow-y-auto font-mono text-xs">
                             <template x-if="logEntries.length === 0">
                                 <p class="text-slate-500">No log entries available.</p>
                             </template>
                             <template x-for="(entry, index) in logEntries" :key="`${entry.time}-${entry.message}-${index}`">
                                 <div class="flex items-start gap-3">
-                                    <span class="shrink-0 text-[#52525b]" x-text="`[${entry.time}]`"></span>
+                                    <span class="shrink-0 text-slate-500" x-text="`[${entry.time}]`"></span>
                                     <span x-bind:class="entry.color" x-text="entry.message"></span>
                                 </div>
                             </template>
@@ -1231,32 +1272,32 @@ function updateProgress(config) {
 
         stepCircleClass(stepNumber) {
             if (this.isStepCompleted(stepNumber)) {
-                return 'bg-green-500 text-black scale-100';
+                return 'bg-emerald-500 text-white border-2 border-emerald-500 scale-100 shadow-md shadow-emerald-500/20';
             }
 
             if (stepNumber === this.currentStep && this.state === 'updating') {
-                return 'bg-yellow-500 text-black animate-pulse';
+                return 'bg-amber-500 text-white border-2 border-amber-500 animate-pulse shadow-md shadow-amber-500/20';
             }
 
-            return 'bg-[#21262d] text-[#52525b]';
+            return 'settings-step-pending';
         },
 
         stepLabelClass(stepNumber) {
             if (this.isStepCompleted(stepNumber)) {
-                return 'text-green-400';
+                return 'text-emerald-500 font-medium';
             }
 
             if (stepNumber === this.currentStep && this.state === 'updating') {
-                return 'text-yellow-400';
+                return 'text-amber-500 font-medium';
             }
 
-            return 'text-[#8b949e]';
+            return 'settings-update-muted';
         },
 
         stepConnectorClass(stepNumber) {
             return this.isStepCompleted(stepNumber + 1) || (this.state === 'completed' && stepNumber < this.totalSteps)
-                ? 'bg-green-500'
-                : 'bg-[#21262d]';
+                ? 'bg-emerald-500'
+                : 'settings-step-line';
         },
 
         recentLogEntries() {
