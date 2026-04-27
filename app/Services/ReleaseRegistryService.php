@@ -32,12 +32,28 @@ class ReleaseRegistryService
 
             $synced = 0;
             $skipped = 0;
+            $remoteTags = [];
 
             foreach ($releases as $release) {
+                $tag = trim((string) ($release['tag_name'] ?? ''));
+                if ($tag !== '') {
+                    $remoteTags[] = $tag;
+                }
+
                 if ($this->syncRelease($release)) {
                     $synced++;
                 } else {
                     $skipped++;
+                }
+            }
+
+            // Prune any releases that have been deleted from GitHub
+            if (!empty($remoteTags)) {
+                $deletedAppReleases = AppRelease::whereNotIn('tag', $remoteTags)->get();
+                foreach ($deletedAppReleases as $deletedAppRelease) {
+                    // Remove pending tenant updates for this release
+                    \App\Models\TenantUpdate::where('app_release_id', $deletedAppRelease->id)->delete();
+                    $deletedAppRelease->delete();
                 }
             }
 
