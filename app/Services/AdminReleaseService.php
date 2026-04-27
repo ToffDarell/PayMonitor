@@ -89,7 +89,7 @@ class AdminReleaseService
                 continue;
             }
 
-            $this->tenantUpdateService->markUpdateAvailable($tenantKey, $releaseId);
+            $this->tenantUpdateService->markUpdateAvailable($tenantKey, $releaseId, true);
             $notified++;
         }
 

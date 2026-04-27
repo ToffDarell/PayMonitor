@@ -24,6 +24,7 @@ class TenantUpdate extends Model
         'applied_at',
         'required_at',
         'grace_until',
+        'notified_at',
         'failure_reason',
         'metadata',
     ];
@@ -33,6 +34,7 @@ class TenantUpdate extends Model
         'applied_at' => 'datetime',
         'required_at' => 'datetime',
         'grace_until' => 'datetime',
+        'notified_at' => 'datetime',
         'metadata' => 'array',
     ];
 

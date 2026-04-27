@@ -89,7 +89,7 @@ class TenantUpdateService
             ->toArray();
     }
 
-    public function markUpdateAvailable(string $tenantId, int $releaseId): TenantUpdate
+    public function markUpdateAvailable(string $tenantId, int $releaseId, bool $notify = false): TenantUpdate
     {
         return TenantUpdate::updateOrCreate(
             [
@@ -99,6 +99,7 @@ class TenantUpdateService
             [
                 'status' => TenantUpdate::STATUS_UPDATE_AVAILABLE,
                 'is_current' => false,
+                'notified_at' => $notify ? now() : null,
             ]
         );
     }

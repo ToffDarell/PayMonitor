@@ -99,27 +99,6 @@
         @endif
     </section>
 
-    {{-- DEPLOYMENT INSTRUCTIONS CARD --}}
-    <section class="rounded-xl border border-[#21262d] bg-[#161b22] p-5">
-        <div class="mb-4">
-            <p class="text-white font-semibold text-sm">How to Deploy Updates to Server</p>
-            <p class="text-[#8b949e] text-xs mt-1">Run these commands in your server terminal to deploy new code.</p>
-        </div>
-        <div class="space-y-2">
-            @foreach($deployCommands as $cmd)
-            <div x-data="{ copied: false }" class="flex items-center justify-between bg-[#0d1117] border border-[#21262d] rounded-lg px-4 py-2.5">
-                <code class="font-mono text-sm text-green-400">{{ $cmd }}</code>
-                <button type="button"
-                    x-on:click="navigator.clipboard.writeText('{{ $cmd }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                    class="ml-4 flex-shrink-0 text-xs text-[#8b949e] hover:text-white transition">
-                    <span x-show="!copied">Copy</span>
-                    <span x-show="copied" class="text-green-400">Copied!</span>
-                </button>
-            </div>
-            @endforeach
-        </div>
-        <p class="text-[#8b949e] text-xs mt-3">After deploying, tenants can update their own portal version from their Settings → Updates page.</p>
-    </section>
 
     {{-- TENANT VERSION TABLE --}}
     <section x-data="{ filter: 'all' }">

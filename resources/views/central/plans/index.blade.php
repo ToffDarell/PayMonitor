@@ -8,7 +8,7 @@
         <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Plans</h2>
         <p class="mt-1 text-sm text-slate-400">Manage subscription tiers for lending cooperative tenants.</p>
     </div>
-    <a href="{{ route('central.plans.create', absolute: false) }}" class="inline-flex items-center gap-2 rounded-xl bg-[#22c55e] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-500/20 transition hover:brightness-110">
+    <a href="{{ route('central.plans.create', absolute: false) }}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
         Add Plan
     </a>
