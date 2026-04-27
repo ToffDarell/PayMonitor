@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\AuditService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +33,12 @@ class Loan extends Model
         'release_date',
         'due_date',
         'notes',
+        'penalty_total',
+        'is_delinquent',
+        'delinquent_at',
+        'written_off_at',
+        'restructured_at',
+        'demand_letter_sent_at',
     ];
 
     protected function casts(): array
@@ -46,6 +53,12 @@ class Loan extends Model
             'outstanding_balance' => 'decimal:2',
             'release_date' => 'date',
             'due_date' => 'date',
+            'penalty_total' => 'decimal:2',
+            'is_delinquent' => 'boolean',
+            'delinquent_at' => 'datetime',
+            'written_off_at' => 'datetime',
+            'restructured_at' => 'datetime',
+            'demand_letter_sent_at' => 'datetime',
         ];
     }
 
@@ -82,6 +95,11 @@ class Loan extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(LoanDocument::class)->latest();
+    }
+
+    public function penalties(): HasMany
+    {
+        return $this->hasMany(LoanPenalty::class);
     }
 
     public function computeAndFill(): static
@@ -122,7 +140,7 @@ class Loan extends Model
 
     public function isOverdue(): bool
     {
-        if ($this->status === 'fully_paid' || $this->due_date === null) {
+        if (in_array($this->status, ['fully_paid', 'written_off'], true) || $this->due_date === null) {
             return false;
         }
 
@@ -132,5 +150,36 @@ class Loan extends Model
     public function getAmountRemainingAttribute(): float
     {
         return (float) $this->outstanding_balance;
+    }
+
+    public function applyPenalty(array $data): LoanPenalty
+    {
+        $oldValues = $this->toArray();
+        $penalty = $this->penalties()->create($data);
+        $amount = round((float) $penalty->penalty_amount, 2);
+
+        $this->forceFill([
+            'penalty_total' => round((float) $this->penalty_total + $amount, 2),
+            'outstanding_balance' => round((float) $this->outstanding_balance + $amount, 2),
+        ])->save();
+
+        if (tenant()?->supportsAuditLogs()) {
+            app(AuditService::class)->log(
+                'penalty_applied',
+                $this,
+                $oldValues,
+                $this->fresh()->toArray() + [
+                    'penalty_event' => [
+                        'loan_penalty_id' => $penalty->id,
+                        'penalty_type' => $penalty->penalty_type,
+                        'penalty_rate' => (float) $penalty->penalty_rate,
+                        'penalty_amount' => (float) $penalty->penalty_amount,
+                        'reason' => $penalty->reason,
+                    ],
+                ],
+            );
+        }
+
+        return $penalty;
     }
 }

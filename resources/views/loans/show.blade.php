@@ -31,6 +31,7 @@
     $canDeleteDocuments = $user?->hasTenantPermission(\App\Support\TenantPermissions::LOAN_DOCUMENTS_DELETE, ['tenant_admin']) ?? false;
     $showDocumentsSection = $canViewDocuments || $canUploadDocuments || $canDeleteDocuments;
     $openDocumentModal = $errors->has('document_type') || $errors->has('file') || $errors->has('notes');
+    $overdueFeatureEnabled = \App\Support\TenantFeatures::tenantHasFeature('overdue_loan_management');
 @endphp
 
 <div
@@ -186,6 +187,174 @@
         </div>
     </div>
 
+    @if($overdueFeatureEnabled && ($loan->status === 'overdue' || $loan->is_delinquent))
+        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-4 mb-4" x-data="{ applyPenaltyOpen: false, restructureOpen: false, writeOffOpen: false, writeOffConfirmText: '', showDangerZone: false }">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="spinner-grow spinner-grow-sm text-danger" role="status">
+                    <span class="visually-hidden">Overdue</span>
+                </div>
+                <h3 class="text-danger fw-semibold fs-5 mb-0">
+                    Overdue Loan Actions
+                </h3>
+            </div>
+            
+            <div class="bg-dark rounded p-3 mb-4 border border-secondary shadow-sm">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="small text-muted text-uppercase mb-1">Days Overdue</div>
+                        <div class="text-danger fw-bold fs-4">{{ $loan->due_date ? abs((int) \Carbon\Carbon::parse($loan->due_date)->diffInDays(now(), false)) : 0 }}</div>
+                    </div>
+                    <div class="col-md-4 border-start border-secondary">
+                        <div class="small text-muted text-uppercase mb-1">Outstanding Balance</div>
+                        <div class="text-danger fw-bold fs-4">₱{{ number_format((float) $loan->outstanding_balance, 2) }}</div>
+                    </div>
+                    <div class="col-md-4 border-start border-secondary">
+                        <div class="small text-muted text-uppercase mb-1">Penalties Applied</div>
+                        <div class="text-warning fw-bold fs-4">₱{{ number_format((float) $loan->penalty_total, 2) }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6 col-lg-3 d-grid">
+                    <form action="{{ route('loans.send-reminder', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-primary w-100 text-start">
+                            <i class="bi bi-envelope me-2"></i>Send Reminder
+                        </button>
+                    </form>
+                </div>
+                <div class="col-md-6 col-lg-3 d-grid">
+                    <button type="button" class="btn btn-outline-warning text-start" @click="applyPenaltyOpen = true">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Apply Penalty
+                    </button>
+                </div>
+                <div class="col-md-6 col-lg-3 d-grid">
+                    <button type="button" class="btn btn-outline-info text-start" @click="restructureOpen = true">
+                        <i class="bi bi-arrow-repeat me-2"></i>Restructure
+                    </button>
+                </div>
+                <div class="col-md-6 col-lg-3 d-grid">
+                    <a href="{{ route('loans.demand-letter', [...$tenantParameter, 'loan' => $loan]) }}" class="btn btn-outline-secondary text-start">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>Demand Letter
+                    </a>
+                </div>
+            </div>
+
+            <hr class="my-4 border-secondary opacity-25">
+
+            <div>
+                <button type="button" class="btn btn-link text-danger text-decoration-none p-0 mb-3" @click="showDangerZone = !showDangerZone">
+                    <i class="bi bi-shield-exclamation me-2"></i>Toggle Danger Zone
+                </button>
+                
+                <div x-show="showDangerZone" x-collapse style="display: none;">
+                    <div class="row g-3">
+                        <div class="col-md-6 d-grid">
+                            <form action="{{ route('loans.mark-delinquent', [...$tenantParameter, 'loan' => $loan]) }}" method="POST"
+                                data-confirm="Are you sure? This will mark the member as delinquent."
+                                data-confirm-title="Mark Delinquent?"
+                                data-confirm-confirm-text="Mark Delinquent"
+                                data-confirm-tone="danger">
+                                @csrf
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-person-x me-2"></i>Mark as Delinquent
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6 d-grid">
+                            <button type="button" class="btn btn-outline-danger" @click="writeOffOpen = true">
+                                <i class="bi bi-trash-fill me-2"></i>Write Off Loan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Apply Penalty Modal -->
+            <div x-show="applyPenaltyOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-3 py-4" style="display: none;" x-cloak>
+                <div class="w-full max-w-md rounded-4 border border-white/10 bg-slate-950 shadow-2xl p-4" @click.away="applyPenaltyOpen = false">
+                    <h3 class="h5 text-white fw-bold mb-3">Apply Penalty</h3>
+                    <form action="{{ route('loans.apply-penalty', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label text-white">Penalty Type</label>
+                            <select name="penalty_type" class="form-select bg-dark text-white border-secondary">
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount (₱)</option>
+                                <option value="daily">Daily Amount (₱)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white">Rate / Amount</label>
+                            <input type="number" step="0.01" name="penalty_rate" class="form-control bg-dark text-white border-secondary" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white">Reason</label>
+                            <textarea name="reason" class="form-control bg-dark text-white border-secondary" rows="2"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-outline-secondary" @click="applyPenaltyOpen = false">Cancel</button>
+                            <button type="submit" class="btn btn-warning">Apply Penalty</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Restructure Modal -->
+            <div x-show="restructureOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-3 py-4" style="display: none;" x-cloak>
+                <div class="w-full max-w-md rounded-4 border border-white/10 bg-slate-950 shadow-2xl p-4" @click.away="restructureOpen = false">
+                    <h3 class="h5 text-white fw-bold mb-3">Restructure Loan</h3>
+                    <div class="alert alert-info bg-info/10 border-info/20 text-info py-2 px-3 mb-4">
+                        Total amount to restructure (Balance + Penalties): <br>
+                        <strong>₱{{ number_format((float) $loan->outstanding_balance + (float) $loan->penalty_total, 2) }}</strong>
+                    </div>
+                    <form action="{{ route('loans.restructure', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label text-white">New Term (Months)</label>
+                            <input type="number" name="new_term_months" min="1" max="120" class="form-control bg-dark text-white border-secondary" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white">Notes</label>
+                            <textarea name="notes" class="form-control bg-dark text-white border-secondary" rows="3"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-outline-secondary" @click="restructureOpen = false">Cancel</button>
+                            <button type="submit" class="btn btn-info">Restructure</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Write Off Modal -->
+            <div x-show="writeOffOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-3 py-4" style="display: none;" x-cloak>
+                <div class="w-full max-w-md rounded-4 border border-danger/30 bg-slate-950 shadow-2xl p-4" @click.away="writeOffOpen = false">
+                    <h3 class="h5 text-danger fw-bold mb-3">Write Off Loan</h3>
+                    <div class="alert alert-danger bg-danger/10 border-danger/20 text-danger p-3 mb-4">
+                        This permanently writes off the loan. Balance will be set to zero. This cannot be undone.
+                    </div>
+                    <form action="{{ route('loans.write-off', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label text-white">Reason (minimum 10 characters)</label>
+                            <textarea name="reason" class="form-control bg-dark text-white border-secondary" rows="3" required minlength="10"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-white">Type CONFIRM to proceed</label>
+                            <input type="text" x-model="writeOffConfirmText" class="form-control bg-dark text-white border-secondary" required>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-outline-secondary" @click="writeOffOpen = false">Cancel</button>
+                            <button type="submit" class="btn btn-danger" :disabled="writeOffConfirmText !== 'CONFIRM'">Write Off</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+
     @if($showDocumentsSection)
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
@@ -298,6 +467,45 @@
             </table>
         </div>
     </div>
+
+    @if($loan->penalties->count() > 0)
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h2 class="h5 mb-0 fw-bold text-danger">Penalty History</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date Applied</th>
+                        <th>Type</th>
+                        <th>Rate/Amount</th>
+                        <th class="text-end">Penalty Amount</th>
+                        <th>Applied By</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($loan->penalties->sortByDesc('applied_at') as $penalty)
+                        <tr>
+                            <td>{{ $penalty->applied_at?->format('M d, Y') ?? 'N/A' }}</td>
+                            <td>{{ ucfirst($penalty->penalty_type) }}</td>
+                            <td>{{ number_format((float) $penalty->penalty_rate, 2) }}</td>
+                            <td class="text-end text-danger fw-semibold">P{{ number_format((float) $penalty->penalty_amount, 2) }}</td>
+                            <td>{{ $penalty->user?->name ?? 'System' }}</td>
+                            <td>{{ $penalty->reason ?: '-' }}</td>
+                        </tr>
+                    @endforeach
+                    <tr class="table-light fw-bold">
+                        <td colspan="3" class="text-end">Total Penalties:</td>
+                        <td class="text-end text-danger">P{{ number_format((float) $loan->penalty_total, 2) }}</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 
     <div class="row g-4">
         <div class="col-xl-5" id="record-payment">

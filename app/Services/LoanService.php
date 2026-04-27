@@ -58,18 +58,29 @@ class LoanService
 
     public function generateAmortizationSchedule(Loan $loan): void
     {
-        $loan->loanSchedules()->delete();
+        $isRestructured = $loan->status === 'restructured';
+        $existingPaidSchedules = $isRestructured
+            ? $loan->loanSchedules()->whereNotNull('paid_at')->count()
+            : 0;
 
-        $principal = (float) $loan->principal_amount;
+        if ($isRestructured) {
+            $loan->loanSchedules()->whereNull('paid_at')->delete();
+        } else {
+            $loan->loanSchedules()->delete();
+        }
+
+        $principal = $isRestructured
+            ? (float) $loan->outstanding_balance
+            : (float) $loan->principal_amount;
         $termMonths = (int) $loan->term_months;
-        $ratePerMonth = ((float) $loan->interest_rate) / 100;
-        $releaseDate = Carbon::parse($loan->release_date ?? today());
+        $ratePerMonth = $isRestructured ? 0.0 : ((float) $loan->interest_rate) / 100;
+        $releaseDate = Carbon::parse($isRestructured ? ($loan->restructured_at ?? now()) : ($loan->release_date ?? today()));
 
         if ($principal <= 0 || $termMonths <= 0) {
             return;
         }
 
-        if ($loan->interest_type === 'diminishing') {
+        if (! $isRestructured && $loan->interest_type === 'diminishing') {
             $monthlyPayment = (float) $loan->monthly_payment;
             $remainingPrincipal = $principal;
 
@@ -86,7 +97,7 @@ class LoanService
 
                 LoanSchedule::create([
                     'loan_id' => $loan->id,
-                    'period_number' => $period,
+                    'period_number' => $existingPaidSchedules + $period,
                     'due_date' => $releaseDate->copy()->addMonthsNoOverflow($period)->toDateString(),
                     'amount_due' => $amountDue,
                     'principal_portion' => $principalPortion,
@@ -101,20 +112,21 @@ class LoanService
             return;
         }
 
+        $totalInterest = $isRestructured ? 0.0 : (float) $loan->total_interest;
         $principalPortion = round($principal / $termMonths, 2);
-        $interestPortion = round(((float) $loan->total_interest) / $termMonths, 2);
+        $interestPortion = round($totalInterest / $termMonths, 2);
 
         for ($period = 1; $period <= $termMonths; $period++) {
             $currentPrincipalPortion = $period === $termMonths
                 ? round($principal - ($principalPortion * ($termMonths - 1)), 2)
                 : $principalPortion;
             $currentInterestPortion = $period === $termMonths
-                ? round((float) $loan->total_interest - ($interestPortion * ($termMonths - 1)), 2)
+                ? round($totalInterest - ($interestPortion * ($termMonths - 1)), 2)
                 : $interestPortion;
 
             LoanSchedule::create([
                 'loan_id' => $loan->id,
-                'period_number' => $period,
+                'period_number' => $existingPaidSchedules + $period,
                 'due_date' => $releaseDate->copy()->addMonthsNoOverflow($period)->toDateString(),
                 'amount_due' => round($currentPrincipalPortion + $currentInterestPortion, 2),
                 'principal_portion' => $currentPrincipalPortion,

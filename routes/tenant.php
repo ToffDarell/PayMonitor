@@ -12,6 +12,7 @@ use App\Http\Controllers\Tenant\CollectionController;
 use App\Http\Controllers\Tenant\DashboardController;
 use App\Http\Controllers\Tenant\LoanController;
 use App\Http\Controllers\Tenant\LoanDocumentController;
+use App\Http\Controllers\Tenant\OverdueLoanController;
 use App\Http\Controllers\Tenant\LoanPaymentController;
 use App\Http\Controllers\Tenant\LoanTypeController;
 use App\Http\Controllers\Tenant\MemberController;
@@ -102,6 +103,15 @@ collect(config('tenancy.central_domains', ['localhost']))
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:collections_dashboard', 'tenant.permission:'.TenantPermissions::COLLECTIONS_VIEW])->group(function (): void {
                     Route::get('/collections', [CollectionController::class, 'index'])->name('tenant.collections');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:overdue_loan_management'])->group(function (): void {
+                    Route::post('/loans/{loan}/send-reminder', [OverdueLoanController::class, 'sendReminder'])->name('loans.send-reminder');
+                    Route::post('/loans/{loan}/apply-penalty', [OverdueLoanController::class, 'applyPenalty'])->name('loans.apply-penalty');
+                    Route::post('/loans/{loan}/mark-delinquent', [OverdueLoanController::class, 'markDelinquent'])->name('loans.mark-delinquent');
+                    Route::post('/loans/{loan}/restructure', [OverdueLoanController::class, 'restructureLoan'])->name('loans.restructure');
+                    Route::get('/loans/{loan}/demand-letter', [OverdueLoanController::class, 'sendDemandLetter'])->name('loans.demand-letter');
+                    Route::post('/loans/{loan}/write-off', [OverdueLoanController::class, 'writeOff'])->name('loans.write-off');
                 });
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:audit_logs', 'tenant.permission:'.TenantPermissions::AUDIT_LOGS_VIEW])->group(function (): void {

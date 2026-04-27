@@ -114,12 +114,12 @@ class LoanPaymentController extends Controller
             $oldValues = $loan->toArray();
 
             $amountPaid = round((float) $loan->loanPayments()->sum('amount'), 2);
-            $remainingBalance = round(max((float) $loan->total_payable - $amountPaid, 0), 2);
+            $remainingBalance = round(max((float) $loan->outstanding_balance - $paymentAmount, 0), 2);
 
             $loan->forceFill([
                 'amount_paid' => $amountPaid,
                 'outstanding_balance' => $remainingBalance,
-                'status' => $remainingBalance <= 0 ? 'fully_paid' : $loan->status,
+                'status' => $remainingBalance <= 0 ? 'fully_paid' : ($loan->isOverdue() ? 'overdue' : $loan->status),
             ])->save();
 
             $this->syncSchedules($loan);

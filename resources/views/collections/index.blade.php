@@ -67,6 +67,70 @@
 </div>
 
 <div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Overdue Loans</h2>
+                    <p class="text-muted small mb-0 mt-1">Quick actions for overdue accounts that need follow-up.</p>
+                </div>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">{{ number_format($overdueLoans) }} overdue</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Member</th>
+                            <th>Loan #</th>
+                            <th>Branch</th>
+                            <th>Due Date</th>
+                            <th class="text-end">Outstanding</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($overdueLoanRows as $overdueLoan)
+                            <tr>
+                                <td>{{ $overdueLoan->member?->full_name ?? 'N/A' }}</td>
+                                <td class="fw-semibold">{{ $overdueLoan->loan_number }}</td>
+                                <td>{{ $overdueLoan->branch?->name ?? 'N/A' }}</td>
+                                <td>
+                                    {{ $overdueLoan->due_date?->format('M d, Y') ?? 'N/A' }}
+                                    @if($overdueLoan->due_date)
+                                        <div class="small text-danger">{{ $overdueLoan->due_date->diffInDays(today()) }} day{{ $overdueLoan->due_date->diffInDays(today()) === 1 ? '' : 's' }} overdue</div>
+                                    @endif
+                                </td>
+                                <td class="text-end text-danger fw-semibold">P{{ number_format((float) $overdueLoan->outstanding_balance, 2) }}</td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        @if(\App\Support\TenantFeatures::tenantHasFeature('overdue_loan_management'))
+                                            <form action="{{ route('loans.send-reminder', [...$tenantParameter, 'loan' => $overdueLoan]) }}" method="POST">
+                                                @csrf
+                                                <button type="submit" class="btn btn-outline-primary btn-sm" title="Send Reminder">
+                                                    <i class="bi bi-envelope"></i>
+                                                </button>
+                                            </form>
+                                            <a href="{{ route('loans.show', [...$tenantParameter, 'loan' => $overdueLoan]) }}" class="btn btn-outline-warning btn-sm" title="Apply Penalty">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                            </a>
+                                        @endif
+                                        <a href="{{ route('loans.show', [...$tenantParameter, 'loan' => $overdueLoan]) }}" class="btn btn-outline-secondary btn-sm" title="View Loan">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">No overdue loans found for the selected filters.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="col-xl-7">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">

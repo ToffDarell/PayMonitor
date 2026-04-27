@@ -21,6 +21,7 @@ final class TenantFeatures
         'branch_management' => 'v1.0.0',
         'multi_user' => 'v1.0.0',
         'collections_dashboard' => 'v1.1.0',
+        'overdue_loan_management' => 'v1.3.9',
         'advanced_reports' => 'v1.1.0',
         'audit_logs' => 'v1.1.0',
         'member_documents' => 'v1.2.0',

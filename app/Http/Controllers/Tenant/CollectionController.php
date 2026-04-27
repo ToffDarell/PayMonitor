@@ -92,6 +92,11 @@ class CollectionController extends Controller
             ->limit(20)
             ->get();
 
+        $overdueLoanRows = (clone $overdueLoansQuery)
+            ->latest('due_date')
+            ->limit(12)
+            ->get();
+
         $dueThisWeek = $dueThisWeekQuery
             ->limit(12)
             ->get();
@@ -108,6 +113,7 @@ class CollectionController extends Controller
             'collectionRate',
             'overdueLoans',
             'overdueAmount',
+            'overdueLoanRows',
             'collectedToday',
             'recentCollections',
             'dueThisWeek',

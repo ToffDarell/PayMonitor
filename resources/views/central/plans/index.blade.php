@@ -24,6 +24,7 @@ $featureNames = [
     'branch_management' => 'Branch Management',
     'multi_user' => 'Multi-User Access',
     'collections_dashboard' => 'Collections Dashboard',
+    'overdue_loan_management' => 'Overdue Loan Management',
     'advanced_reports' => 'Advanced Reports',
     'audit_logs' => 'Audit Logs',
     'member_documents' => 'Member Documents',

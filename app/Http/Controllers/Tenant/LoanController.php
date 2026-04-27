@@ -121,6 +121,7 @@ class LoanController extends Controller
             'documents.uploadedBy',
             'loanPayments.user',
             'loanSchedules',
+            'penalties.user',
         ]);
 
         return view('loans.show', compact('loan'));
