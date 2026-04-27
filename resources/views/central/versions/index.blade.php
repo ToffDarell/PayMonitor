@@ -39,7 +39,7 @@
         <div>
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Central Management</p>
             <h2 class="mt-3 text-3xl font-bold tracking-tight text-white">Versions</h2>
-            <p class="mt-2 text-sm text-slate-400">Manage releases, tenant rollout, and update notifications.</p>
+            <p class="mt-2 text-sm text-slate-400">Manage releases and update notifications.</p>
         </div>
         <div class="flex flex-wrap gap-3">
             <form method="POST" action="{{ route('central.versions.sync', [], false) }}">
@@ -67,21 +67,14 @@
                 <p class="mt-2 text-sm text-slate-400">Published {{ $publishedLabel }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <span class="inline-flex rounded-full border border-white/10 bg-[#0f1319] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">
-                    Current {{ $updateInfo['current_version'] }}
-                </span>
                 <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] {{ ($updateInfo['update_available'] ?? false) ? 'border border-yellow-500/30 bg-yellow-500/10 text-yellow-300' : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300' }}">
                     {{ ($updateInfo['update_available'] ?? false) ? 'Update Available' : 'Up to Date' }}
                 </span>
             </div>
         </div>
-        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+        <div class="mt-6 grid gap-4 sm:grid-cols-2">
             <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Installed</p>
-                <p class="mt-3 text-2xl font-semibold text-white">{{ $updateInfo['current_version'] }}</p>
-            </div>
-            <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Latest</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Latest GitHub Tag</p>
                 <p class="mt-3 text-2xl font-semibold {{ ($updateInfo['update_available'] ?? false) ? 'text-yellow-300' : 'text-emerald-300' }}">{{ $updateInfo['latest_version'] }}</p>
             </div>
             <div class="rounded-xl border border-[#273142] bg-[#0f1319] p-4">
