@@ -71,26 +71,45 @@ class ReleaseRegistryService
     {
         $this->validateGitHubRepositoryConfig();
 
-        $url = "https://api.github.com/repos/{$this->githubRepo}/releases";
+        $releasesUrl = "https://api.github.com/repos/{$this->githubRepo}/releases";
+        $latestUrl = "https://api.github.com/repos/{$this->githubRepo}/releases/latest";
 
         $request = Http::withHeaders([
             'Accept' => 'application/vnd.github+json',
             'User-Agent' => 'PayMonitor-App',
+            'Cache-Control' => 'no-cache',
         ]);
 
         if ($this->githubToken !== null) {
             $request = $request->withToken($this->githubToken);
         }
 
-        $response = $request->get($url);
+        $releasesResponse = $request->get($releasesUrl);
+        $payload = $releasesResponse->successful() ? $releasesResponse->json() : [];
+        $releases = is_array($payload) ? $payload : [];
 
-        if ($response->failed()) {
-            throw new \RuntimeException($this->buildGitHubApiErrorMessage($response));
+        // GitHub heavily caches the /releases endpoint for unauthenticated requests.
+        // Fetch /latest specifically to ensure we always see the absolute newest release.
+        $latestResponse = $request->get($latestUrl);
+        if ($latestResponse->successful() && is_array($latestPayload = $latestResponse->json())) {
+            $latestId = $latestPayload['id'] ?? null;
+            $found = false;
+            foreach ($releases as $r) {
+                if (($r['id'] ?? null) === $latestId) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (! $found && $latestId) {
+                array_unshift($releases, $latestPayload);
+            }
         }
 
-        $payload = $response->json();
+        if ($releasesResponse->failed() && empty($releases)) {
+            throw new \RuntimeException($this->buildGitHubApiErrorMessage($releasesResponse));
+        }
 
-        return is_array($payload) ? $payload : [];
+        return $releases;
     }
 
     private function validateGitHubRepositoryConfig(): void
