@@ -217,7 +217,7 @@ class SettingsController extends Controller
 
         if ($result['success']) {
             $details = $result['details'] ?? [];
-            $version = $result['release']?->tag ?? 'Unknown';
+            $version = $result['release']?->tag ?? 'v1.0.0';
             $migrations = $details['migrations_run'] ?? 0;
             $codeDeployed = ($details['code_deployed'] ?? false) ? ' with code deployment' : '';
 
@@ -304,8 +304,8 @@ class SettingsController extends Controller
         $changelogText = (string) ($latestAvailable['changelog'] ?? '');
 
         $updateInfo = [
-            'current_version' => (string) ($currentRelease?->appRelease?->tag ?? 'Unknown'),
-            'latest_version' => (string) ($latestAvailable['tag'] ?? $currentRelease?->appRelease?->tag ?? 'Unknown'),
+            'current_version' => (string) ($currentRelease?->appRelease?->tag ?? 'v1.0.0'),
+            'latest_version' => (string) ($latestAvailable['tag'] ?? $currentRelease?->appRelease?->tag ?? 'v1.0.0'),
             'release_name' => (string) ($latestAvailable['title'] ?? ($currentRelease?->appRelease?->title ?? 'No published release')),
             'release_url' => (string) ($latestAvailable['release_url'] ?? ''),
             'published_at' => $latestAvailable['published_at'] ?? null,

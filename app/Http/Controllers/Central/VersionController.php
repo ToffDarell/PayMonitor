@@ -75,8 +75,8 @@ class VersionController extends Controller
 
         return response()->json([
             'update_available' => $updateInfo['update_available'] ?? false,
-            'latest_version'   => $updateInfo['latest_version'] ?? 'Unknown',
-            'current_version'  => $updateInfo['current_version'] ?? 'Unknown',
+            'latest_version'   => $updateInfo['latest_version'] ?? 'v1.0.0',
+            'current_version'  => $updateInfo['current_version'] ?? 'v1.0.0',
             'release_name'     => $updateInfo['release_name'] ?? 'Unable to check',
             'changelog'        => $updateInfo['changelog'] ?? '',
         ]);
@@ -157,7 +157,7 @@ class VersionController extends Controller
     public function notifyTenant(Tenant $tenant): RedirectResponse
     {
         $updateInfo    = $this->versionService->getUpdateInfo();
-        $latestVersion = (string) ($updateInfo['latest_version'] ?? 'Unknown');
+        $latestVersion = (string) ($updateInfo['latest_version'] ?? 'v1.0.0');
         $changelog     = (string) ($updateInfo['changelog'] ?? '');
         $releaseName   = (string) ($updateInfo['release_name'] ?? 'New Release');
 
@@ -211,7 +211,7 @@ class VersionController extends Controller
             $changelog = (string) ($latestTrackedRelease->changelog ?? '');
         } else {
             $latestRelease = $this->versionService->getLatestRelease();
-            $latestVersion = (string) ($latestRelease['version'] ?? 'Unknown');
+            $latestVersion = (string) ($latestRelease['version'] ?? 'v1.0.0');
             $releaseName = (string) ($latestRelease['name'] ?? 'New Release');
             $changelog = (string) ($latestRelease['changelog'] ?? '');
         }

@@ -53,7 +53,7 @@ class GitHubVersionService
             $data = $response->json();
 
             return [
-                'version' => (string) ($data['tag_name'] ?? 'Unknown'),
+                'version' => (string) ($data['tag_name'] ?? 'v1.0.0'),
                 'name' => (string) ($data['name'] ?? 'Untitled Release'),
                 'changelog' => (string) ($data['body'] ?? ''),
                 'published_at' => $data['published_at'] ?? null,
@@ -66,7 +66,7 @@ class GitHubVersionService
     protected function fallbackReleaseData(): array
     {
         return [
-            'version' => 'Unknown',
+            'version' => 'v1.0.0',
             'name' => 'Unable to check',
             'changelog' => '',
             'published_at' => null,
@@ -118,7 +118,7 @@ class GitHubVersionService
 
         return [
             'current_version' => $current,
-            'latest_version' => (string) ($latest['version'] ?? 'Unknown'),
+            'latest_version' => (string) ($latest['version'] ?? 'v1.0.0'),
             'update_available' => $this->isUpdateAvailable(),
             'release_name' => (string) ($latest['name'] ?? 'Unable to check'),
             'changelog' => (string) ($latest['changelog'] ?? ''),
@@ -193,12 +193,12 @@ class GitHubVersionService
             return [
                 'success' => false,
                 'output' => 'GitHub latest release could not be retrieved.',
-                'version' => 'Unknown',
+                'version' => 'v1.0.0',
                 'message' => 'Update failed',
             ];
         }
 
-        $newVersion = (string) ($latestRelease['version'] ?? 'Unknown');
+        $newVersion = (string) ($latestRelease['version'] ?? 'v1.0.0');
 
         if (! $this->isUpdateAvailable()) {
             return [

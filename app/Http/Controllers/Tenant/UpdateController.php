@@ -45,7 +45,7 @@ class UpdateController extends Controller
 
         if ($result['success']) {
             $details = $result['details'] ?? [];
-            $version = $result['release']?->tag ?? 'Unknown';
+            $version = $result['release']?->tag ?? 'v1.0.0';
             $migrations = $details['migrations_run'] ?? 0;
 
             $message = "Successfully updated to {$version}.";
