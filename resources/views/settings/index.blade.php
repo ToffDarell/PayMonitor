@@ -454,7 +454,7 @@
                 <h3 class="mt-2 font-heading text-xl font-bold text-white">Update your password</h3>
                 <p class="mt-2 text-sm text-slate-400">Enter your current password, then choose a new one for future logins.</p>
 
-                <form method="POST" action="{{ route('settings.password', $tenantParameter, false) }}" class="mt-6 space-y-5" x-data="{ showCurrentPassword: false, showNewPassword: false, showConfirmPassword: false }">
+                <form method="POST" action="{{ route('settings.password', $tenantParameter, false) }}" class="mt-6 space-y-5" x-data="{ showCurrentPassword: false, showNewPassword: false, showConfirmPassword: false, password: '', confirmPassword: '' }">
                     @csrf
 
                     <div>
@@ -480,7 +480,7 @@
                     <div>
                         <label for="password" class="mb-2 block text-sm font-medium text-slate-200">New Password</label>
                         <div class="relative">
-                            <input id="password" name="password" x-bind:type="showNewPassword ? 'text' : 'password'" autocomplete="new-password" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-12 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
+                            <input id="password" name="password" x-model="password" x-bind:type="showNewPassword ? 'text' : 'password'" autocomplete="new-password" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-12 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
                             <button type="button" x-on:click="showNewPassword = !showNewPassword" class="absolute inset-y-0 right-0 inline-flex items-center px-4 text-slate-400 transition hover:text-slate-200" x-bind:aria-label="showNewPassword ? 'Hide new password' : 'Show new password'">
                                 <svg x-cloak x-show="!showNewPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"/>
@@ -494,13 +494,14 @@
                                 </svg>
                             </button>
                         </div>
+                        <p class="mt-1.5 text-xs text-slate-500">Minimum 8 characters, including uppercase, lowercase, number, and symbol.</p>
                         @error('password', 'updatePassword') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="password_confirmation" class="mb-2 block text-sm font-medium text-slate-200">Confirm New Password</label>
                         <div class="relative">
-                            <input id="password_confirmation" name="password_confirmation" x-bind:type="showConfirmPassword ? 'text' : 'password'" autocomplete="new-password" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-12 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
+                            <input id="password_confirmation" name="password_confirmation" x-model="confirmPassword" x-bind:type="showConfirmPassword ? 'text' : 'password'" autocomplete="new-password" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-12 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
                             <button type="button" x-on:click="showConfirmPassword = !showConfirmPassword" class="absolute inset-y-0 right-0 inline-flex items-center px-4 text-slate-400 transition hover:text-slate-200" x-bind:aria-label="showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'">
                                 <svg x-cloak x-show="!showConfirmPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"/>
@@ -514,12 +515,17 @@
                                 </svg>
                             </button>
                         </div>
+                        <p x-cloak x-show="confirmPassword.length > 0" class="mt-2 flex items-center gap-1.5 text-xs" :class="password === confirmPassword ? 'text-emerald-400' : 'text-red-400'">
+                            <svg x-show="password === confirmPassword" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <svg x-show="password !== confirmPassword" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <span x-text="password === confirmPassword ? 'Passwords match' : 'Passwords do not match'"></span>
+                        </p>
                         @error('password_confirmation', 'updatePassword') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
-                            Save New Password
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110 disabled:opacity-70 disabled:cursor-not-allowed" x-bind:disabled="!password || password !== confirmPassword || password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)">
+                            Update Password
                         </button>
                     </div>
                 </form>
