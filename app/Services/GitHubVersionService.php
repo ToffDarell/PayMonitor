@@ -247,11 +247,12 @@ class GitHubVersionService
         $checkout = new Process([$gitBin, 'checkout', '--detach', $newVersion], base_path());
         $checkout->setTimeout(180);
         $composer = $this->buildComposerInstallProcess($composerBin);
+        $migrate = $this->buildMigrateProcess();
         $clear = $this->buildOptimizeClearProcess();
         $success = false;
         
         if ($archiveDeployment['success']) {
-            ['composer' => $composer, 'clear' => $clear, 'success' => $success] = $this->runPostUpdateProcesses($composerBin);
+            ['composer' => $composer, 'migrate' => $migrate, 'clear' => $clear, 'success' => $success] = $this->runPostUpdateProcesses($composerBin);
         } else {
             $fetchResult = $this->runGitFetchWithRetry((string) $gitBin);
             $fetch = $fetchResult['process'];
@@ -259,7 +260,7 @@ class GitHubVersionService
             if ($fetch->isSuccessful()) {
                 $checkout->run();
                 if ($checkout->isSuccessful()) {
-                    ['composer' => $composer, 'clear' => $clear, 'success' => $success] = $this->runPostUpdateProcesses($composerBin);
+                    ['composer' => $composer, 'migrate' => $migrate, 'clear' => $clear, 'success' => $success] = $this->runPostUpdateProcesses($composerBin);
                 }
             }
         }
@@ -277,6 +278,8 @@ class GitHubVersionService
             $this->formatProcessOutput($checkout),
             '[composer install --no-dev]',
             $this->formatProcessOutput($composer),
+            '[php artisan migrate --force]',
+            $this->formatProcessOutput($migrate),
             '[php artisan optimize:clear]',
             $this->formatProcessOutput($clear),
         ]));
@@ -477,24 +480,37 @@ class GitHubVersionService
         return $process;
     }
 
+    protected function buildMigrateProcess(): Process
+    {
+        $process = new Process([PHP_BINARY, base_path('artisan'), 'migrate', '--force'], base_path());
+        $process->setTimeout(300);
+
+        return $process;
+    }
+
     /**
-     * @return array{composer: Process, clear: Process, success: bool}
+     * @return array{composer: Process, clear: Process, migrate: Process, success: bool}
      */
     protected function runPostUpdateProcesses(string $composerBin): array
     {
         $composer = $this->buildComposerInstallProcess($composerBin);
+        $migrate = $this->buildMigrateProcess();
         $clear = $this->buildOptimizeClearProcess();
         $success = false;
 
         $composer->run();
 
         if ($composer->isSuccessful()) {
-            $clear->run();
-            $success = $clear->isSuccessful();
+            $migrate->run();
+            if ($migrate->isSuccessful()) {
+                $clear->run();
+                $success = $clear->isSuccessful();
+            }
         }
 
         return [
             'composer' => $composer,
+            'migrate' => $migrate,
             'clear' => $clear,
             'success' => $success,
         ];
