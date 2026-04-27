@@ -539,12 +539,13 @@
         x-show="activeTab === 'updates'"
         x-data="updateProgress({
             applyUrl: @js(route('settings.updates.apply', $tenantParameter, false)),
-            statusUrl: @js(url('/updates/status')),
+            statusUrl: @js(\Illuminate\Support\Facades\Route::has('settings.updates.status') ? route('settings.updates.status', $tenantParameter, false) : null),
             csrfToken: @js(csrf_token()),
             latestReleaseId: @js($availableUpdates[0]['id'] ?? null),
             latestVersion: @js($latestVersionLabel),
             updateAvailable: @js($updateAvailable),
             latestReleaseName: @js($releaseName),
+            autoStart: @js(request()->boolean('autostart')),
         })"
         x-init="init()"
         class="space-y-6"
@@ -1138,6 +1139,7 @@ function updateProgress(config) {
         statusUrl: config.statusUrl,
         csrfToken: config.csrfToken,
         updateAvailable: !!config.updateAvailable,
+        autoStart: !!config.autoStart,
         steps: [
             { key: 'download', label: 'Download', stages: ['start', 'download', 'preflight'] },
             { key: 'extract', label: 'Extract', stages: ['extract', 'backup-db'] },
@@ -1148,8 +1150,12 @@ function updateProgress(config) {
             { key: 'cache', label: 'Cache', stages: ['cache', 'queue'] },
         ],
 
-        init() {
-            this.checkStatus();
+        async init() {
+            await this.checkStatus();
+
+            if (this.autoStart && this.state === 'idle' && this.updateAvailable && this.latestReleaseId) {
+                this.startUpdate(this.latestReleaseId);
+            }
         },
 
         getStepIndex(stage) {
@@ -1314,16 +1320,21 @@ function updateProgress(config) {
                     return;
                 }
 
+                const contentType = response.headers.get('content-type') || '';
                 let data = null;
 
-                try {
-                    data = await response.clone().json();
-                } catch (error) {
-                    data = null;
+                if (contentType.includes('application/json')) {
+                    try {
+                        data = await response.clone().json();
+                    } catch (error) {
+                        data = null;
+                    }
                 }
 
-                if (!data && response.ok) {
-                    window.location.reload();
+                if (!response.ok) {
+                    this.stopElapsedTimer();
+                    this.stopPolling();
+                    this.showFailed(data?.message || data?.error || `Failed to start update (HTTP ${response.status}).`);
                     return;
                 }
 
@@ -1339,9 +1350,26 @@ function updateProgress(config) {
                 }
                 
                 if (data && data.success) {
-                    window.location.reload();
+                    this.stopPolling();
+                    this.stopElapsedTimer();
+                    this.progress = 100;
+                    this.currentStep = this.totalSteps;
+                    this.currentStage = 'finalize';
+                    this.statusMessage = data.message || 'Update complete.';
+                    this.logEntries.push({
+                        time: this.formatTime(new Date().toISOString()),
+                        message: data.message || 'Update completed successfully.',
+                        stage: 'finalize',
+                        color: this.getLogColor('finalize'),
+                    });
+                    this.state = 'completed';
+                    this.startReloadCountdown();
                     return;
                 }
+
+                this.stopElapsedTimer();
+                this.stopPolling();
+                this.showFailed('Update request finished without a valid response payload.');
             } catch (error) {
                 this.stopElapsedTimer();
                 this.stopPolling();
@@ -1350,6 +1378,10 @@ function updateProgress(config) {
         },
 
         startPolling() {
+            if (!this.statusUrl) {
+                return;
+            }
+
             if (this.pollInterval) {
                 return;
             }

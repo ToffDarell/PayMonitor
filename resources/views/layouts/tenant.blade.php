@@ -942,47 +942,68 @@
         $updateRequired = (bool) ($currentTenant?->update_required ?? false);
         $requiredVersion = $currentTenant?->update_required_version;
         $tenantCurrentVersion = \App\Models\TenantSetting::get('current_version', 'v1.0.0');
+
+        $normalizedTenantVersion = ltrim((string) $tenantCurrentVersion, 'vV');
+        $normalizedRequiredVersion = ltrim((string) ($requiredVersion ?? ''), 'vV');
+        $hasComparableRequiredVersion = preg_match('/^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/', $normalizedRequiredVersion) === 1;
+
         $isAlreadyOnRequired = !$updateRequired || (
-            $requiredVersion && version_compare(
-                ltrim((string)$tenantCurrentVersion, 'v'),
-                ltrim((string)$requiredVersion, 'v'),
+            $requiredVersion && $hasComparableRequiredVersion && version_compare(
+                $normalizedTenantVersion,
+                $normalizedRequiredVersion,
                 '>='
             )
         );
+        // Don't block if the user is already on the updates page itself
+        $currentRouteName = request()->route()?->getName() ?? '';
+        $isOnUpdatePage = in_array($currentRouteName, ['settings.updates', 'settings.updates.apply'], true);
     } catch (\Exception $e) {
         $updateRequired = false;
         $isAlreadyOnRequired = true;
+        $isOnUpdatePage = false;
     }
     @endphp
 
-    @if($updateRequired && !$isAlreadyOnRequired)
-    <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="bg-[#161b22] border border-yellow-500/50 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <div class="flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 mx-auto mb-6">
-                <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    @if($updateRequired && !$isAlreadyOnRequired && !$isOnUpdatePage)
+    <div class="fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm"
+         style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="max-w-md w-full mx-4 rounded-2xl border p-8 shadow-2xl"
+             style="background-color: var(--pm-card-bg); border-color: rgba(234, 179, 8, 0.35); color: var(--pm-text-primary);">
+
+            {{-- Warning icon --}}
+            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border"
+                 style="background-color: rgba(234, 179, 8, 0.12); border-color: rgba(234, 179, 8, 0.35);">
+                <svg class="w-8 h-8" fill="none" stroke="#eab308" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
             </div>
-            <h2 class="text-white text-xl font-bold text-center mb-2">Update Required</h2>
-            <p class="text-[#8b949e] text-sm text-center mb-1">Your administrator requires you to update to version</p>
-            <p class="text-yellow-400 text-2xl font-black text-center font-mono mb-4">{{ $requiredVersion }}</p>
-            <p class="text-[#8b949e] text-xs text-center mb-6">You must update your portal before continuing. This update includes important improvements and security fixes.</p>
-            <div class="bg-[#0d1117] rounded-xl p-4 mb-6 flex items-center justify-between">
+
+            <h2 class="mb-2 text-center text-xl font-bold" style="color: var(--pm-text-primary);">Update Required</h2>
+            <p class="mb-1 text-center text-sm" style="color: var(--pm-text-muted);">Your administrator requires you to update to version</p>
+            <p class="text-2xl font-black text-center font-mono mb-4" style="color: #eab308;">{{ $requiredVersion }}</p>
+            <p class="mb-6 text-center text-xs" style="color: var(--pm-text-muted);">You must update your portal before continuing. This update includes important improvements and security fixes.</p>
+
+            {{-- Version comparison box --}}
+            <div class="mb-6 flex items-center justify-between rounded-xl border p-4"
+                 style="background-color: var(--pm-surface-bg); border-color: var(--pm-border);">
                 <div class="text-center">
-                    <p class="text-[#8b949e] text-xs mb-1">Your Version</p>
-                    <p class="text-white font-mono font-bold">{{ $tenantCurrentVersion }}</p>
+                    <p class="mb-1 text-xs" style="color: var(--pm-text-muted);">Your Version</p>
+                    <p class="font-mono font-bold" style="color: var(--pm-text-primary);">{{ $tenantCurrentVersion }}</p>
                 </div>
-                <div class="text-[#8b949e] text-lg">→</div>
+                <div style="color: var(--pm-text-muted); font-size: 1.125rem;">→</div>
                 <div class="text-center">
-                    <p class="text-[#8b949e] text-xs mb-1">Required Version</p>
-                    <p class="text-yellow-400 font-mono font-bold">{{ $requiredVersion }}</p>
+                    <p class="mb-1 text-xs" style="color: var(--pm-text-muted);">Required Version</p>
+                    <p class="font-mono font-bold" style="color: #eab308;">{{ $requiredVersion }}</p>
                 </div>
             </div>
-            <a href="{{ url('/updates') }}"
-               class="block w-full text-center bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition-colors text-sm">
+
+            {{-- Update Now button — links to the tenant Updates settings page --}}
+                <a href="{{ route('settings.updates', array_merge($tenantParameter, ['autostart' => 1]), false) }}"
+               class="block w-full rounded-xl py-3 text-center text-sm font-bold transition-opacity hover:opacity-90"
+               style="background-color: #eab308; color: #1a1a1a;">
                 Update Now →
             </a>
-            <p class="text-[#52525b] text-xs text-center mt-3">You cannot dismiss this dialog until your portal is updated.</p>
+            <p class="mt-3 text-center text-xs" style="color: var(--pm-text-subtle);">You cannot dismiss this dialog until your portal is updated.</p>
         </div>
     </div>
     @endif

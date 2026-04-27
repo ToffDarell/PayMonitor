@@ -2,81 +2,26 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Tenant;
-use App\Services\TenantUpdateService;
 use Closure;
 use Illuminate\Http\Request;
 
+/**
+ * RequiredUpdateMiddleware
+ *
+ * NOTE: This middleware intentionally does NOT redirect users when an update
+ * is required. Enforcement is handled entirely by the blocking modal overlay
+ * in resources/views/layouts/tenant.blade.php, which renders on every
+ * authenticated page and cannot be dismissed until the portal is updated.
+ *
+ * A hard redirect here would prevent the modal from ever rendering, because
+ * the redirect fires before the blade layout is processed.
+ */
 class RequiredUpdateMiddleware
 {
-    public function __construct(
-        private TenantUpdateService $tenantUpdateService
-    ) {}
-
     public function handle(Request $request, Closure $next)
     {
-        $tenantId = (string) (tenant()?->id ?? $request->route('tenant'));
-
-        if ($tenantId === '') {
-            return $next($request);
-        }
-
-        if ($this->isExemptRoute($request)) {
-            return $next($request);
-        }
-
-        if ($this->tenantUpdateService->isUpdateRequired($tenantId) || $this->tenantFlagRequiresUpdate($tenantId)) {
-            return redirect()->route('settings.updates', $this->tenantRouteParameters($tenantId), false)
-                ->with('error', 'A required update must be applied before continuing.');
-        }
-
+        // Pass through — the tenant layout blade handles update enforcement
+        // via a non-dismissible full-screen modal overlay.
         return $next($request);
-    }
-
-    private function isExemptRoute(Request $request): bool
-    {
-        $exemptRoutes = [
-            'settings.index',
-            'settings.updates',
-            'settings.updates.apply',
-            'tenant.logout',
-        ];
-
-        $currentRoute = $request->route()?->getName();
-
-        return is_string($currentRoute) && in_array($currentRoute, $exemptRoutes, true);
-    }
-
-    private function tenantFlagRequiresUpdate(string $tenantId): bool
-    {
-        $tenantModel = config('tenancy.tenant_model', Tenant::class);
-        $tenant = $tenantModel::query()->find($tenantId);
-
-        return (bool) ($tenant?->update_required ?? false);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function tenantRouteParameters(string $tenantId): array
-    {
-        $currentTenant = request()->route('tenant');
-
-        if (is_string($currentTenant) && $currentTenant !== '') {
-            return ['tenant' => $currentTenant];
-        }
-
-        $host = request()->getHost();
-        $centralDomains = config('tenancy.central_domains', ['localhost']);
-
-        foreach ($centralDomains as $domain) {
-            $domain = (string) $domain;
-
-            if ($domain !== '' && str_ends_with($host, '.'.$domain)) {
-                return ['tenant' => $tenantId];
-            }
-        }
-
-        return ['tenant' => $tenantId];
     }
 }

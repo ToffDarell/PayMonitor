@@ -200,10 +200,25 @@ class VersionController extends Controller
             return back()->with('success', "Update requirement removed for {$tenant->name}.");
         }
 
-        $latestRelease  = $this->versionService->getLatestRelease();
-        $latestVersion  = (string) ($latestRelease['version'] ?? 'Unknown');
-        $releaseName    = (string) ($latestRelease['name'] ?? 'New Release');
-        $changelog      = (string) ($latestRelease['changelog'] ?? '');
+        $latestTrackedRelease = AppRelease::query()
+            ->stable()
+            ->orderByDesc('published_at')
+            ->first();
+
+        if ($latestTrackedRelease !== null) {
+            $latestVersion = (string) $latestTrackedRelease->tag;
+            $releaseName = (string) ($latestTrackedRelease->title ?: 'New Release');
+            $changelog = (string) ($latestTrackedRelease->changelog ?? '');
+        } else {
+            $latestRelease = $this->versionService->getLatestRelease();
+            $latestVersion = (string) ($latestRelease['version'] ?? 'Unknown');
+            $releaseName = (string) ($latestRelease['name'] ?? 'New Release');
+            $changelog = (string) ($latestRelease['changelog'] ?? '');
+        }
+
+        if (!preg_match('/^v?\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/', trim($latestVersion))) {
+            return back()->with('error', 'Unable to determine a valid required version. Please sync releases first.');
+        }
 
         $tenant->update_required         = true;
         $tenant->update_required_version = $latestVersion;

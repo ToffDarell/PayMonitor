@@ -205,6 +205,8 @@ class TenantSelfUpdateService
 
     /**
      * Commit the version record in the central database.
+     * Also clears the update_required flag on the central Tenant so the
+     * blocking modal stops showing after the update is applied.
      */
     protected function commitVersionRecord(string $tenantId, AppRelease $release): void
     {
@@ -215,6 +217,31 @@ class TenantSelfUpdateService
 
         $tenant = $this->resolveTenant($tenantId);
         $updatedBy = auth()->user()?->email ?? auth()->user()?->name ?? 'system';
+
+        // Clear the central update_required flag so the blocking modal is dismissed.
+        if ($tenant->update_required) {
+            $requiredVersion = (string) ($tenant->update_required_version ?? '');
+
+            // Only clear if the tenant has now met or exceeded the required version.
+            $meetsRequirement = $requiredVersion === ''
+                || version_compare(
+                    ltrim($release->tag, 'vV'),
+                    ltrim($requiredVersion, 'vV'),
+                    '>='
+                );
+
+            if ($meetsRequirement) {
+                $tenant->update_required         = false;
+                $tenant->update_required_version = null;
+                $tenant->save();
+
+                Log::info('Cleared update_required flag on tenant after successful update', [
+                    'tenant_id'        => $tenantId,
+                    'updated_to'       => $release->tag,
+                    'was_required'     => $requiredVersion,
+                ]);
+            }
+        }
 
         $tenant->run(static function () use ($release, $updatedBy): void {
             TenantSetting::set('current_version', $release->tag);

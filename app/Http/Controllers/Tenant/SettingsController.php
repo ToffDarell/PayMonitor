@@ -11,6 +11,7 @@ use App\Models\TenantSetting;
 use App\Mail\TenantSupportRequestMail;
 use App\Services\TenantUpdateService;
 use App\Services\TenantSelfUpdateService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\Support\MessageBag;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -194,11 +195,12 @@ class SettingsController extends Controller
         return redirect('/settings?tab=support')->with('success', 'Support request submitted successfully.');
     }
 
-    public function applyUpdate(Request $request): RedirectResponse
+    public function applyUpdate(Request $request): RedirectResponse|JsonResponse
     {
         // app_releases lives in the central DB, not the tenant DB.
         // Use the central connection explicitly so the exists rule works.
         $centralConnection = (string) config('tenancy.database.central_connection', config('database.default'));
+        $expectsJson = $request->expectsJson() || $request->ajax();
 
         $request->validate([
             'release_id' => [
@@ -224,10 +226,29 @@ class SettingsController extends Controller
                 $message .= " {$migrations} migration(s) applied.";
             }
 
+            if ($expectsJson) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'version' => $version,
+                    'details' => $details,
+                ]);
+            }
+
             return redirect('/settings?tab=updates')->with('success', $message);
         }
 
-        return back()->with('error', 'Update failed: ' . ($result['error'] ?? 'Unknown error'));
+        $errorMessage = 'Update failed: ' . ($result['error'] ?? 'Unknown error');
+
+        if ($expectsJson) {
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage,
+                'error' => (string) ($result['error'] ?? 'Unknown error'),
+            ], 422);
+        }
+
+        return back()->with('error', $errorMessage);
     }
 
     public function createBackup(Request $request): RedirectResponse
