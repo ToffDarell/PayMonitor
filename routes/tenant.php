@@ -17,7 +17,6 @@ use App\Http\Controllers\Tenant\LoanPaymentController;
 use App\Http\Controllers\Tenant\LoanTypeController;
 use App\Http\Controllers\Tenant\MemberController;
 use App\Http\Controllers\Tenant\MemberDocumentController;
-use App\Http\Controllers\Tenant\ModuleController;
 use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\RoleController;
 use App\Http\Controllers\Tenant\SettingsController;
@@ -73,8 +72,6 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
                     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
                     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-                    Route::resource('modules', ModuleController::class)
-                        ->names('tenant.modules');
                     Route::resource('samplexs', SampleXController::class)
                         ->parameters(['samplexs' => 'sampleX'])
                         ->names('tenant.samplexs');
