@@ -75,7 +75,6 @@ class SettingsController extends Controller
             'accent_color' => ['required', Rule::in(['green', 'blue', 'indigo', 'purple', 'teal'])],
             'theme_mode' => ['required', Rule::in(['dark', 'light'])],
             'font_scale' => ['required', Rule::in(['compact', 'comfortable', 'large'])],
-            'show_member_photos' => ['nullable', 'boolean'],
             'logo' => ['nullable', 'image', 'max:2048'],
         ]);
 
@@ -133,12 +132,6 @@ class SettingsController extends Controller
         }
 
         TenantSetting::set('items_per_page', (string) ($validated['items_per_page'] ?? ($currentSettings['items_per_page'] ?? '15')));
-        TenantSetting::set(
-            'show_member_photos',
-            array_key_exists('show_member_photos', $validated)
-                ? ($request->boolean('show_member_photos') ? '1' : '0')
-                : ($currentSettings['show_member_photos'] ?? '0')
-        );
 
         $activeTab = (string) $request->input('active_tab', 'general');
 

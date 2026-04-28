@@ -229,7 +229,6 @@
             <input type="hidden" name="accent_color" value="{{ old('accent_color', $settings['accent_color'] ?? 'green') }}">
             <input type="hidden" name="theme_mode" value="{{ old('theme_mode', $settings['theme_mode'] ?? 'dark') }}">
             <input type="hidden" name="font_scale" value="{{ old('font_scale', $settings['font_scale'] ?? 'comfortable') }}">
-            <input type="hidden" name="show_member_photos" value="{{ old('show_member_photos', $settings['show_member_photos'] ?? '0') }}">
 
             <div class="grid gap-6 md:grid-cols-2">
                 <div class="md:col-span-2">
@@ -404,17 +403,6 @@
                             </div>
                             <div class="mt-4 rounded-xl px-4 py-3 text-sm font-medium text-white" x-bind:style="{ backgroundColor: selectedAccent === 'green' ? '#22c55e' : selectedAccent === 'blue' ? '#3b82f6' : selectedAccent === 'indigo' ? '#6366f1' : selectedAccent === 'purple' ? '#a855f7' : '#14b8a6' }">Accent preview</div>
                         </div>
-                    </div>
-
-                    <div class="rounded-2xl border border-white/[0.07] bg-[#0f1319] p-5">
-                        <input type="hidden" name="show_member_photos" value="0">
-                        <label for="show_member_photos" class="flex items-start gap-3">
-                            <input id="show_member_photos" name="show_member_photos" type="checkbox" value="1" @checked(old('show_member_photos', $settings['show_member_photos'] ?? '0') === '1') class="mt-1 h-4 w-4 rounded border-white/10 bg-white/[0.03] text-emerald-500 focus:ring-emerald-500/40">
-                            <span>
-                                <span class="block text-sm font-semibold text-white">Show Member Photos</span>
-                                <span class="mt-1 block text-sm text-slate-500">Enable member profile images in tenant-facing lists where supported.</span>
-                            </span>
-                        </label>
                     </div>
                 </div>
             </div>
