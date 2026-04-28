@@ -12,6 +12,7 @@ use App\Models\TenantSetting;
 use App\Services\AdminReleaseService;
 use App\Services\GitHubVersionService;
 use App\Services\ReleaseRegistryService;
+use App\Services\TenantUpdateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -200,20 +201,15 @@ class VersionController extends Controller
             return back()->with('success', "Update requirement removed for {$tenant->name}.");
         }
 
+        $updateInfo = $this->versionService->getUpdateInfo();
+        $latestVersion = (string) ($updateInfo['latest_version'] ?? 'v1.0.0');
         $latestTrackedRelease = AppRelease::query()
             ->stable()
-            ->orderByDesc('published_at')
+            ->where('tag', $latestVersion)
             ->first();
 
-        if ($latestTrackedRelease !== null) {
-            $latestVersion = (string) $latestTrackedRelease->tag;
-            $releaseName = (string) ($latestTrackedRelease->title ?: 'New Release');
-            $changelog = (string) ($latestTrackedRelease->changelog ?? '');
-        } else {
-            $latestRelease = $this->versionService->getLatestRelease();
-            $latestVersion = (string) ($latestRelease['version'] ?? 'v1.0.0');
-            $releaseName = (string) ($latestRelease['name'] ?? 'New Release');
-            $changelog = (string) ($latestRelease['changelog'] ?? '');
+        if ($latestTrackedRelease === null) {
+            $latestTrackedRelease = $this->resolveLatestStableRelease();
         }
 
         if (!preg_match('/^v?\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/', trim($latestVersion))) {
@@ -224,31 +220,56 @@ class VersionController extends Controller
         $tenant->update_required_version = $latestVersion;
         $tenant->save();
 
-        // Also send notification email
-        $tenantAdminEmail = (string) ($tenant->email ?? '');
-        $tenantAdminName  = (string) ($tenant->admin_name ?? $tenant->name ?? 'Admin');
-        $tenant->loadMissing('domains');
-        $domain     = $tenant->domains->first()?->domain ?? '';
-        $scheme     = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
-        $loginUrl   = $domain ? "{$scheme}://{$domain}/login" : '';
-        $updatesUrl = $domain ? "{$scheme}://{$domain}/settings/updates" : '';
+        if ($latestTrackedRelease !== null) {
+            app(TenantUpdateService::class)->markUpdateAvailable((string) $tenant->id, $latestTrackedRelease->id);
 
-        if (filled($tenantAdminEmail)) {
-            try {
-                Mail::to($tenantAdminEmail)->send(new TenantUpdateNotificationMail(
-                    tenant: $tenant,
-                    adminName: $tenantAdminName,
-                    latestVersion: $latestVersion,
-                    releaseName: $releaseName,
-                    changelog: $changelog,
-                    loginUrl: $loginUrl,
-                    updatesUrl: $updatesUrl,
-                ));
-            } catch (\Throwable) {
-                // Mail failure doesn't block the save
-            }
+            \App\Models\TenantUpdate::updateOrCreate(
+                [
+                    'tenant_id' => (string) $tenant->id,
+                    'app_release_id' => $latestTrackedRelease->id,
+                ],
+                [
+                    'status' => \App\Models\TenantUpdate::STATUS_UPDATE_AVAILABLE,
+                    'is_current' => false,
+                    'notified_at' => now(),
+                    'required_at' => now(),
+                    'grace_until' => null,
+                ]
+            );
         }
 
-        return back()->with('success', "Update marked as required for {$tenant->name}. Notification sent.");
+        return back()->with('success', "Update marked as required for {$tenant->name}.");
+    }
+
+    private function resolveLatestStableRelease(): ?AppRelease
+    {
+        /** @var \Illuminate\Support\Collection<int, AppRelease> $stableReleases */
+        $stableReleases = AppRelease::query()->stable()->get();
+
+        if ($stableReleases->isEmpty()) {
+            return null;
+        }
+
+        return $stableReleases
+            ->sort(function (AppRelease $left, AppRelease $right): int {
+                $versionComparison = version_compare(
+                    ltrim((string) $left->tag, 'vV'),
+                    ltrim((string) $right->tag, 'vV')
+                );
+
+                if ($versionComparison !== 0) {
+                    return $versionComparison > 0 ? -1 : 1;
+                }
+
+                $leftPublishedAt = $left->published_at?->getTimestamp() ?? 0;
+                $rightPublishedAt = $right->published_at?->getTimestamp() ?? 0;
+
+                if ($leftPublishedAt !== $rightPublishedAt) {
+                    return $leftPublishedAt > $rightPublishedAt ? -1 : 1;
+                }
+
+                return strcmp((string) $right->tag, (string) $left->tag);
+            })
+            ->first();
     }
 }

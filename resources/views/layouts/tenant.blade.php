@@ -941,7 +941,12 @@
         $currentTenant = \App\Models\Tenant::find(tenant()?->id);
         $updateRequired = (bool) ($currentTenant?->update_required ?? false);
         $requiredVersion = $currentTenant?->update_required_version;
-        $tenantCurrentVersion = \App\Models\TenantSetting::get('current_version', 'v1.0.0');
+        $tenantId = (string) (tenant()?->id ?? request()->route('tenant'));
+        $trackedCurrentRelease = app(\App\Services\TenantUpdateService::class)->getCurrentRelease($tenantId);
+        $tenantCurrentVersion = (string) (
+            $trackedCurrentRelease?->appRelease?->tag
+            ?? \App\Models\TenantSetting::get('current_version', 'v1.0.0')
+        );
 
         $normalizedTenantVersion = ltrim((string) $tenantCurrentVersion, 'vV');
         $normalizedRequiredVersion = ltrim((string) ($requiredVersion ?? ''), 'vV');
