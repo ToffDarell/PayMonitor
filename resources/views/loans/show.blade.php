@@ -10,6 +10,7 @@
         'fully_paid' => 'success',
         'overdue' => 'danger',
         'restructured' => 'warning text-dark',
+        'written_off' => 'dark',
     ];
     $scheduleStatusClasses = [
         'pending' => 'secondary',
@@ -32,6 +33,12 @@
     $showDocumentsSection = $canViewDocuments || $canUploadDocuments || $canDeleteDocuments;
     $openDocumentModal = $errors->has('document_type') || $errors->has('file') || $errors->has('notes');
     $overdueFeatureEnabled = \App\Support\TenantFeatures::tenantHasFeature('overdue_loan_management');
+    $openWriteOffModal = $errors->has('reason') || $errors->has('confirmation');
+    $themeMode = \App\Models\TenantSetting::get('theme_mode', 'dark');
+    $summarySurfaceClasses = $themeMode === 'light' ? 'bg-white text-dark border border-dark border-opacity-10' : 'bg-dark text-white border border-secondary';
+    $summaryMutedLabelClass = $themeMode === 'light' ? 'text-secondary' : 'text-muted';
+    $summaryDividerClass = $themeMode === 'light' ? 'border-dark border-opacity-10' : 'border-secondary';
+    $neutralActionButtonClass = $themeMode === 'light' ? 'btn btn-light border shadow-sm' : 'btn btn-outline-secondary';
 @endphp
 
 <div
@@ -86,6 +93,16 @@
                         <span class="badge bg-{{ $loanStatusClasses[$loan->status] ?? 'secondary' }}">
                             {{ str_replace('_', ' ', ucfirst($loan->status)) }}
                         </span>
+                        @if($loan->is_delinquent)
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                Delinquent
+                            </span>
+                        @endif
+                        @if($loan->status === 'written_off')
+                            <span class="badge bg-dark text-white">
+                                Written Off
+                            </span>
+                        @endif
                         <span class="badge bg-light text-dark">{{ $loan->member?->full_name ?? 'Unknown Member' }}</span>
                     </div>
                     <div class="row g-3">
@@ -101,6 +118,18 @@
                             <div class="text-muted small text-uppercase fw-semibold">Released By</div>
                             <div>{{ $loan->user?->name ?? 'N/A' }}</div>
                         </div>
+                        @if($loan->is_delinquent)
+                            <div class="col-md-6">
+                                <div class="text-muted small text-uppercase fw-semibold">Delinquent Since</div>
+                                <div class="text-danger fw-semibold">{{ $loan->delinquent_at?->format('M d, Y h:i A') ?? 'Marked delinquent' }}</div>
+                            </div>
+                        @endif
+                        @if($loan->status === 'written_off')
+                            <div class="col-md-6">
+                                <div class="text-muted small text-uppercase fw-semibold">Written Off On</div>
+                                <div class="text-dark fw-semibold">{{ $loan->written_off_at?->format('M d, Y h:i A') ?? 'Written off' }}</div>
+                            </div>
+                        @endif
                     </div>
                 </div>
                 <div class="border rounded-3 bg-light p-3" style="min-width: 280px;">
@@ -149,6 +178,34 @@
         </div>
     </div>
 
+    @if($loan->status === 'written_off')
+        <div class="alert alert-dark border-0 shadow-sm mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                <div>
+                    <div class="fw-bold text-uppercase small mb-1">Written Off Loan</div>
+                    <div>This loan has been written off and removed from active collections.</div>
+                </div>
+                <div class="text-md-end">
+                    <div class="small text-muted">Written Off On</div>
+                    <div class="fw-semibold">{{ $loan->written_off_at?->format('M d, Y h:i A') ?? 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+    @elseif($loan->is_delinquent)
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                <div>
+                    <div class="fw-bold text-uppercase small mb-1">Delinquent Loan</div>
+                    <div>This loan is flagged as a severe overdue account and needs special follow-up.</div>
+                </div>
+                <div class="text-md-end">
+                    <div class="small text-danger-emphasis">Delinquent Since</div>
+                    <div class="fw-semibold">{{ $loan->delinquent_at?->format('M d, Y h:i A') ?? 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white py-3">
             <h2 class="h5 mb-0 fw-bold">Loan Details</h2>
@@ -187,8 +244,8 @@
         </div>
     </div>
 
-    @if($overdueFeatureEnabled && ($loan->status === 'overdue' || $loan->is_delinquent))
-        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-4 mb-4" x-data="{ applyPenaltyOpen: false, restructureOpen: false, writeOffOpen: false, writeOffConfirmText: '', showDangerZone: false }">
+    @if($overdueFeatureEnabled && $loan->status !== 'written_off' && ($loan->status === 'overdue' || $loan->is_delinquent))
+        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-4 mb-4" x-data="{ applyPenaltyOpen: false, restructureOpen: false, writeOffOpen: {{ $openWriteOffModal ? 'true' : 'false' }}, writeOffConfirmText: '', showDangerZone: false }">
             <div class="d-flex align-items-center gap-2 mb-3">
                 <div class="spinner-grow spinner-grow-sm text-danger" role="status">
                     <span class="visually-hidden">Overdue</span>
@@ -198,18 +255,18 @@
                 </h3>
             </div>
             
-            <div class="bg-dark rounded p-3 mb-4 border border-secondary shadow-sm">
+            <div class="{{ $summarySurfaceClasses }} rounded p-3 mb-4 shadow-sm">
                 <div class="row text-center">
                     <div class="col-md-4">
-                        <div class="small text-muted text-uppercase mb-1">Days Overdue</div>
+                        <div class="small {{ $summaryMutedLabelClass }} text-uppercase mb-1">Days Overdue</div>
                         <div class="text-danger fw-bold fs-4">{{ $loan->due_date ? abs((int) \Carbon\Carbon::parse($loan->due_date)->diffInDays(now(), false)) : 0 }}</div>
                     </div>
-                    <div class="col-md-4 border-start border-secondary">
-                        <div class="small text-muted text-uppercase mb-1">Outstanding Balance</div>
+                    <div class="col-md-4 border-start {{ $summaryDividerClass }}">
+                        <div class="small {{ $summaryMutedLabelClass }} text-uppercase mb-1">Outstanding Balance</div>
                         <div class="text-danger fw-bold fs-4">₱{{ number_format((float) $loan->outstanding_balance, 2) }}</div>
                     </div>
-                    <div class="col-md-4 border-start border-secondary">
-                        <div class="small text-muted text-uppercase mb-1">Penalties Applied</div>
+                    <div class="col-md-4 border-start {{ $summaryDividerClass }}">
+                        <div class="small {{ $summaryMutedLabelClass }} text-uppercase mb-1">Penalties Applied</div>
                         <div class="text-warning fw-bold fs-4">₱{{ number_format((float) $loan->penalty_total, 2) }}</div>
                     </div>
                 </div>
@@ -219,23 +276,23 @@
                 <div class="col-md-6 col-lg-3 d-grid">
                     <form action="{{ route('loans.send-reminder', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
                         @csrf
-                        <button type="submit" class="btn btn-outline-primary w-100 text-start">
+                        <button type="submit" class="{{ $neutralActionButtonClass }} w-100 text-start">
                             <i class="bi bi-envelope me-2"></i>Send Reminder
                         </button>
                     </form>
                 </div>
                 <div class="col-md-6 col-lg-3 d-grid">
-                    <button type="button" class="btn btn-outline-warning text-start" @click="applyPenaltyOpen = true">
+                    <button type="button" class="btn btn-outline-warning text-start shadow-sm" @click="applyPenaltyOpen = true">
                         <i class="bi bi-exclamation-triangle me-2"></i>Apply Penalty
                     </button>
                 </div>
                 <div class="col-md-6 col-lg-3 d-grid">
-                    <button type="button" class="btn btn-outline-info text-start" @click="restructureOpen = true">
+                    <button type="button" class="btn btn-outline-info text-start shadow-sm" @click="restructureOpen = true">
                         <i class="bi bi-arrow-repeat me-2"></i>Restructure
                     </button>
                 </div>
                 <div class="col-md-6 col-lg-3 d-grid">
-                    <a href="{{ route('loans.demand-letter', [...$tenantParameter, 'loan' => $loan]) }}" class="btn btn-outline-secondary text-start">
+                    <a href="{{ route('loans.demand-letter', [...$tenantParameter, 'loan' => $loan]) }}" class="{{ $neutralActionButtonClass }} text-start">
                         <i class="bi bi-file-earmark-pdf me-2"></i>Demand Letter
                     </a>
                 </div>
@@ -342,7 +399,8 @@
                         </div>
                         <div class="mb-4">
                             <label class="form-label text-white">Type CONFIRM to proceed</label>
-                            <input type="text" x-model="writeOffConfirmText" class="form-control bg-dark text-white border-secondary" required>
+                            <input type="text" name="confirmation" x-model="writeOffConfirmText" class="form-control bg-dark text-white border-secondary" required>
+                            @error('confirmation') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
                         </div>
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-outline-secondary" @click="writeOffOpen = false">Cancel</button>

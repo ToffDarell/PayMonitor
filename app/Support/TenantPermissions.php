@@ -24,6 +24,7 @@ final class TenantPermissions
     public const LOANS_UPDATE = 'loans.update';
     public const LOANS_DELETE = 'loans.delete';
     public const LOANS_COMPUTE = 'loans.compute-preview';
+    public const OVERDUE_LOANS_MANAGE = 'overdue-loans.manage';
     public const LOAN_DOCUMENTS_VIEW = 'loan-documents.view';
     public const LOAN_DOCUMENTS_UPLOAD = 'loan-documents.upload';
     public const LOAN_DOCUMENTS_DELETE = 'loan-documents.delete';
@@ -68,6 +69,7 @@ final class TenantPermissions
             self::LOANS_UPDATE,
             self::LOANS_DELETE,
             self::LOANS_COMPUTE,
+            self::OVERDUE_LOANS_MANAGE,
             self::LOAN_DOCUMENTS_VIEW,
             self::LOAN_DOCUMENTS_UPLOAD,
             self::LOAN_DOCUMENTS_DELETE,
@@ -122,6 +124,7 @@ final class TenantPermissions
             self::LOANS_UPDATE => 'Edit Loans',
             self::LOANS_DELETE => 'Delete Loans',
             self::LOANS_COMPUTE => 'Compute Loan Preview',
+            self::OVERDUE_LOANS_MANAGE => 'Manage Overdue Loans',
             self::LOAN_DOCUMENTS_VIEW => 'View Loan Documents',
             self::LOAN_DOCUMENTS_UPLOAD => 'Upload Loan Documents',
             self::LOAN_DOCUMENTS_DELETE => 'Delete Loan Documents',
@@ -174,6 +177,7 @@ final class TenantPermissions
                 self::LOANS_UPDATE,
                 self::LOANS_DELETE,
                 self::LOANS_COMPUTE,
+                self::OVERDUE_LOANS_MANAGE,
                 self::LOAN_DOCUMENTS_VIEW,
                 self::LOAN_DOCUMENTS_UPLOAD,
                 self::LOAN_DOCUMENTS_DELETE,
@@ -227,6 +231,7 @@ final class TenantPermissions
                 self::LOANS_CREATE,
                 self::LOANS_UPDATE,
                 self::LOANS_COMPUTE,
+                self::OVERDUE_LOANS_MANAGE,
                 self::LOAN_DOCUMENTS_VIEW,
                 self::LOAN_DOCUMENTS_UPLOAD,
                 self::LOAN_PAYMENTS_VIEW,
@@ -247,6 +252,7 @@ final class TenantPermissions
                 self::MEMBER_DOCUMENTS_UPLOAD,
                 self::LOANS_VIEW,
                 self::LOANS_CREATE,
+                self::OVERDUE_LOANS_MANAGE,
                 self::LOANS_COMPUTE,
                 self::LOAN_DOCUMENTS_VIEW,
                 self::LOAN_DOCUMENTS_UPLOAD,

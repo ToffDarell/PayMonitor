@@ -34,6 +34,7 @@ class LoanController extends Controller
             ->with(['member', 'branch', 'loanType'])
             ->when($request->filled('branch'), fn ($query) => $query->where('branch_id', $request->integer('branch')))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
+            ->when($request->boolean('delinquent_only'), fn ($query) => $query->where('is_delinquent', true))
             ->when($request->filled('loan_type'), fn ($query) => $query->where('loan_type_id', $request->integer('loan_type')))
             ->when($request->filled('date_from'), fn ($query) => $query->whereDate('release_date', '>=', $request->date('date_from')))
             ->when($request->filled('date_to'), fn ($query) => $query->whereDate('release_date', '<=', $request->date('date_to')))
@@ -150,7 +151,7 @@ class LoanController extends Controller
 
         $validated = $request->validate([
             'notes' => ['nullable', 'string'],
-            'status' => ['required', Rule::in(['active', 'overdue', 'restructured', 'fully_paid'])],
+            'status' => ['required', Rule::in(['active', 'overdue', 'restructured', 'fully_paid', 'written_off'])],
         ]);
 
         $oldValues = $loan->toArray();

@@ -5,11 +5,12 @@
 @section('content')
 @php
     $tenantParameter = ['tenant' => request()->route('tenant')];
+    $formWidth = 'max-width: 1180px;';
 @endphp
 
 @include('users._tabs')
 
-<div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width: 860px;">
+<div class="d-flex justify-content-between align-items-center mb-4 mx-auto w-100" style="{{ $formWidth }}">
     <div>
         <h1 class="h3 fw-bold mb-1">Edit Custom Role</h1>
         <p class="text-muted mb-0">Update role access and permission coverage for your team.</p>
@@ -19,7 +20,7 @@
     </a>
 </div>
 
-<div class="card border-0 shadow-sm mx-auto" style="max-width: 860px;">
+<div class="card border-0 shadow-sm mx-auto w-100" style="{{ $formWidth }}">
     <div class="card-body p-4">
         <form action="{{ route('users.roles.update', [...$tenantParameter, 'role' => $role]) }}" method="POST" class="row g-3">
             @csrf

@@ -43,7 +43,7 @@ class DashboardController extends Controller
                 $query->where('status', 'overdue')
                     ->orWhere(function ($loanQuery): void {
                         $loanQuery->whereDate('due_date', '<', today())
-                            ->where('status', '!=', 'fully_paid');
+                            ->whereNotIn('status', ['fully_paid', 'written_off']);
                     });
             })
             ->count();
@@ -70,7 +70,7 @@ class DashboardController extends Controller
                 $query->where('status', 'overdue')
                     ->orWhere(function ($loanQuery): void {
                         $loanQuery->whereDate('due_date', '<', today())
-                            ->where('status', '!=', 'fully_paid');
+                            ->whereNotIn('status', ['fully_paid', 'written_off']);
                     });
             })
             ->orderBy('due_date')

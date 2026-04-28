@@ -10,6 +10,7 @@
         'fully_paid' => 'success',
         'overdue' => 'danger',
         'restructured' => 'warning text-dark',
+        'written_off' => 'dark',
     ];
     $memberDocumentTypes = [
         'Valid ID',
@@ -258,6 +259,9 @@
                                 <span class="badge bg-{{ $loanStatusClasses[$loan->status] ?? 'secondary' }}">
                                     {{ str_replace('_', ' ', ucfirst($loan->status)) }}
                                 </span>
+                                @if($loan->is_delinquent)
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1">Delinquent</span>
+                                @endif
                             </td>
                             <td>{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</td>
                             <td class="text-end">

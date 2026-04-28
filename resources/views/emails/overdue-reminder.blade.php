@@ -21,7 +21,7 @@
 
         <div style="padding:28px;">
             <p style="margin-top:0;">Dear <strong>{{ $member->full_name }}</strong>,</p>
-            <p>This is a formal notice that your loan is past due.</p>
+            <p>This is a formal notice that your loan obligation with our cooperative is now past due.</p>
 
             <table style="width:100%; border-collapse:collapse; margin:24px 0; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
                 <tbody>
@@ -53,8 +53,15 @@
                 </tbody>
             </table>
 
-            <p style="margin-bottom:20px;">Please settle your outstanding balance immediately to avoid additional penalties.</p>
-            <p style="margin-bottom:8px;">Contact us at {{ $supportEmail ?: 'our cooperative support email' }}{{ $supportPhone ? ' / '.$supportPhone : '' }}.</p>
+            <p style="margin-bottom:16px;">
+                Please settle your outstanding balance immediately and comply with your payment obligation to avoid additional penalties and further collection action.
+            </p>
+            <p style="margin-bottom:16px;">
+                Failure to comply will compel us to take legal action without further notice.
+            </p>
+            <p style="margin-bottom:8px;">
+                For questions or payment arrangements, please contact us at {{ $supportEmail ?: 'our cooperative support email' }}{{ $supportPhone ? ' / '.$supportPhone : '' }}.
+            </p>
 
             <div style="margin-top:28px; padding-top:18px; border-top:1px solid #e5e7eb; color:#6b7280; font-size:13px;">
                 <strong style="display:block; color:#111827; margin-bottom:4px;">{{ $cooperativeName }}</strong>

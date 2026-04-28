@@ -99,6 +99,9 @@
                                     @if($overdueLoan->due_date)
                                         <div class="small text-danger">{{ $overdueLoan->due_date->diffInDays(today()) }} day{{ $overdueLoan->due_date->diffInDays(today()) === 1 ? '' : 's' }} overdue</div>
                                     @endif
+                                    @if($overdueLoan->is_delinquent)
+                                        <div class="small text-danger fw-semibold">Delinquent</div>
+                                    @endif
                                 </td>
                                 <td class="text-end text-danger fw-semibold">P{{ number_format((float) $overdueLoan->outstanding_balance, 2) }}</td>
                                 <td class="text-end">
@@ -254,6 +257,7 @@
                     <option value="overdue" @selected(($filters['status'] ?? '') === 'overdue')>Overdue</option>
                     <option value="restructured" @selected(($filters['status'] ?? '') === 'restructured')>Restructured</option>
                     <option value="fully_paid" @selected(($filters['status'] ?? '') === 'fully_paid')>Fully Paid</option>
+                    <option value="written_off" @selected(($filters['status'] ?? '') === 'written_off')>Written Off</option>
                 </select>
             </div>
             <div class="col-md-6 col-xl-2">

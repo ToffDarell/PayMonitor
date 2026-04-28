@@ -5,9 +5,10 @@
 @section('content')
 @php
     $tenantParameter = ['tenant' => request()->route('tenant')];
+    $formWidth = 'max-width: 1180px;';
 @endphp
 
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4 mx-auto w-100" style="{{ $formWidth }}">
     <div>
         <h1 class="h3 fw-bold mb-1">Edit Branch</h1>
         <p class="text-muted mb-0">Update branch details and operational status.</p>
@@ -17,7 +18,7 @@
     </a>
 </div>
 
-<div class="card border-0 shadow-sm mx-auto w-100" style="max-width: 760px;">
+<div class="card border-0 shadow-sm mx-auto w-100" style="{{ $formWidth }}">
     <div class="card-body p-4">
         <form action="{{ route('branches.update', [...$tenantParameter, 'branch' => $branch]) }}" method="POST">
             @csrf

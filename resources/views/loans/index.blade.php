@@ -10,6 +10,7 @@
         'fully_paid' => 'success',
         'overdue' => 'danger',
         'restructured' => 'warning text-dark',
+        'written_off' => 'dark',
     ];
 @endphp
 
@@ -41,7 +42,7 @@
                 <label for="status" class="form-label fw-semibold">Status</label>
                 <select name="status" id="status" class="form-select" onchange="this.form.requestSubmit()">
                     <option value="">All Statuses</option>
-                    @foreach(['active', 'fully_paid', 'overdue', 'restructured'] as $status)
+                    @foreach(['active', 'fully_paid', 'overdue', 'restructured', 'written_off'] as $status)
                         <option value="{{ $status }}" @selected(request('status') === $status)>{{ str_replace('_', ' ', ucfirst($status)) }}</option>
                     @endforeach
                 </select>
@@ -112,6 +113,11 @@
                             <span class="badge bg-{{ $loanStatusClasses[$loan->status] ?? 'secondary' }}">
                                 {{ str_replace('_', ' ', ucfirst($loan->status)) }}
                             </span>
+                            @if($loan->is_delinquent)
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1">
+                                    Delinquent
+                                </span>
+                            @endif
                         </td>
                         <td>{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</td>
                         <td class="text-end">

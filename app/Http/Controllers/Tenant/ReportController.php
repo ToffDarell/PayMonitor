@@ -350,7 +350,7 @@ class ReportController extends Controller
                 $query->where('status', 'overdue')
                     ->orWhere(function (Builder $loanQuery): void {
                         $loanQuery->whereDate('due_date', '<', today())
-                            ->where('status', '!=', 'fully_paid');
+                            ->whereNotIn('status', ['fully_paid', 'written_off']);
                     });
             });
 

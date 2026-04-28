@@ -27,7 +27,7 @@ class OverdueLoanController extends Controller
         private readonly AuditService $auditService,
     ) {}
 
-    public function sendReminder(Request $request, Loan $loan): RedirectResponse
+    public function sendReminder(Request $request, string $tenant, Loan $loan): RedirectResponse
     {
         $this->authorizeOverdueManagement($request);
         $this->ensureLoanIsOverdue($loan);
@@ -50,15 +50,17 @@ class OverdueLoanController extends Controller
         return back()->with('success', "Reminder sent to {$email}");
     }
 
-    public function applyPenalty(Request $request, Loan $loan): RedirectResponse
+    public function applyPenalty(Request $request, string $tenant, Loan $loan): RedirectResponse
     {
         $this->authorizeOverdueManagement($request);
         $this->ensureLoanIsOverdue($loan);
 
         $validated = $request->validate([
             'penalty_type' => ['required', 'in:fixed,percentage,daily'],
-            'penalty_rate' => ['required', 'numeric', 'min:0.01'],
+            'penalty_rate' => ['required', 'numeric', 'min:0.01', 'max:999.99'],
             'reason' => ['nullable', 'string', 'max:255'],
+        ], [
+            'penalty_rate.max' => 'Penalty rate or amount may not be greater than 999.99.',
         ]);
 
         $loan = DB::transaction(function () use ($loan, $validated): Loan {
@@ -81,7 +83,7 @@ class OverdueLoanController extends Controller
         return back()->with('success', 'Penalty of P'.number_format((float) $loan->penalties->sortByDesc('id')->first()?->penalty_amount, 2).' applied to loan.');
     }
 
-    public function markDelinquent(Request $request, Loan $loan): RedirectResponse
+    public function markDelinquent(Request $request, string $tenant, Loan $loan): RedirectResponse
     {
         $this->authorizeOverdueManagement($request);
         $this->ensureLoanIsOverdue($loan);
@@ -99,7 +101,7 @@ class OverdueLoanController extends Controller
         return back()->with('success', 'Loan marked as delinquent.');
     }
 
-    public function restructureLoan(Request $request, Loan $loan): RedirectResponse
+    public function restructureLoan(Request $request, string $tenant, Loan $loan): RedirectResponse
     {
         $this->authorizeOverdueManagement($request);
         $this->ensureLoanIsOverdue($loan);
@@ -142,7 +144,7 @@ class OverdueLoanController extends Controller
         return back()->with('success', 'Loan restructured. New term: '.$validated['new_term_months'].' months.');
     }
 
-    public function sendDemandLetter(Request $request, Loan $loan): Response
+    public function sendDemandLetter(Request $request, string $tenant, Loan $loan): Response
     {
         $this->authorizeOverdueManagement($request);
         $this->ensureLoanIsOverdue($loan);
@@ -171,7 +173,7 @@ class OverdueLoanController extends Controller
         ])->download('demand-letter-'.$loan->loan_number.'.pdf');
     }
 
-    public function writeOff(Request $request, Loan $loan): RedirectResponse
+    public function writeOff(Request $request, string $tenant, Loan $loan): RedirectResponse
     {
         $this->authorizeOverdueManagement($request);
         $this->ensureLoanIsOverdue($loan);
@@ -205,7 +207,7 @@ class OverdueLoanController extends Controller
     private function authorizeOverdueManagement(Request $request): void
     {
         abort_unless(
-            $request->user()?->hasTenantPermission(TenantPermissions::LOANS_UPDATE, ['tenant_admin', 'branch_manager', 'loan_officer']),
+            $request->user()?->hasTenantPermission(TenantPermissions::OVERDUE_LOANS_MANAGE, ['tenant_admin', 'branch_manager', 'loan_officer']),
             403,
             'This action is unauthorized.',
         );

@@ -23,6 +23,13 @@ use Illuminate\View\View;
 class AuditLogController extends Controller
 {
     /**
+     * @var array<int, string>
+     */
+    private const VISIBLE_COMPLEX_CHANGE_KEYS = [
+        'penalty_event',
+    ];
+
+    /**
      * @return array<string, string>
      */
     private const MODEL_OPTIONS = [
@@ -154,6 +161,10 @@ class AuditLogController extends Controller
             $oldValue = $oldValues[$key] ?? null;
             $newValue = $newValues[$key] ?? null;
 
+            if ($this->shouldSkipComplexChange($key, $oldValue, $newValue)) {
+                continue;
+            }
+
             if ($this->normalizeValue($oldValue) === $this->normalizeValue($newValue)) {
                 continue;
             }
@@ -189,7 +200,7 @@ class AuditLogController extends Controller
     private function formatValue(mixed $value): string
     {
         if ($value === null || $value === '') {
-            return '—';
+            return '-';
         }
 
         if (is_bool($value)) {
@@ -197,9 +208,18 @@ class AuditLogController extends Controller
         }
 
         if (is_array($value)) {
-            return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '—';
+            return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '-';
         }
 
         return (string) $value;
+    }
+
+    private function shouldSkipComplexChange(string $key, mixed $oldValue, mixed $newValue): bool
+    {
+        if (! is_array($oldValue) && ! is_array($newValue)) {
+            return false;
+        }
+
+        return ! in_array($key, self::VISIBLE_COMPLEX_CHANGE_KEYS, true);
     }
 }

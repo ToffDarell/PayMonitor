@@ -105,7 +105,7 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/collections', [CollectionController::class, 'index'])->name('tenant.collections');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:overdue_loan_management'])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:overdue_loan_management', 'tenant.permission:'.TenantPermissions::OVERDUE_LOANS_MANAGE])->group(function (): void {
                     Route::post('/loans/{loan}/send-reminder', [OverdueLoanController::class, 'sendReminder'])->name('loans.send-reminder');
                     Route::post('/loans/{loan}/apply-penalty', [OverdueLoanController::class, 'applyPenalty'])->name('loans.apply-penalty');
                     Route::post('/loans/{loan}/mark-delinquent', [OverdueLoanController::class, 'markDelinquent'])->name('loans.mark-delinquent');

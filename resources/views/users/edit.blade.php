@@ -7,11 +7,12 @@
     $tenantParameter = ['tenant' => request()->route('tenant')];
     $currentRole = old('role', $user->getRoleNames()->first() ?? 'viewer');
     $customRolesEnabled = \App\Support\TenantFeatures::tenantHasFeature('custom_roles');
+    $formWidth = 'max-width: 1180px;';
 @endphp
 
 @include('users._tabs')
 
-<div class="d-flex justify-content-between align-items-center mb-4 mx-auto" style="max-width: 760px;">
+<div class="d-flex justify-content-between align-items-center mb-4 mx-auto w-100" style="{{ $formWidth }}">
     <div>
         <h1 class="h3 fw-bold mb-1">Edit User</h1>
         <p class="text-muted mb-0">Update staff role assignments and branch placement.</p>
@@ -22,8 +23,8 @@
 </div>
 
 <div
-    class="card border-0 shadow-sm mx-auto"
-    style="max-width: 760px;"
+    class="card border-0 shadow-sm mx-auto w-100"
+    style="{{ $formWidth }}"
     x-data="{
         selectedRole: @js($currentRole),
         rolePermissionMap: @js($rolePermissionMap),

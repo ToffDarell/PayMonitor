@@ -30,7 +30,7 @@ class CollectionController extends Controller
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'collector' => ['nullable', 'integer', Rule::exists('users', 'id')],
-            'status' => ['nullable', Rule::in(['active', 'overdue', 'fully_paid', 'restructured'])],
+            'status' => ['nullable', Rule::in(['active', 'overdue', 'fully_paid', 'restructured', 'written_off'])],
         ]);
 
         $monthStart = today()->startOfMonth();
