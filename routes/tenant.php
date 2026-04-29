@@ -32,6 +32,7 @@ collect(config('tenancy.central_domains', ['localhost']))
     ->filter(static fn (string $domain): bool => ! in_array($domain, ['127.0.0.1'], true))
     ->each(function (string $domain): void {
         Route::domain("{tenant}.{$domain}")
+            ->where(['tenant' => '.*'])
             ->middleware([
                 'web',
                 InitializeTenancyByDomain::class,
