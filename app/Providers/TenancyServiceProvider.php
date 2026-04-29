@@ -58,10 +58,20 @@ class TenancyServiceProvider extends ServiceProvider
 
             Events\TenancyInitialized::class => [
                 Listeners\BootstrapTenancy::class,
+                function (Events\TenancyInitialized $event) {
+                    $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+                    $registrar->cacheKey = 'spatie.permission.cache.tenant.' . $event->tenancy->tenant->getTenantKey();
+                    $registrar->clearPermissionsCollection();
+                },
             ],
 
             Events\TenancyEnded::class => [
                 Listeners\RevertToCentralContext::class,
+                function (Events\TenancyEnded $event) {
+                    $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+                    $registrar->cacheKey = 'spatie.permission.cache';
+                    $registrar->clearPermissionsCollection();
+                },
             ],
 
             Events\DatabaseMigrated::class => [
