@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\TenantSetting;
+use Database\Seeders\ModuleSeeder;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
@@ -79,6 +80,7 @@ class TenancyServiceProvider extends ServiceProvider
                     $event->tenant->run(function (): void {
                         $this->seedTenantRoles();
                         $this->seedTenantSettings();
+                        $this->seedTenantModules();
                     });
                 },
             ],
@@ -149,5 +151,14 @@ class TenancyServiceProvider extends ServiceProvider
         }
 
         TenantSetting::ensureDefaults();
+    }
+
+    protected function seedTenantModules(): void
+    {
+        if (! Schema::hasTable('modules')) {
+            return;
+        }
+
+        (new ModuleSeeder())->run();
     }
 }

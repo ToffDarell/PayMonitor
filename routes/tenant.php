@@ -17,6 +17,7 @@ use App\Http\Controllers\Tenant\LoanPaymentController;
 use App\Http\Controllers\Tenant\LoanTypeController;
 use App\Http\Controllers\Tenant\MemberController;
 use App\Http\Controllers\Tenant\MemberDocumentController;
+use App\Http\Controllers\Tenant\ModuleController;
 use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\RoleController;
 use App\Http\Controllers\Tenant\SettingsController;
@@ -69,6 +70,7 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::post('/loans/compute-preview', [LoanController::class, 'computePreview'])->name('loans.compute-preview');
                     Route::resource('loans', LoanController::class);
                     Route::resource('loan-payments', LoanPaymentController::class)->only(['index', 'create', 'store']);
+                    Route::resource('modules', ModuleController::class);
                     Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
                     Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
                     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
