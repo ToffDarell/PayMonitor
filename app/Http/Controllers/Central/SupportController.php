@@ -8,6 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Mail\SupportResponseMail;
 use App\Models\SupportRequest;
 use App\Models\SupportResponse;
+use App\Notifications\SupportResponseNotification;
+use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -75,6 +78,7 @@ class SupportController extends Controller
         $validated = $request->validate([
             'message' => ['required', 'string', 'max:5000'],
             'send_email' => ['nullable', 'boolean'],
+            'status' => ['nullable', 'in:open,in_progress,resolved'],
         ]);
 
         $user = $request->user();
@@ -96,7 +100,21 @@ class SupportController extends Controller
             }
         }
 
-        if ($supportRequest->status === 'open') {
+        if ($tenant = Tenant::find($supportRequest->tenant_id)) {
+            $tenant->run(function () use ($supportRequest, $response): void {
+                $user = User::where('email', $supportRequest->requester_email)->first();
+                if ($user) {
+                    $user->notify(new SupportResponseNotification($supportRequest, $response));
+                }
+            });
+        }
+
+        if ($request->filled('status') && $request->input('status') !== $supportRequest->status) {
+            $supportRequest->update([
+                'status' => $validated['status'],
+                'resolved_at' => $validated['status'] === 'resolved' ? now() : null,
+            ]);
+        } elseif ($supportRequest->status === 'open') {
             $supportRequest->update(['status' => 'in_progress']);
         }
 

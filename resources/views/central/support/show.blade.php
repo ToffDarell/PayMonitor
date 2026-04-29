@@ -84,8 +84,9 @@
 
         <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
             <h3 class="mb-4 font-heading text-base font-semibold text-white">Send Response</h3>
-            <form method="POST" action="{{ route('central.support.store-response', $supportRequest, false) }}">
+            <form method="POST" action="{{ route('central.support.store-response', $supportRequest, false) }}" id="response-form">
                 @csrf
+                <input type="hidden" name="status" id="hidden_status" value="{{ $supportRequest->status }}">
                 <div class="mb-4">
                     <label class="mb-2 block text-sm font-medium text-slate-300">Your Response</label>
                     <textarea name="message" rows="6" required class="w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" placeholder="Type your response here...">{{ old('message') }}</textarea>
@@ -157,7 +158,7 @@
                 <form method="POST" action="{{ route('central.support.update-status', $supportRequest, false) }}">
                     @csrf
                     @method('PATCH')
-                    <select name="status" class="mb-3 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white transition focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+                    <select id="status-select" name="status" class="mb-3 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white transition focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
                         <option value="open" {{ $supportRequest->status === 'open' ? 'selected' : '' }}>Open</option>
                         <option value="in_progress" {{ $supportRequest->status === 'in_progress' ? 'selected' : '' }}>In Progress</option>
                         <option value="resolved" {{ $supportRequest->status === 'resolved' ? 'selected' : '' }}>Resolved</option>
@@ -170,4 +171,16 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const select = document.getElementById('status-select');
+        const hidden = document.getElementById('hidden_status');
+        if (select && hidden) {
+            select.addEventListener('change', function() {
+                hidden.value = this.value;
+            });
+        }
+    });
+</script>
 @endsection
