@@ -21,12 +21,17 @@ class TenantWelcomeMail extends Mailable
         public string $email,
         public string $password,
         public string $loginUrl,
+        public string $mode = 'approved',
     ) {}
 
     public function envelope(): Envelope
     {
+        $subject = $this->mode === 'resent'
+            ? 'Your PayMonitor Credentials Have Been Refreshed'
+            : 'Application Approved - Your PayMonitor Account Is Ready';
+
         return new Envelope(
-            subject: 'Application Approved - Your PayMonitor Account Is Ready',
+            subject: $subject,
         );
     }
 
@@ -39,6 +44,7 @@ class TenantWelcomeMail extends Mailable
                 'email' => $this->email,
                 'password' => $this->password,
                 'loginUrl' => $this->loginUrl,
+                'mode' => $this->mode,
             ],
         );
     }

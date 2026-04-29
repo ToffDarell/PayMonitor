@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\TenantReceiptMail;
 use App\Models\BillingInvoice;
 use App\Models\Domain;
+use App\Models\Plan;
 use App\Models\Tenant;
 use App\Services\PayMongoService;
 use Illuminate\Http\RedirectResponse;
@@ -50,7 +51,12 @@ class BillingController extends Controller
             ->latest('id')
             ->get();
 
-        return view('billing.index', compact('invoices'));
+        $planSummary = $this->resolvePlanSummary($tenant);
+
+        return view('billing.index', [
+            'invoices' => $invoices,
+            ...$planSummary,
+        ]);
     }
 
     public function initiatePayment(Request $request, string $tenant, string $invoiceId): RedirectResponse
@@ -285,5 +291,86 @@ class BillingController extends Controller
         return redirect()
             ->to(route('billing.index', $tenantParameter, false))
             ->with($key, $message);
+    }
+
+    /**
+     * @return array{
+     *     currentPlan: array<string, mixed>|null,
+     *     suggestedUpgradePlan: array<string, mixed>|null,
+     *     upgradeSupportUrl: string
+     * }
+     */
+    protected function resolvePlanSummary(Tenant $tenant): array
+    {
+        $centralConnection = (string) config('tenancy.database.central_connection', config('database.default'));
+        $planCatalog = Plan::getAvailableFeatures();
+
+        $planRows = DB::connection($centralConnection)
+            ->table('plans')
+            ->select(['id', 'name', 'price', 'max_branches', 'max_users', 'description', 'features'])
+            ->orderBy('price')
+            ->get();
+
+        $currentPlanRow = $planRows->firstWhere('id', $tenant->plan_id);
+        $currentPlan = $this->mapPlanSummary($currentPlanRow, $planCatalog);
+
+        $suggestedUpgradeRow = null;
+
+        if ($currentPlanRow !== null) {
+            $suggestedUpgradeRow = $planRows->first(static function (object $planRow) use ($currentPlanRow): bool {
+                return (float) ($planRow->price ?? 0) > (float) ($currentPlanRow->price ?? 0);
+            });
+        }
+
+        $suggestedUpgradePlan = $this->mapPlanSummary($suggestedUpgradeRow, $planCatalog);
+        $tenantParameter = ['tenant' => $tenant->id];
+        $upgradeSubject = 'Plan upgrade request';
+        $upgradeMessage = sprintf(
+            "Hello Support Team,\n\nWe would like to request a plan upgrade for %s.\n\nCurrent plan: %s\nRequested plan: %s\nReason: We need access to additional features for our operations.\n\nPlease advise us on the next steps.\n",
+            $tenant->name ?? 'this tenant',
+            $currentPlan['name'] ?? 'Unknown plan',
+            $suggestedUpgradePlan['name'] ?? 'Please recommend the next available plan'
+        );
+
+        return [
+            'currentPlan' => $currentPlan,
+            'suggestedUpgradePlan' => $suggestedUpgradePlan,
+            'upgradeSupportUrl' => route('settings.index', array_merge($tenantParameter, [
+                'tab' => 'support',
+                'support_subject' => $upgradeSubject,
+                'support_category' => 'billing',
+                'support_message' => $upgradeMessage,
+            ]), false),
+        ];
+    }
+
+    /**
+     * @param  object|null  $planRow
+     * @param  array<string, array{name: string, desc: string, requires: string|null}>  $planCatalog
+     * @return array<string, mixed>|null
+     */
+    protected function mapPlanSummary(?object $planRow, array $planCatalog): ?array
+    {
+        if ($planRow === null) {
+            return null;
+        }
+
+        $rawFeatures = json_decode((string) ($planRow->features ?? '[]'), true);
+        $featureKeys = is_array($rawFeatures) ? array_values(array_filter($rawFeatures, 'is_string')) : [];
+        $featureLabels = collect($featureKeys)
+            ->map(static fn (string $featureKey): string => $planCatalog[$featureKey]['name'] ?? str($featureKey)->replace('_', ' ')->title()->toString())
+            ->values()
+            ->all();
+
+        return [
+            'id' => (int) $planRow->id,
+            'name' => (string) ($planRow->name ?? 'Unknown Plan'),
+            'price' => (float) ($planRow->price ?? 0),
+            'max_branches' => (int) ($planRow->max_branches ?? 0),
+            'max_users' => (int) ($planRow->max_users ?? 0),
+            'description' => (string) ($planRow->description ?? ''),
+            'features' => $featureLabels,
+            'feature_count' => count($featureLabels),
+        ];
     }
 }

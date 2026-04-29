@@ -21,6 +21,9 @@
     $supportEmail = $supportContact['email'] ?? config('mail.from.address', 'support@paymonitor.test');
     $supportPhone = $supportContact['phone'] ?? '+63 917 000 0000';
     $supportHours = $supportContact['hours'] ?? 'Mon-Fri, 8:00 AM - 5:00 PM';
+    $supportPrefillSubject = (string) request()->query('support_subject', '');
+    $supportPrefillCategory = (string) request()->query('support_category', 'general');
+    $supportPrefillMessage = (string) request()->query('support_message', '');
     $passwordHint = auth()->user()?->email ?? tenant()?->email ?? 'your account email';
     $canViewSettings = auth()->user()?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_VIEW) ?? false;
     $canManageSettings = auth()->user()?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_UPDATE) ?? false;
@@ -993,7 +996,7 @@
                         <div class="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                             <div class="lg:col-span-2">
                                 <label for="subject" class="mb-2 block text-sm font-medium text-slate-200">Subject</label>
-                                <input id="subject" name="subject" type="text" value="{{ old('subject') }}" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]" placeholder="Describe your concern" required>
+                                <input id="subject" name="subject" type="text" value="{{ old('subject', $supportPrefillSubject) }}" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]" placeholder="Describe your concern" required>
                                 @error('subject') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
                             </div>
 
@@ -1001,7 +1004,7 @@
                                 <label for="category" class="mb-2 block text-sm font-medium text-slate-200">Category</label>
                                 <select id="category" name="category" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]">
                                     @foreach(['general' => 'General', 'technical' => 'Technical', 'billing' => 'Billing', 'account' => 'Account', 'feature' => 'Feature Request'] as $value => $label)
-                                        <option value="{{ $value }}" @selected(old('category', 'general') === $value)>{{ $label }}</option>
+                                        <option value="{{ $value }}" @selected(old('category', $supportPrefillCategory) === $value)>{{ $label }}</option>
                                     @endforeach
                                 </select>
                                 @error('category') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
@@ -1019,7 +1022,7 @@
 
                             <div class="lg:col-span-2">
                                 <label for="message" class="mb-2 block text-sm font-medium text-slate-200">Message</label>
-                                <textarea id="message" name="message" rows="6" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]" placeholder="Explain the issue, what happened, and what you need help with." required>{{ old('message') }}</textarea>
+                                <textarea id="message" name="message" rows="6" class="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-slate-500 transition focus:border-[var(--pm-accent)] focus:outline-none focus:ring-2 focus:ring-[rgba(var(--pm-accent-rgb),0.18)]" placeholder="Explain the issue, what happened, and what you need help with." required>{{ old('message', $supportPrefillMessage) }}</textarea>
                                 @error('message') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
                             </div>
                         </div>

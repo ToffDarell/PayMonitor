@@ -39,6 +39,44 @@
     .billing-shell tbody tr:hover {
         background-color: var(--pm-table-hover-bg) !important;
     }
+
+    .billing-upgrade-card {
+        border-color: rgba(245, 158, 11, 0.25);
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.08));
+    }
+
+    .billing-upgrade-title {
+        color: var(--pm-text-primary);
+    }
+
+    .billing-upgrade-copy {
+        color: var(--pm-text-secondary);
+    }
+
+    .billing-upgrade-subcard {
+        background-color: var(--pm-surface-bg);
+        border-color: var(--pm-border);
+    }
+
+    .billing-upgrade-primary {
+        background-color: #f59e0b;
+        color: #111827 !important;
+    }
+
+    .billing-upgrade-primary:hover {
+        background-color: #d97706;
+        color: #111827 !important;
+    }
+
+    .billing-upgrade-secondary {
+        border-color: var(--pm-border);
+        background-color: var(--pm-surface-bg);
+        color: var(--pm-text-primary) !important;
+    }
+
+    .billing-upgrade-secondary:hover {
+        background-color: var(--pm-nav-hover-bg);
+    }
 </style>
 @endpush
 
@@ -46,6 +84,18 @@
 @php
     $invoices = $invoices ?? collect();
     $tenantParameter = ['tenant' => tenant()?->id ?? request()->route('tenant')];
+    $currentPlan = $currentPlan ?? null;
+    $suggestedUpgradePlan = $suggestedUpgradePlan ?? null;
+    $upgradeSupportUrl = $upgradeSupportUrl ?? route('settings.index', array_merge($tenantParameter, ['tab' => 'support']), false);
+    $canViewSettings = auth()->user()?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_VIEW) ?? false;
+    $canManageSupportRequest = auth()->user()?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_UPDATE) ?? false;
+    $currentPlanPriceLabel = $currentPlan !== null
+        ? rtrim(rtrim(number_format((float) ($currentPlan['price'] ?? 0), 2), '0'), '.')
+        : '0';
+    $suggestedPlanPriceLabel = $suggestedUpgradePlan !== null
+        ? rtrim(rtrim(number_format((float) ($suggestedUpgradePlan['price'] ?? 0), 2), '0'), '.')
+        : '0';
+    $currentPlanFeatures = collect($currentPlan['features'] ?? [])->take(4);
 @endphp
 
 <div class="billing-shell">
@@ -78,6 +128,100 @@
             <li>Step 3: Return to this page and use "Check Status" if your invoice is still processing.</li>
             <li>Step 4: Once verified, your subscription is renewed and your receipt is emailed automatically.</li>
         </ul>
+    </div>
+</div>
+
+<div class="mb-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+    <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Current Plan</p>
+                <h3 class="mt-2 font-heading text-xl font-bold text-white">
+                    {{ $currentPlan['name'] ?? 'Plan not assigned' }}
+                </h3>
+                <p class="mt-2 text-sm text-slate-400">
+                    {{ filled($currentPlan['description'] ?? null) ? $currentPlan['description'] : 'Your active subscription determines which modules and limits are available in this tenant workspace.' }}
+                </p>
+            </div>
+            @if($currentPlan !== null)
+                <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-right">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">Monthly Rate</p>
+                    <p class="mt-2 text-2xl font-bold text-white">P{{ $currentPlanPriceLabel }}</p>
+                </div>
+            @endif
+        </div>
+
+        @if($currentPlan !== null)
+            <div class="mt-5 grid gap-4 md:grid-cols-3">
+                <div class="rounded-xl border border-white/[0.07] bg-[#0f1319] p-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Branches</p>
+                    <p class="mt-2 text-sm font-semibold text-white">{{ ($currentPlan['max_branches'] ?? 0) === 0 ? 'Unlimited' : number_format((int) ($currentPlan['max_branches'] ?? 0)) }}</p>
+                </div>
+                <div class="rounded-xl border border-white/[0.07] bg-[#0f1319] p-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Users</p>
+                    <p class="mt-2 text-sm font-semibold text-white">{{ ($currentPlan['max_users'] ?? 0) === 0 ? 'Unlimited' : number_format((int) ($currentPlan['max_users'] ?? 0)) }}</p>
+                </div>
+                <div class="rounded-xl border border-white/[0.07] bg-[#0f1319] p-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Included Features</p>
+                    <p class="mt-2 text-sm font-semibold text-white">{{ number_format((int) ($currentPlan['feature_count'] ?? 0)) }}</p>
+                </div>
+            </div>
+
+            <div class="mt-5 rounded-xl border border-white/[0.07] bg-[#0f1319] p-4">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Included Highlights</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @forelse($currentPlanFeatures as $feature)
+                        <span class="inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">{{ $feature }}</span>
+                    @empty
+                        <span class="text-sm text-slate-400">No feature list is configured for this plan yet.</span>
+                    @endforelse
+                </div>
+            </div>
+        @endif
+    </div>
+
+    <div class="billing-upgrade-card rounded-2xl border p-6">
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">Upgrade Options</p>
+        <h3 class="billing-upgrade-title mt-2 font-heading text-xl font-bold">
+            {{ $suggestedUpgradePlan['name'] ?? 'Need more features?' }}
+        </h3>
+        <p class="billing-upgrade-copy mt-2 text-sm leading-6">
+            @if($suggestedUpgradePlan !== null)
+                Move to {{ $suggestedUpgradePlan['name'] }} for broader limits and more tenant features. We will open a prefilled support request so your team can submit the upgrade safely.
+            @else
+                If you need additional modules or higher limits, send a billing request and the support team can recommend the best available plan.
+            @endif
+        </p>
+
+        @if($suggestedUpgradePlan !== null)
+            <div class="billing-upgrade-subcard mt-4 rounded-xl border p-4">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold text-white">{{ $suggestedUpgradePlan['name'] }}</p>
+                        <p class="mt-1 text-xs text-slate-500">Suggested next plan</p>
+                    </div>
+                    <p class="text-lg font-bold text-white">P{{ $suggestedPlanPriceLabel }}/mo</p>
+                </div>
+            </div>
+        @endif
+
+        <div class="mt-5 flex flex-col gap-3">
+            @if($canViewSettings && $canManageSupportRequest)
+                <a href="{{ $upgradeSupportUrl }}" class="billing-upgrade-primary inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition">
+                    Request Plan Upgrade
+                </a>
+                <a href="{{ route('settings.index', array_merge($tenantParameter, ['tab' => 'support']), false) }}" class="billing-upgrade-secondary inline-flex items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold transition">
+                    Contact Support
+                </a>
+            @elseif($canViewSettings)
+                <a href="{{ route('settings.index', array_merge($tenantParameter, ['tab' => 'support']), false) }}" class="billing-upgrade-secondary inline-flex items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold transition">
+                    View Support Details
+                </a>
+                <p class="text-xs leading-5 text-slate-400">Your account can review support details, but only tenant administrators can submit upgrade requests.</p>
+            @else
+                <p class="billing-upgrade-secondary rounded-xl border px-4 py-3 text-sm">Please contact your tenant administrator to request a subscription upgrade.</p>
+            @endif
+        </div>
     </div>
 </div>
 

@@ -69,6 +69,7 @@ class TenantService
                 $data['admin_email'],
                 $password,
                 "{$scheme}://{$subdomain}.{$baseDomain}/login",
+                'approved',
             ));
 
             return $tenant;
@@ -121,6 +122,7 @@ class TenantService
             $email,
             $password,
             rtrim($tenant->getFullDomain(), '/').'/login',
+            'resent',
         ));
     }
 

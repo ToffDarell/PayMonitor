@@ -105,6 +105,7 @@ class UserController extends Controller
                 $user->email,
                 $password,
                 rtrim($currentTenant->getFullDomain(), '/').'/login',
+                'approved',
             ));
         }
 
@@ -190,6 +191,7 @@ class UserController extends Controller
             $user->email,
             $temporaryPassword,
             rtrim($currentTenant->getFullDomain(), '/').'/login',
+            'resent',
         ));
 
         return redirect('/users/'.$user->id)->with('success', "Credentials resent to {$user->email}.");

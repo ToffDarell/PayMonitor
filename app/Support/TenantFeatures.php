@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\DB;
 final class TenantFeatures
 {
     /**
+     * @var array<string, bool>|null
+     */
+    private static ?array $tenantFeatureAvailability = null;
+
+    /**
      * Define the minimum version required for each feature.
      */
     private const FEATURE_VERSIONS = [
@@ -54,22 +59,42 @@ final class TenantFeatures
      */
     public static function tenantHasFeature(string $feature): bool
     {
-        // 1. Check if the tenant's version supports it
+        return self::tenantFeatureAvailability()[$feature] ?? false;
+    }
+
+    /**
+     * @param  array<int, string>  $features
+     * @return array<string, bool>
+     */
+    public static function tenantFeatureMap(array $features): array
+    {
+        $availability = self::tenantFeatureAvailability();
+
+        $featureMap = [];
+
+        foreach ($features as $feature) {
+            $featureMap[$feature] = $availability[$feature] ?? false;
+        }
+
+        return $featureMap;
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private static function tenantFeatureAvailability(): array
+    {
+        if (self::$tenantFeatureAvailability !== null) {
+            return self::$tenantFeatureAvailability;
+        }
+
         $tenantVersion = TenantSetting::get('current_version', 'v1.0.0');
-        $versionHasIt = self::hasFeature($tenantVersion, $feature);
-
-        if (! $versionHasIt) {
-            return false;
-        }
-
-        // 2. Check if the tenant's plan includes it
         $tenant = tenant();
-        
+
         if (! $tenant) {
-            return false;
+            return self::$tenantFeatureAvailability = [];
         }
 
-        // Switch to central DB to get plan features
         $centralConnection = (string) config('tenancy.database.central_connection', config('database.default'));
 
         $planFeatures = DB::connection($centralConnection)
@@ -84,6 +109,13 @@ final class TenantFeatures
             $planFeatures = [];
         }
 
-        return in_array($feature, $planFeatures, true);
+        $availability = [];
+
+        foreach (self::FEATURE_VERSIONS as $feature => $minVersion) {
+            $availability[$feature] = self::hasFeature($tenantVersion, $feature)
+                && in_array($feature, $planFeatures, true);
+        }
+
+        return self::$tenantFeatureAvailability = $availability;
     }
 }
