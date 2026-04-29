@@ -10,7 +10,7 @@
     </a>
 </div>
 
-<div class="card border-0 shadow-sm" style="max-width: 680px;">
+<div class="card border-0 shadow-sm" style="max-width: 720px;">
     <div class="card-body">
         <form action="{{ route('superadmin.tenants.store') }}" method="POST">
             @csrf
@@ -30,27 +30,27 @@
 
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Company Name</label>
+                    <label class="form-label fw-semibold">Tenant Name</label>
                     <input type="text" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required>
                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Slug</label>
-                    <input type="text" name="slug" value="{{ old('slug') }}" class="form-control @error('slug') is-invalid @enderror" required>
-                    @error('slug')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label class="form-label fw-semibold">Subdomain</label>
+                    <input type="text" name="domain" value="{{ old('domain') }}" class="form-control @error('domain') is-invalid @enderror" required>
+                    @error('domain')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
 
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Email</label>
-                    <input type="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" required>
-                    @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label class="form-label fw-semibold">Admin Name</label>
+                    <input type="text" name="admin_name" value="{{ old('admin_name') }}" class="form-control @error('admin_name') is-invalid @enderror" required>
+                    @error('admin_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Phone</label>
-                    <input type="text" name="phone" value="{{ old('phone') }}" class="form-control @error('phone') is-invalid @enderror">
-                    @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label class="form-label fw-semibold">Admin Email</label>
+                    <input type="email" name="admin_email" value="{{ old('admin_email') }}" class="form-control @error('admin_email') is-invalid @enderror" required>
+                    @error('admin_email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
 
@@ -61,10 +61,9 @@
             </div>
 
             <div class="mb-4">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" name="is_active" value="1" id="isActive" {{ old('is_active', 1) ? 'checked' : '' }}>
-                    <label class="form-check-label" for="isActive">Active</label>
-                </div>
+                <label class="form-label fw-semibold">Subscription Due Date</label>
+                <input type="date" name="subscription_due_at" value="{{ old('subscription_due_at') }}" class="form-control @error('subscription_due_at') is-invalid @enderror">
+                @error('subscription_due_at')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             <button type="submit" class="btn btn-primary">Create Tenant</button>

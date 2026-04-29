@@ -56,8 +56,8 @@ class DashboardController extends Controller
     public function superAdmin(): \Illuminate\View\View
     {
         $totalTenants = Tenant::count();
-        $activeTenants = Tenant::where('is_active', true)->count();
-        $tenants = Tenant::with('plan')->latest()->limit(10)->get();
+        $activeTenants = Tenant::where('status', 'active')->count();
+        $tenants = Tenant::with(['plan', 'domains'])->latest()->limit(10)->get();
 
         return view('superadmin.dashboard', compact('totalTenants', 'activeTenants', 'tenants'));
     }

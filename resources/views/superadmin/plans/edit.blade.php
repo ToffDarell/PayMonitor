@@ -42,13 +42,6 @@
                 </div>
             </div>
 
-            <div class="mb-4">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" name="is_active" value="1" id="isActive" {{ old('is_active', $plan->is_active) ? 'checked' : '' }}>
-                    <label class="form-check-label" for="isActive">Active</label>
-                </div>
-            </div>
-
             <?php
             $availableFeatures = \App\Models\Plan::getAvailableFeatures();
             $selectedFeatures = old('features', $plan->features ?? []);

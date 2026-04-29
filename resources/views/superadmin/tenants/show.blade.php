@@ -12,8 +12,8 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <h6 class="fw-bold mb-3">Tenant Info</h6>
                 <dl class="row mb-0 small">
@@ -21,18 +21,22 @@
                     <dd class="col-7">{{ $tenant->plan?->name ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Email</dt>
                     <dd class="col-7">{{ $tenant->email }}</dd>
-                    <dt class="col-5 text-muted">Phone</dt>
-                    <dd class="col-7">{{ $tenant->phone ?? '—' }}</dd>
+                    <dt class="col-5 text-muted">Admin Name</dt>
+                    <dd class="col-7">{{ $tenant->admin_name ?? '—' }}</dd>
+                    <dt class="col-5 text-muted">Tenant ID</dt>
+                    <dd class="col-7"><code>{{ $tenant->id }}</code></dd>
+                    <dt class="col-5 text-muted">Primary Domain</dt>
+                    <dd class="col-7">{{ $primaryDomain?->domain ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Address</dt>
                     <dd class="col-7">{{ $tenant->address ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Status</dt>
                     <dd class="col-7">
-                        @if($tenant->is_active)
-                            <span class="badge bg-success">Active</span>
-                        @else
-                            <span class="badge bg-danger">Inactive</span>
-                        @endif
+                        <span class="badge bg-{{ $tenant->status === 'active' ? 'success' : ($tenant->status === 'suspended' ? 'warning text-dark' : 'secondary') }}">
+                            {{ ucfirst($tenant->status) }}
+                        </span>
                     </dd>
+                    <dt class="col-5 text-muted">Due Date</dt>
+                    <dd class="col-7">{{ $tenant->subscription_due_at?->format('M d, Y') ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Created</dt>
                     <dd class="col-7">{{ $tenant->created_at->format('M d, Y') }}</dd>
                 </dl>
@@ -40,54 +44,42 @@
         </div>
     </div>
 
-    <div class="col-md-8">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white fw-semibold">Branches ({{ $tenant->branches->count() }})</div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light">
-                        <tr><th>Name</th><th>Phone</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                        @forelse($tenant->branches as $branch)
-                            <tr>
-                                <td>{{ $branch->name }}</td>
-                                <td>{{ $branch->phone ?? '—' }}</td>
-                                <td>
-                                    @if($branch->is_active)
-                                        <span class="badge bg-success">Active</span>
-                                    @else
-                                        <span class="badge bg-secondary">Inactive</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="3" class="text-muted text-center py-2">No branches.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold">Users ({{ $tenant->users->count() }})</div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light">
-                        <tr><th>Name</th><th>Email</th><th>Role</th></tr>
-                    </thead>
-                    <tbody>
-                        @forelse($tenant->users as $user)
-                            <tr>
-                                <td>{{ $user->name }}</td>
-                                <td>{{ $user->email }}</td>
-                                <td><span class="badge bg-secondary text-uppercase">{{ $user->role }}</span></td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="3" class="text-muted text-center py-2">No users.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">Tenant Usage</h6>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="rounded border p-3">
+                            <div class="text-muted small">Branches</div>
+                            <div class="fw-bold fs-5">{{ number_format($usage['branches'] ?? 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="rounded border p-3">
+                            <div class="text-muted small">Users</div>
+                            <div class="fw-bold fs-5">{{ number_format($usage['users'] ?? 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="rounded border p-3">
+                            <div class="text-muted small">Members</div>
+                            <div class="fw-bold fs-5">{{ number_format($usage['members'] ?? 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="rounded border p-3">
+                            <div class="text-muted small">Loans</div>
+                            <div class="fw-bold fs-5">{{ number_format($usage['loans'] ?? 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="rounded border p-3">
+                            <div class="text-muted small">Total Records</div>
+                            <div class="fw-bold fs-4">{{ number_format($usage['total'] ?? 0) }}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

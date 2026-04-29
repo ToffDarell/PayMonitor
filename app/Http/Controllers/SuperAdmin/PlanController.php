@@ -33,7 +33,6 @@ class PlanController extends Controller
             'price'        => ['required', 'numeric', 'min:0'],
             'max_branches' => ['required', 'integer', 'min:0'],
             'max_users'    => ['required', 'integer', 'min:0'],
-            'is_active'    => ['boolean'],
             'features'     => ['nullable', 'array'],
             'features.*'   => ['string'],
         ]);
@@ -63,7 +62,6 @@ class PlanController extends Controller
             'price'        => ['required', 'numeric', 'min:0'],
             'max_branches' => ['required', 'integer', 'min:0'],
             'max_users'    => ['required', 'integer', 'min:0'],
-            'is_active'    => ['boolean'],
             'features'     => ['nullable', 'array'],
             'features.*'   => ['string'],
         ]);

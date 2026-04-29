@@ -16,12 +16,13 @@ class PlanFactory extends Factory
             'price' => fake()->randomElement([499, 999, 1999]),
             'max_branches' => fake()->numberBetween(1, 10),
             'max_users' => fake()->numberBetween(5, 50),
-            'is_active' => true,
+            'description' => fake()->sentence(),
+            'features' => [],
         ];
     }
 
     public function inactive(): static
     {
-        return $this->state(fn (array $attributes) => ['is_active' => false]);
+        return $this->state(fn (array $attributes) => []);
     }
 }

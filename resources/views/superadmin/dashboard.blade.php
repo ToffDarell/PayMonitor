@@ -39,6 +39,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Name</th>
+                    <th>Domain</th>
                     <th>Plan</th>
                     <th>Email</th>
                     <th>Status</th>
@@ -50,14 +51,13 @@
                 @forelse($tenants as $tenant)
                     <tr>
                         <td>{{ $tenant->name }}</td>
+                        <td>{{ $tenant->domains->first()?->domain ?? '—' }}</td>
                         <td>{{ $tenant->plan?->name ?? '—' }}</td>
                         <td>{{ $tenant->email }}</td>
                         <td>
-                            @if($tenant->is_active)
-                                <span class="badge bg-success">Active</span>
-                            @else
-                                <span class="badge bg-danger">Inactive</span>
-                            @endif
+                            <span class="badge bg-{{ $tenant->status === 'active' ? 'success' : ($tenant->status === 'suspended' ? 'warning text-dark' : 'secondary') }}">
+                                {{ ucfirst($tenant->status) }}
+                            </span>
                         </td>
                         <td>{{ $tenant->created_at->format('M d, Y') }}</td>
                         <td>
@@ -65,7 +65,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted py-3">No tenants yet.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-3">No tenants yet.</td></tr>
                 @endforelse
             </tbody>
         </table>

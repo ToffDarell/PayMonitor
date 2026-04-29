@@ -20,7 +20,7 @@
                     <th>Price</th>
                     <th>Max Branches</th>
                     <th>Max Users</th>
-                    <th>Status</th>
+                    <th>Features</th>
                     <th></th>
                 </tr>
             </thead>
@@ -30,15 +30,9 @@
                         <td>{{ $plan->id }}</td>
                         <td class="fw-semibold">{{ $plan->name }}</td>
                         <td>₱{{ number_format($plan->price, 2) }}</td>
-                        <td>{{ $plan->max_branches }}</td>
-                        <td>{{ $plan->max_users }}</td>
-                        <td>
-                            @if($plan->is_active)
-                                <span class="badge bg-success">Active</span>
-                            @else
-                                <span class="badge bg-secondary">Inactive</span>
-                            @endif
-                        </td>
+                        <td>{{ $plan->max_branches === 0 ? 'Unlimited' : number_format($plan->max_branches) }}</td>
+                        <td>{{ $plan->max_users === 0 ? 'Unlimited' : number_format($plan->max_users) }}</td>
+                        <td>{{ count($plan->features ?? []) }}</td>
                         <td class="text-end">
                             <a href="{{ route('superadmin.plans.edit', $plan) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                             <form action="{{ route('superadmin.plans.destroy', $plan) }}" method="POST" class="d-inline"

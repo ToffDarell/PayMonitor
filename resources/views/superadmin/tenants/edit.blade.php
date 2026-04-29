@@ -10,7 +10,7 @@
     </a>
 </div>
 
-<div class="card border-0 shadow-sm" style="max-width: 680px;">
+<div class="card border-0 shadow-sm" style="max-width: 720px;">
     <div class="card-body">
         <form action="{{ route('superadmin.tenants.update', $tenant) }}" method="POST">
             @csrf @method('PUT')
@@ -29,27 +29,40 @@
 
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Company Name</label>
+                    <label class="form-label fw-semibold">Tenant Name</label>
                     <input type="text" name="name" value="{{ old('name', $tenant->name) }}" class="form-control @error('name') is-invalid @enderror" required>
                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Slug</label>
-                    <input type="text" name="slug" value="{{ old('slug', $tenant->slug) }}" class="form-control @error('slug') is-invalid @enderror" required>
-                    @error('slug')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label class="form-label fw-semibold">Status</label>
+                    <select name="status" class="form-select @error('status') is-invalid @enderror" required>
+                        @foreach(['active' => 'Active', 'overdue' => 'Overdue', 'suspended' => 'Suspended', 'inactive' => 'Inactive'] as $value => $label)
+                            <option value="{{ $value }}" {{ old('status', $tenant->status) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
 
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Email</label>
-                    <input type="email" name="email" value="{{ old('email', $tenant->email) }}" class="form-control @error('email') is-invalid @enderror" required>
-                    @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label class="form-label fw-semibold">Tenant ID</label>
+                    <input type="text" value="{{ $tenant->id }}" class="form-control" readonly>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Phone</label>
-                    <input type="text" name="phone" value="{{ old('phone', $tenant->phone) }}" class="form-control @error('phone') is-invalid @enderror">
-                    @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label class="form-label fw-semibold">Primary Domain</label>
+                    <input type="text" value="{{ $primaryDomain?->domain ?? '—' }}" class="form-control" readonly>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Admin Name</label>
+                    <input type="text" value="{{ $tenant->admin_name ?? '—' }}" class="form-control" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Email</label>
+                    <input type="text" value="{{ $tenant->email }}" class="form-control" readonly>
                 </div>
             </div>
 
@@ -60,10 +73,9 @@
             </div>
 
             <div class="mb-4">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" name="is_active" value="1" id="isActive" {{ old('is_active', $tenant->is_active) ? 'checked' : '' }}>
-                    <label class="form-check-label" for="isActive">Active</label>
-                </div>
+                <label class="form-label fw-semibold">Subscription Due Date</label>
+                <input type="date" name="subscription_due_at" value="{{ old('subscription_due_at', optional($tenant->subscription_due_at)->format('Y-m-d')) }}" class="form-control @error('subscription_due_at') is-invalid @enderror">
+                @error('subscription_due_at')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             <button type="submit" class="btn btn-primary">Update Tenant</button>

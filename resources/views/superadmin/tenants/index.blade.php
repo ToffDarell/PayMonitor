@@ -17,7 +17,8 @@
                 <tr>
                     <th>#</th>
                     <th>Name</th>
-                    <th>Slug</th>
+                    <th>Tenant ID</th>
+                    <th>Domain</th>
                     <th>Plan</th>
                     <th>Email</th>
                     <th>Status</th>
@@ -28,17 +29,16 @@
             <tbody>
                 @forelse($tenants as $tenant)
                     <tr>
-                        <td>{{ $tenant->id }}</td>
+                        <td>{{ $loop->iteration }}</td>
                         <td>{{ $tenant->name }}</td>
-                        <td><code>{{ $tenant->slug }}</code></td>
+                        <td><code>{{ $tenant->id }}</code></td>
+                        <td>{{ $tenant->domains->first()?->domain ?? '—' }}</td>
                         <td>{{ $tenant->plan?->name ?? '—' }}</td>
                         <td>{{ $tenant->email }}</td>
                         <td>
-                            @if($tenant->is_active)
-                                <span class="badge bg-success">Active</span>
-                            @else
-                                <span class="badge bg-danger">Inactive</span>
-                            @endif
+                            <span class="badge bg-{{ $tenant->status === 'active' ? 'success' : ($tenant->status === 'suspended' ? 'warning text-dark' : 'secondary') }}">
+                                {{ ucfirst($tenant->status) }}
+                            </span>
                         </td>
                         <td>{{ $tenant->created_at->format('M d, Y') }}</td>
                         <td class="text-end">
@@ -55,7 +55,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="text-center text-muted py-3">No tenants found.</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-3">No tenants found.</td></tr>
                 @endforelse
             </tbody>
         </table>
