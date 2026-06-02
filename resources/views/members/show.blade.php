@@ -119,6 +119,41 @@
         </div>
     </div>
 
+    {{-- Employment & Financial Information section --}}
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h3 class="h6 fw-bold mb-3 text-uppercase text-muted">Employment & Financial Information</h3>
+                    <div class="mb-2"><strong>Occupation:</strong> {{ $member->occupation ?: 'N/A' }}</div>
+                    <div class="mb-0">
+                        <strong>Monthly Salary:</strong>
+                        @if ($member->monthly_salary !== null)
+                            ₱{{ number_format((float) $member->monthly_salary, 2) }}
+                        @else
+                            Not provided
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{-- Co-maker Information section --}}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h3 class="h6 fw-bold mb-3 text-uppercase text-muted">Co-maker Information</h3>
+                    @if ($member->co_maker_name)
+                        <div class="mb-2"><strong>Co-maker Name:</strong> {{ $member->co_maker_name }}</div>
+                        <div class="mb-2"><strong>Co-maker Address:</strong> {{ $member->co_maker_address ?: 'N/A' }}</div>
+                        <div class="mb-0"><strong>Co-maker Contact Number:</strong> {{ $member->co_maker_contact_number ?: 'N/A' }}</div>
+                    @else
+                        <div class="text-muted">No co-maker information provided.</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4 mb-4">
         <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm h-100">

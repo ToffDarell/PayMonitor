@@ -15,6 +15,7 @@
     $scheduleStatusClasses = [
         'pending' => 'secondary',
         'paid' => 'success',
+        'partially_paid' => 'warning text-dark',
         'overdue' => 'danger',
     ];
     $loanDocumentTypes = [
@@ -77,9 +78,9 @@
                     <i class="bi bi-wallet2 me-2"></i>Record Payment
                 </a>
             @endcan
-            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
-                <i class="bi bi-printer me-2"></i>Print
-            </button>
+            <a href="{{ route('loans.print', [...$tenantParameter, 'loan' => $loan->id]) }}" target="_blank" class="btn btn-outline-secondary">
+    <i class="bi bi-printer me-2"></i>Print
+</a>    
         </div>
     </div>
 
@@ -93,7 +94,7 @@
                         <span class="badge bg-{{ $loanStatusClasses[$loan->status] ?? 'secondary' }}">
                             {{ str_replace('_', ' ', ucfirst($loan->status)) }}
                         </span>
-                        @if($loan->is_delinquent)
+                        @if($loan->is_delinquent && $loan->status !== 'fully_paid')
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
                                 Delinquent
                             </span>
@@ -118,7 +119,7 @@
                             <div class="text-muted small text-uppercase fw-semibold">Released By</div>
                             <div>{{ $loan->user?->name ?? 'N/A' }}</div>
                         </div>
-                        @if($loan->is_delinquent)
+                        @if($loan->is_delinquent && $loan->status !== 'fully_paid')
                             <div class="col-md-6">
                                 <div class="text-muted small text-uppercase fw-semibold">Delinquent Since</div>
                                 <div class="text-danger fw-semibold">{{ $loan->delinquent_at?->format('M d, Y h:i A') ?? 'Marked delinquent' }}</div>
@@ -191,7 +192,7 @@
                 </div>
             </div>
         </div>
-    @elseif($loan->is_delinquent)
+    @elseif($loan->is_delinquent && $loan->status !== 'fully_paid')
         <div class="alert alert-danger border-0 shadow-sm mb-4">
             <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
                 <div>
@@ -244,7 +245,7 @@
         </div>
     </div>
 
-    @if($overdueFeatureEnabled && $loan->status !== 'written_off' && ($loan->status === 'overdue' || $loan->is_delinquent))
+    @if($overdueFeatureEnabled && $loan->status !== 'written_off' && $loan->status !== 'fully_paid' && ($loan->status === 'overdue' || $loan->is_delinquent))
         <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-4 mb-4" x-data="{ applyPenaltyOpen: false, restructureOpen: false, writeOffOpen: {{ $openWriteOffModal ? 'true' : 'false' }}, writeOffConfirmText: '', showDangerZone: false }">
             <div class="d-flex align-items-center gap-2 mb-3">
                 <div class="spinner-grow spinner-grow-sm text-danger" role="status">
@@ -499,6 +500,7 @@
                         <th class="text-end">Amount Due</th>
                         <th class="text-end">Principal</th>
                         <th class="text-end">Interest</th>
+                        <th class="text-end">Balance</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -510,15 +512,35 @@
                             <td class="text-end">P{{ number_format((float) $schedule->amount_due, 2) }}</td>
                             <td class="text-end">P{{ number_format((float) $schedule->principal_portion, 2) }}</td>
                             <td class="text-end">P{{ number_format((float) $schedule->interest_portion, 2) }}</td>
+                            <td class="text-end">
+                                @if((float) $schedule->balance > 0)
+                                    <span class="text-danger fw-semibold">P{{ number_format((float) $schedule->balance, 2) }}</span>
+                                @else
+                                    <span class="text-muted">P0.00</span>
+                                @endif
+                            </td>
                             <td>
-                                <span class="badge bg-{{ $scheduleStatusClasses[$schedule->status] ?? 'secondary' }}">
-                                    {{ ucfirst($schedule->status) }}
-                                </span>
+                                @switch($schedule->status)
+                                    @case('paid')
+                                        <span class="badge bg-success">Paid</span>
+                                        @break
+                                    @case('partially_paid')
+                                        <span class="badge bg-warning text-dark">Partially Paid</span>
+                                        @break
+                                    @case('pending')
+                                        <span class="badge bg-secondary">Pending</span>
+                                        @break
+                                    @case('overdue')
+                                        <span class="badge bg-danger">Overdue</span>
+                                        @break
+                                    @default
+                                        <span class="badge bg-secondary">{{ ucfirst($schedule->status) }}</span>
+                                @endswitch
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-5">No amortization schedule has been generated.</td>
+                            <td colspan="7" class="text-center text-muted py-5">No amortization schedule has been generated.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -573,15 +595,30 @@
                 </div>
                 <div class="card-body">
                     @can('create', \App\Models\LoanPayment::class)
-                        <form action="{{ route('loan-payments.store', $tenantParameter) }}" method="POST" class="row g-3">
+                        {{-- Inline Record Payment form with Alpine.js auto-comma formatting for the Amount field --}}
+                        <form action="{{ route('loan-payments.store', $tenantParameter) }}" method="POST" class="row g-3" x-data="{
+                            rawAmount: '',
+                            format(n) {
+                                if (!n) return '';
+                                let num = n.replace(/,/g, '');
+                                if (!num || isNaN(num)) return n;
+                                let parts = num.split('.');
+                                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                return parts.join('.');
+                            },
+                            submitForm() {
+                                document.getElementById('amount-hidden').value = this.rawAmount.replace(/,/g, '');
+                            }
+                        }" @submit="submitForm()">
                             @csrf
                             <input type="hidden" name="loan_id" value="{{ $loan->id }}">
+                            <input type="hidden" id="amount-hidden" name="amount" value="{{ old('amount') }}">
 
                             <div class="col-12">
                                 <label for="amount" class="form-label fw-semibold">Amount</label>
                                 <div class="input-group">
                                     <span class="input-group-text">P</span>
-                                    <input type="number" step="0.01" min="0.01" id="amount" name="amount" class="form-control @error('amount') is-invalid @enderror" required>
+                                    <input type="text" id="amount" inputmode="decimal" class="form-control @error('amount') is-invalid @enderror" x-ref="amountInput" x-on:input="rawAmount = $event.target.value.replace(/[^0-9.]/g, ''); $refs.amountInput.value = format(rawAmount)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" required>
                                 </div>
                                 @error('amount') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                             </div>
@@ -594,7 +631,8 @@
 
                             <div class="col-12">
                                 <label for="period_covered" class="form-label fw-semibold">Period Covered</label>
-                                <input type="text" id="period_covered" name="period_covered" class="form-control @error('period_covered') is-invalid @enderror" placeholder="Example: March 2026">
+                                <input type="text" id="period_covered" name="period_covered" class="form-control @error('period_covered') is-invalid @enderror" placeholder="Auto-filled on save" readonly>
+                                <div class="form-text">This field is auto-populated when the payment is recorded.</div>
                                 @error('period_covered') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
@@ -640,7 +678,7 @@
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $payment->payment_date?->format('M d, Y') ?? 'N/A' }}</td>
                                     <td class="text-end">P{{ number_format((float) $payment->amount, 2) }}</td>
-                                    <td>{{ $payment->period_covered ?: 'N/A' }}</td>
+                                    <td>{{ $payment->period_covered }}</td>
                                     <td>{{ $payment->user?->name ?? 'N/A' }}</td>
                                     <td>{{ $payment->notes ?: '-' }}</td>
                                 </tr>

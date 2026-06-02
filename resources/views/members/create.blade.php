@@ -19,8 +19,23 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body p-4">
-        <form action="{{ route('members.store', $tenantParameter) }}" method="POST">
+        {{-- Alpine.js for Monthly Salary auto-comma formatting on input --}}
+        <form action="{{ route('members.store', $tenantParameter) }}" method="POST" x-data="{
+            monthlySalaryRaw: '{{ old('monthly_salary') }}',
+            formatSalary(n) {
+                if (!n) return '';
+                let num = n.replace(/,/g, '');
+                if (!num || isNaN(num)) return n;
+                let parts = num.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                return parts.join('.');
+            },
+            submitForm() {
+                document.getElementById('monthly_salary_hidden').value = this.monthlySalaryRaw.replace(/,/g, '');
+            }
+        }" @submit="submitForm()">
             @csrf
+            {{-- Row 1: Personal Information (left) | Employment & Financial (right) --}}
             <div class="row g-4">
                 <div class="col-lg-6">
                     <div class="border rounded-3 p-4 h-100">
@@ -74,8 +89,35 @@
                     </div>
                 </div>
 
+                {{-- Employment & Financial Information section --}}
                 <div class="col-lg-6">
                     <div class="border rounded-3 p-4 h-100">
+                        <h2 class="h5 fw-bold mb-3">Employment & Financial Information</h2>
+
+                        {{-- Moved from Contact & Branch Details to group with salary --}}
+                        <div class="mb-3">
+                            <label for="occupation" class="form-label fw-semibold">Occupation</label>
+                            <input type="text" id="occupation" name="occupation" value="{{ old('occupation') }}" class="form-control @error('occupation') is-invalid @enderror">
+                            @error('occupation') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        {{-- Monthly Salary with Alpine.js auto-comma formatting --}}
+                        {{-- Hidden input submits raw value; visible input displays formatted --}}
+                        <div class="mb-0">
+                            <label for="monthly_salary" class="form-label fw-semibold">Monthly Salary</label>
+                            <input type="hidden" id="monthly_salary_hidden" name="monthly_salary" value="{{ old('monthly_salary') }}">
+                            <input type="text" id="monthly_salary" inputmode="decimal" placeholder="0.00" class="form-control @error('monthly_salary') is-invalid @enderror" x-ref="salaryInput" x-init="$refs.salaryInput.value = formatSalary(monthlySalaryRaw)" x-on:input="monthlySalaryRaw = $event.target.value.replace(/[^0-9.]/g, ''); $refs.salaryInput.value = formatSalary(monthlySalaryRaw)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()">
+                            @error('monthly_salary') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Row 2: Contact and Branch Details (left) | Co-maker Information (right) --}}
+            <div class="row g-4 mt-2">
+                <div class="col-lg-6">
+                    <div class="border rounded-3 p-4 h-100">
+                        {{-- Note: Occupation moved to Employment & Financial section above --}}
                         <h2 class="h5 fw-bold mb-3">Contact and Branch Details</h2>
 
                         <div class="mb-3">
@@ -97,12 +139,6 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="occupation" class="form-label fw-semibold">Occupation</label>
-                            <input type="text" id="occupation" name="occupation" value="{{ old('occupation') }}" class="form-control @error('occupation') is-invalid @enderror">
-                            @error('occupation') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="mb-3">
                             <label for="branch_id" class="form-label fw-semibold">Branch *</label>
                             <select id="branch_id" name="branch_id" class="form-select @error('branch_id') is-invalid @enderror" required>
                                 <option value="">Select branch</option>
@@ -117,6 +153,32 @@
                             <label for="joined_at" class="form-label fw-semibold">Joined Date</label>
                             <input type="date" id="joined_at" name="joined_at" value="{{ old('joined_at') }}" class="form-control @error('joined_at') is-invalid @enderror">
                             @error('joined_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Co-maker Information section (person who vouches for this member) --}}
+                <div class="col-lg-6">
+                    <div class="border rounded-3 p-4 h-100">
+                        <h2 class="h5 fw-bold mb-3">Co-maker Information</h2>
+                        <p class="text-muted small mb-3">Person who vouches for this member.</p>
+
+                        <div class="mb-3">
+                            <label for="co_maker_name" class="form-label fw-semibold">Co-maker Name</label>
+                            <input type="text" id="co_maker_name" name="co_maker_name" value="{{ old('co_maker_name') }}" placeholder="Full name" class="form-control @error('co_maker_name') is-invalid @enderror">
+                            @error('co_maker_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="co_maker_address" class="form-label fw-semibold">Co-maker Address</label>
+                            <input type="text" id="co_maker_address" name="co_maker_address" value="{{ old('co_maker_address') }}" placeholder="Complete address" class="form-control @error('co_maker_address') is-invalid @enderror">
+                            @error('co_maker_address') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-0">
+                            <label for="co_maker_contact_number" class="form-label fw-semibold">Co-maker Contact Number</label>
+                            <input type="text" id="co_maker_contact_number" name="co_maker_contact_number" value="{{ old('co_maker_contact_number') }}" placeholder="Phone number" class="form-control @error('co_maker_contact_number') is-invalid @enderror">
+                            @error('co_maker_contact_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
                 </div>

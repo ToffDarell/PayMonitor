@@ -29,6 +29,12 @@ class Member extends Model
         'occupation',
         'is_active',
         'joined_at',
+        // Employment & Financial Information
+        'monthly_salary',
+        // Co-maker Information
+        'co_maker_name',
+        'co_maker_address',
+        'co_maker_contact_number',
     ];
 
     protected function casts(): array

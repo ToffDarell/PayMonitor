@@ -30,6 +30,12 @@ class StoreMemberRequest extends FormRequest
             'occupation' => ['nullable', 'string', 'max:255'],
             'joined_at' => ['nullable', 'date'],
             'is_active' => ['sometimes', 'boolean'],
+            // Employment & Financial Information
+            'monthly_salary' => ['nullable', 'numeric', 'min:0'],
+            // Co-maker Information
+            'co_maker_name' => ['nullable', 'string', 'max:255'],
+            'co_maker_address' => ['nullable', 'string', 'max:500'],
+            'co_maker_contact_number' => ['nullable', 'string', 'max:20'],
         ];
     }
 }
