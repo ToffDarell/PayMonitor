@@ -1,3 +1,201 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        color-scheme: dark;
+
+        --pm-shell: #060B18;
+        --pm-page: #0d1117;
+        --pm-card: #161b22;
+        --pm-surface: #0f1319;
+        --pm-sidebar: #0A1628;
+        --pm-border: #21262d;
+        --pm-border-hover: #30363d;
+
+        --pm-text: #F1F5F9;
+        --pm-text-secondary: #94A3B8;
+        --pm-text-muted: #64748B;
+
+        --pm-accent: #10B981;
+        --pm-accent-hover: #059669;
+        --pm-accent-glow: rgba(16,185,129,0.15);
+        --pm-amber: #F59E0B;
+        --pm-amber-glow: rgba(245,158,11,0.12);
+    }
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        font-family: 'Inter', 'Figtree', sans-serif;
+        background: var(--pm-shell);
+        color: var(--pm-text);
+        line-height: 1.6;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    *:focus-visible {
+        @apply outline-none ring-2 ring-emerald-500/60 ring-offset-2 ring-offset-[#060B18];
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .pm-container {
+        @apply mx-auto max-w-[1200px] px-6;
+    }
+
+    .pm-btn {
+        @apply inline-flex cursor-pointer items-center justify-center rounded-xl px-8 py-3.5 font-heading text-[15px] font-semibold no-underline transition-all duration-300;
+    }
+
+    .pm-btn--primary {
+        @apply bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-emerald-glow;
+    }
+
+    .pm-btn--primary:hover {
+        @apply -translate-y-0.5 shadow-emerald-glow-lg;
+    }
+
+    .pm-btn--ghost {
+        @apply border border-white/10 bg-white/5 text-white;
+    }
+
+    .pm-btn--ghost:hover {
+        @apply border-white/20 bg-white/10 -translate-y-0.5;
+    }
+
+    .pm-card {
+        @apply relative overflow-hidden rounded-2xl border border-[var(--pm-border)] bg-white/[0.03] p-8 transition-all duration-500;
+    }
+
+    .pm-card::before {
+        content: '';
+        @apply pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500;
+        padding: 1px;
+        background: linear-gradient(135deg, transparent 40%, var(--pm-accent-glow));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+    }
+
+    .pm-card:hover::before {
+        @apply opacity-100;
+    }
+
+    .pm-card:hover {
+        @apply -translate-y-1 bg-white/[0.06];
+    }
+
+    .pm-input {
+        @apply w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[var(--pm-text)] caret-[var(--pm-text)] transition-all duration-200;
+    }
+
+    .pm-input:focus {
+        @apply border-emerald-500 outline-none;
+        box-shadow: 0 0 0 3px var(--pm-accent-glow);
+    }
+
+    .pm-input::placeholder {
+        @apply text-[var(--pm-text-muted)];
+    }
+
+    .pm-check {
+        accent-color: var(--pm-accent);
+    }
+
+    .pm-section {
+        @apply relative z-10 px-6 py-[100px];
+    }
+
+    .pm-section-label {
+        @apply mb-4 font-heading text-[13px] font-bold uppercase tracking-[0.16em] text-emerald-500;
+    }
+
+    .pm-section-title {
+        @apply font-heading text-[clamp(28px,4vw,42px)] font-extrabold leading-tight -tracking-[0.03em] text-white;
+        max-width: 560px;
+    }
+
+    .pm-section-desc {
+        @apply mt-4 max-w-[500px] text-base leading-relaxed text-[var(--pm-text-secondary)];
+    }
+
+    .pm-icon {
+        @apply mb-5 flex h-12 w-12 items-center justify-center rounded-xl;
+    }
+
+    .pm-icon--emerald {
+        @apply bg-emerald-500/15 text-emerald-500;
+    }
+
+    .pm-icon--amber {
+        @apply bg-amber-500/15 text-amber-500;
+    }
+
+    .pm-icon--indigo {
+        @apply bg-indigo-500/15 text-indigo-400;
+    }
+}
+
+@layer utilities {
+    .pm-gradient-text {
+        @apply bg-gradient-to-r from-emerald-500 via-emerald-400 to-amber-500 bg-clip-text text-transparent;
+    }
+
+    .pm-pulse-dot {
+        @apply h-1.5 w-1.5 animate-pulse-dot rounded-full bg-emerald-500;
+    }
+
+    .pm-grid-pattern {
+        @apply pointer-events-none fixed inset-0 z-0;
+        background-image:
+            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+        background-size: 60px 60px;
+        mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+    }
+
+    .pm-reveal {
+        @apply translate-y-7 opacity-0;
+        transition:
+            opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .pm-reveal.visible {
+        @apply translate-y-0 opacity-100;
+    }
+
+    .pm-reveal-d1 { transition-delay: 0.1s; }
+    .pm-reveal-d2 { transition-delay: 0.2s; }
+    .pm-reveal-d3 { transition-delay: 0.3s; }
+    .pm-reveal-d4 { transition-delay: 0.4s; }
+    .pm-reveal-d5 { transition-delay: 0.5s; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .pm-reveal,
+        .pm-reveal.visible,
+        .pm-orb,
+        .pm-pulse-dot {
+            transition: none !important;
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+    }
+}

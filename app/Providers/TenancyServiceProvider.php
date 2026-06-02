@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Console\Commands\BackfillTenantModulesCommand;
 use App\Models\TenantSetting;
 use Database\Seeders\ModuleSeeder;
 use Illuminate\Contracts\Http\Kernel;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Stancl\Tenancy\DatabaseConfig;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events;
 use Stancl\Tenancy\Jobs;
@@ -23,9 +25,35 @@ class TenancyServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerConsoleCommands();
+        $this->configureTenantDatabaseNaming();
         $this->registerEventListeners();
         $this->registerTenantRoutes();
         $this->prioritizeTenancyMiddleware();
+    }
+
+    protected function registerConsoleCommands(): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        $this->commands([
+            BackfillTenantModulesCommand::class,
+        ]);
+    }
+
+    protected function configureTenantDatabaseNaming(): void
+    {
+        DatabaseConfig::generateDatabaseNamesUsing(static function ($tenant): string {
+            if (method_exists($tenant, 'preferredDatabaseName')) {
+                return $tenant->preferredDatabaseName();
+            }
+
+            return (string) config('tenancy.database.prefix', 'tenant_')
+                .$tenant->getTenantKey()
+                .(string) config('tenancy.database.suffix', '');
+        });
     }
 
     protected function registerEventListeners(): void

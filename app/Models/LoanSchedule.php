@@ -17,6 +17,8 @@ class LoanSchedule extends Model
         'period_number',
         'due_date',
         'amount_due',
+        'amount_paid',
+        'balance',
         'principal_portion',
         'interest_portion',
         'status',
@@ -28,6 +30,8 @@ class LoanSchedule extends Model
         return [
             'due_date' => 'date',
             'amount_due' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
+            'balance' => 'decimal:2',
             'principal_portion' => 'decimal:2',
             'interest_portion' => 'decimal:2',
             'paid_at' => 'datetime',

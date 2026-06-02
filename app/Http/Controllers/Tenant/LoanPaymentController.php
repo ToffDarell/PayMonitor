@@ -102,12 +102,14 @@ class LoanPaymentController extends Controller
                 ]);
             }
 
+            $periodsCovered = $this->applyPaymentToSchedules($loan, $paymentAmount);
+
             $payment = LoanPayment::query()->create([
                 'loan_id' => $loan->id,
                 'user_id' => auth()->id(),
                 'amount' => $paymentAmount,
                 'payment_date' => $validated['payment_date'],
-                'period_covered' => $validated['period_covered'] ?? null,
+                'period_covered' => $periodsCovered,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
@@ -115,14 +117,26 @@ class LoanPaymentController extends Controller
 
             $amountPaid = round((float) $loan->loanPayments()->sum('amount'), 2);
             $remainingBalance = round(max((float) $loan->outstanding_balance - $paymentAmount, 0), 2);
+            $newStatus = $remainingBalance <= 0 ? 'fully_paid' : ($loan->isOverdue() ? 'overdue' : $loan->status);
 
             $loan->forceFill([
                 'amount_paid' => $amountPaid,
                 'outstanding_balance' => $remainingBalance,
-                'status' => $remainingBalance <= 0 ? 'fully_paid' : ($loan->isOverdue() ? 'overdue' : $loan->status),
+                'status' => $newStatus,
             ])->save();
 
-            $this->syncSchedules($loan);
+            if ($newStatus === 'fully_paid') {
+                $loan->loanSchedules()
+                    ->whereIn('status', ['pending', 'partially_paid'])
+                    ->where('balance', '>', 0)
+                    ->update([
+                        'amount_paid' => DB::raw('amount_due'),
+                        'balance' => 0,
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                    ]);
+            }
+
             $this->auditService->log('created', $payment, [], $payment->toArray());
             $this->auditService->log('updated', $loan, $oldValues, $loan->fresh()->toArray());
 
@@ -132,30 +146,58 @@ class LoanPaymentController extends Controller
         return redirect('/loans/'.$loan->id)->with('success', 'Payment recorded successfully.');
     }
 
-    protected function syncSchedules(Loan $loan): void
+    protected function applyPaymentToSchedules(Loan $loan, float $paymentAmount): string
     {
-        $coveredAmount = (float) $loan->amount_paid;
+        $remainingPayment = $paymentAmount;
+        $touchedPeriods = [];
 
-        $loan->loanSchedules()
+        $schedules = $loan->loanSchedules()
             ->orderBy('period_number')
-            ->get()
-            ->each(function (LoanSchedule $schedule) use (&$coveredAmount): void {
-                $amountDue = (float) $schedule->amount_due;
+            ->get();
 
-                if ($coveredAmount >= $amountDue) {
-                    $schedule->forceFill([
-                        'status' => 'paid',
-                        'paid_at' => $schedule->paid_at ?? now(),
-                    ])->save();
-                    $coveredAmount = round($coveredAmount - $amountDue, 2);
+        foreach ($schedules as $schedule) {
+            if ($remainingPayment <= 0) {
+                break;
+            }
 
-                    return;
-                }
+            $amountDue = (float) $schedule->amount_due;
+            $amountPaidSoFar = (float) $schedule->amount_paid;
+            $remainingOnPeriod = round($amountDue - $amountPaidSoFar, 2);
 
+            if ($remainingOnPeriod <= 0) {
+                continue;
+            }
+
+            if ($remainingPayment >= $remainingOnPeriod) {
                 $schedule->forceFill([
-                    'status' => $schedule->due_date !== null && $schedule->due_date->lt(today()) ? 'overdue' : 'pending',
-                    'paid_at' => null,
+                    'amount_paid' => $amountDue,
+                    'balance' => 0,
+                    'status' => 'paid',
+                    'paid_at' => $schedule->paid_at ?? now(),
                 ])->save();
-            });
+
+                $remainingPayment = round($remainingPayment - $remainingOnPeriod, 2);
+                $touchedPeriods[] = 'Period '.$schedule->period_number;
+
+                continue;
+            }
+
+            $newAmountPaid = round($amountPaidSoFar + $remainingPayment, 2);
+            $schedule->forceFill([
+                'amount_paid' => $newAmountPaid,
+                'balance' => round($amountDue - $newAmountPaid, 2),
+                'status' => 'partially_paid',
+                'paid_at' => null,
+            ])->save();
+
+            $touchedPeriods[] = 'Period '.$schedule->period_number.' (Partial)';
+            $remainingPayment = 0;
+        }
+
+        if (count($touchedPeriods) === 0) {
+            return 'Period 0';
+        }
+
+        return implode(', ', $touchedPeriods);
     }
 }

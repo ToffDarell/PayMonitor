@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 class LoanPayment extends Model
 {
@@ -32,19 +33,36 @@ class LoanPayment extends Model
     protected static function booted(): void
     {
         static::created(function (LoanPayment $loanPayment): void {
-            $loan = $loanPayment->loan()->first();
+            $loan = $loanPayment->loan()
+                ->with('loanSchedules')
+                ->first();
 
             if ($loan === null) {
                 return;
             }
 
             $amountPaid = (float) $loan->loanPayments()->sum('amount');
-            $outstandingBalance = round(max((float) $loan->total_payable - $amountPaid, 0), 2);
+            $scheduleBalance = (float) $loan->loanSchedules->sum('balance');
+            $outstandingBalance = $scheduleBalance > 0 ? $scheduleBalance : round(max((float) $loan->total_payable - $amountPaid, 0), 2);
+
+            $isSettled = $outstandingBalance <= 0;
+
+            if ($isSettled) {
+                $loan->loanSchedules()
+                    ->whereIn('status', ['pending', 'partially_paid'])
+                    ->where('balance', '>', 0)
+                    ->update([
+                        'amount_paid' => DB::raw('amount_due'),
+                        'balance' => 0,
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                    ]);
+            }
 
             $loan->forceFill([
                 'amount_paid' => round($amountPaid, 2),
                 'outstanding_balance' => $outstandingBalance,
-                'status' => $outstandingBalance <= 0 ? 'fully_paid' : $loan->status,
+                'status' => $isSettled ? 'fully_paid' : $loan->status,
             ])->save();
         });
     }

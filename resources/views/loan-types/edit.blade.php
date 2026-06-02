@@ -236,17 +236,19 @@
                         </div>
                         <div class="col-md-6">
                             <label for="min_amount" class="form-label fw-semibold">Min Amount</label>
-                            <div class="input-group">
+                            <div class="input-group" x-data="{ raw: '{{ old('min_amount', $loanType->min_amount) }}', format(n) { if (!n) return ''; let num = n.replace(/,/g, ''); if (!num || isNaN(num)) return n; let parts = num.split('.'); parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); return parts.join('.'); } }">
                                 <span class="input-group-text">P</span>
-                                <input type="number" step="0.01" min="0" id="min_amount" name="min_amount" value="{{ old('min_amount', $loanType->min_amount) }}" class="form-control @error('min_amount') is-invalid @enderror">
+                                <input type="text" inputmode="decimal" id="min_amount" x-ref="input" x-on:input="raw = $event.target.value.replace(/[^0-9.]/g, ''); $refs.input.value = format(raw)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" class="form-control @error('min_amount') is-invalid @enderror" x-init="$el.value = format(raw)">
+                                <input type="hidden" name="min_amount" :value="raw.replace(/,/g, '')">
                             </div>
                             @error('min_amount') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label for="max_amount" class="form-label fw-semibold">Max Amount</label>
-                            <div class="input-group">
+                            <div class="input-group" x-data="{ raw: '{{ old('max_amount', $loanType->max_amount) }}', format(n) { if (!n) return ''; let num = n.replace(/,/g, ''); if (!num || isNaN(num)) return n; let parts = num.split('.'); parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); return parts.join('.'); } }">
                                 <span class="input-group-text">P</span>
-                                <input type="number" step="0.01" min="0" id="max_amount" name="max_amount" value="{{ old('max_amount', $loanType->max_amount) }}" class="form-control @error('max_amount') is-invalid @enderror">
+                                <input type="text" inputmode="decimal" id="max_amount" x-ref="input" x-on:input="raw = $event.target.value.replace(/[^0-9.]/g, ''); $refs.input.value = format(raw)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" class="form-control @error('max_amount') is-invalid @enderror" x-init="$el.value = format(raw)">
+                                <input type="hidden" name="max_amount" :value="raw.replace(/,/g, '')">
                             </div>
                             @error('max_amount') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                         </div>

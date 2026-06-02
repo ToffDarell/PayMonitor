@@ -17,7 +17,7 @@ class ModuleFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->sentence(),
+            'name' => fake()->sentence(),
             'plan_id' => 1,
         ];
     }

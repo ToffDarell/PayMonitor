@@ -61,6 +61,22 @@ test('tenant overdue helper compares the subscription date against today', funct
     expect($currentTenant->isOverdue())->toBeFalse();
 });
 
+test('tenant hashed database name uses a stable non-readable identifier', function () {
+    Config::set('app.key', 'base64:unit-test-app-key');
+    Config::set('tenancy.database.prefix', 'tenant_');
+    Config::set('tenancy.database.suffix', '');
+
+    $tenant = new Tenant([
+        'id' => 'lantapancoop',
+    ]);
+
+    $hashedName = $tenant->hashedDatabaseName();
+
+    expect($hashedName)->toStartWith('tenant_');
+    expect($hashedName)->not->toContain('lantapancoop');
+    expect($hashedName)->toHaveLength(strlen('tenant_') + 32);
+});
+
 test('tenant usage counts branches users members loan types and loans in the tenant database', function () {
     Schema::shouldReceive('hasTable')->once()->with('branches')->andReturn(true);
     Schema::shouldReceive('hasTable')->once()->with('users')->andReturn(true);

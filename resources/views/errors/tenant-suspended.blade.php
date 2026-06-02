@@ -7,6 +7,8 @@
     $tenantFaviconUrl = filled($tenantLogoPath)
         ? route('stancl.tenancy.asset', ['path' => ltrim((string) $tenantLogoPath, '/')], false).'?v='.rawurlencode((string) $tenantLogoPath)
         : asset('favicon.ico');
+    $tenantParameter = ['tenant' => tenant()?->id ?? request()->route('tenant')];
+    $showPayNowButton = ($portalStatus ?? null) === 'overdue' && filled($tenantParameter['tenant']);
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -79,6 +81,16 @@
 
         <main class="flex min-h-screen items-center justify-center bg-[#0B1120] px-5 py-10 sm:px-8">
             <div class="w-full max-w-md rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur sm:p-8">
+                @if (session('success') || session('error'))
+                    @php
+                        $flashTone = session('success') ? 'emerald' : 'rose';
+                        $flashMessage = session('success') ?? session('error');
+                    @endphp
+                    <div class="mb-5 rounded-xl border border-{{ $flashTone }}-500/30 bg-{{ $flashTone }}-500/10 px-4 py-3 text-sm text-{{ $flashTone }}-100">
+                        {{ $flashMessage }}
+                    </div>
+                @endif
+
                 <div>
                     <p class="font-heading max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs font-semibold uppercase tracking-[0.12em] text-emerald-400 sm:text-sm sm:tracking-[0.16em]">{{ strtoupper($tenantHost) }}</p>
                     <h1 class="font-heading mt-4 text-2xl font-bold tracking-tight text-white">Portal Unavailable</h1>
@@ -92,6 +104,20 @@
                         Please contact your administrator for assistance with restoring access to this tenant portal.
                     </p>
                 </div>
+
+                @if($showPayNowButton)
+                    <div class="mt-6">
+                        <a
+                            href="{{ route('billing.portal.pay-now', $tenantParameter, false) }}"
+                            class="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:from-emerald-400 hover:to-teal-400"
+                        >
+                            Pay Now
+                        </a>
+                        <p class="mt-3 text-center text-xs leading-5 text-slate-500">
+                            Complete your subscription payment to restore portal access.
+                        </p>
+                    </div>
+                @endif
 
                 <p class="mt-6 text-center text-sm text-slate-500">
                     If you believe this is an error, contact your cooperative administrator.

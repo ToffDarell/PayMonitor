@@ -8,11 +8,27 @@
     $tenantHost = request()->getHost();
     $tenantParameter = ['tenant' => $tenantModel?->id ?? request()->route('tenant')];
     $tenantFeatureFlags = \App\Support\TenantFeatures::tenantFeatureMap([
+        'basic_members',
+        'loan_management',
+        'loan_types',
+        'payment_tracking',
+        'basic_reports',
+        'branch_management',
+        'multi_user',
         'collections_dashboard',
         'audit_logs',
+        'custom_roles',
     ]);
+    $membersFeatureEnabled = $tenantFeatureFlags['basic_members'] ?? false;
+    $loanManagementFeatureEnabled = $tenantFeatureFlags['loan_management'] ?? false;
+    $loanTypesFeatureEnabled = $tenantFeatureFlags['loan_types'] ?? false;
+    $paymentTrackingFeatureEnabled = $tenantFeatureFlags['payment_tracking'] ?? false;
+    $reportsFeatureEnabled = $tenantFeatureFlags['basic_reports'] ?? false;
+    $branchManagementFeatureEnabled = $tenantFeatureFlags['branch_management'] ?? false;
+    $multiUserFeatureEnabled = $tenantFeatureFlags['multi_user'] ?? false;
     $collectionsFeatureEnabled = $tenantFeatureFlags['collections_dashboard'] ?? false;
     $auditLogsFeatureEnabled = $tenantFeatureFlags['audit_logs'] ?? false;
+    $customRolesFeatureEnabled = $tenantFeatureFlags['custom_roles'] ?? false;
     $tenantSettings = \App\Models\TenantSetting::allKeyed();
     $accentPalette = [
         'green' => ['hex' => '#22c55e', 'hover' => '#16a34a', 'rgb' => '34, 197, 94'],
@@ -200,23 +216,12 @@
     <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet">
+    @vite(['resources/css/paymonitor.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        heading: ['Figtree', 'sans-serif'],
-                        sans: ['Figtree', 'sans-serif'],
-                    },
-                },
-            },
-        };
-    </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" id="bootstrap-css">
+    <script src="https://cdn.tailwindcss.com" id="tailwind-cdn"></script>
     @stack('styles')
     <style>
         :root {
@@ -253,7 +258,7 @@
         body {
             background-color: var(--pm-shell-bg);
             color: var(--pm-text-secondary);
-            font-family: 'Figtree', sans-serif;
+            font-family: 'Inter', 'Figtree', sans-serif;
         }
 
         body.tenant-theme-dark {
@@ -1072,28 +1077,28 @@
                     <div class="mt-6">
                                         <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Lending</p>
                         <nav class="mt-3 space-y-1.5">
-                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::MEMBERS_VIEW))
+                            @if($membersFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::MEMBERS_VIEW))
                                 @php($membersActive = request()->routeIs('members.*'))
                                 <a href="{{ route('members.index', $tenantParameter, false) }}" class="{{ $navItemClass($membersActive) }}">
                                     <svg class="h-5 w-5 {{ $navIconClass($membersActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 7.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5.25 18a5.25 5.25 0 0 1 10.5 0"/></svg>
                                     <span>Members</span>
                                 </a>
                             @endif
-                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::LOANS_VIEW))
+                            @if($loanManagementFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::LOANS_VIEW))
                                 @php($loansActive = request()->routeIs('loans.*'))
                                 <a href="{{ route('loans.index', $tenantParameter, false) }}" class="{{ $navItemClass($loansActive) }}">
                                     <svg class="h-5 w-5 {{ $navIconClass($loansActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
                                     <span>Loans</span>
                                 </a>
                             @endif
-                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::LOAN_TYPES_VIEW))
+                            @if($loanTypesFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::LOAN_TYPES_VIEW))
                                 @php($loanTypesActive = request()->routeIs('loan-types.*'))
                                 <a href="{{ route('loan-types.index', $tenantParameter, false) }}" class="{{ $navItemClass($loanTypesActive) }}">
                                     <svg class="h-5 w-5 {{ $navIconClass($loanTypesActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 4.5h9A1.5 1.5 0 0 1 18 6v12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 18V6A1.5 1.5 0 0 1 7.5 4.5Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 9h6M9 12h6M9 15h3.75"/></svg>
                                     <span>Loan Types</span>
                                 </a>
                             @endif
-                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::LOAN_PAYMENTS_VIEW))
+                            @if($paymentTrackingFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::LOAN_PAYMENTS_VIEW))
                                 @php($paymentsActive = request()->routeIs('loan-payments.*'))
                                 <a href="{{ route('loan-payments.index', $tenantParameter, false) }}" class="{{ $navItemClass($paymentsActive) }}">
                                     <svg class="h-5 w-5 {{ $navIconClass($paymentsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5A2.25 2.25 0 0 1 6 5.25h12A2.25 2.25 0 0 1 20.25 7.5v9A2.25 2.25 0 0 1 18 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-12 4.5h3"/></svg>
@@ -1110,18 +1115,18 @@
                         </nav>
                     </div>
 
-                    @if($user?->hasAnyTenantPermission([\App\Support\TenantPermissions::BRANCHES_VIEW, \App\Support\TenantPermissions::USERS_VIEW]) || ($tenantSupportsAuditLogs && $auditLogsFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::AUDIT_LOGS_VIEW)))
+                    @if(($branchManagementFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::BRANCHES_VIEW)) || ($multiUserFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::USERS_VIEW)) || ($tenantSupportsAuditLogs && $auditLogsFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::AUDIT_LOGS_VIEW)))
                         <div class="mt-6">
                             <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Management</p>
                             <nav class="mt-3 space-y-1.5">
-                                @if($user?->hasTenantPermission(\App\Support\TenantPermissions::BRANCHES_VIEW))
+                                @if($branchManagementFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::BRANCHES_VIEW))
                                     @php($branchesActive = request()->routeIs('branches.*'))
                                     <a href="{{ route('branches.index', $tenantParameter, false) }}" class="{{ $navItemClass($branchesActive) }}">
                                         <svg class="h-5 w-5 {{ $navIconClass($branchesActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h4.5v4.5H4.5v-4.5Zm0 6h4.5v4.5H4.5v-4.5Zm10.5-6h4.5v4.5H15v-4.5Zm0 6h4.5v4.5H15v-4.5Z"/></svg>
                                         <span>Branches</span>
                                     </a>
                                 @endif
-                                @if($user?->hasTenantPermission(\App\Support\TenantPermissions::USERS_VIEW))
+                                @if($multiUserFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::USERS_VIEW))
                                     @php($usersActive = request()->routeIs('users.*'))
                                     <a href="{{ route('users.index', $tenantParameter, false) }}" class="{{ $navItemClass($usersActive) }}">
                                         <svg class="h-5 w-5 {{ $navIconClass($usersActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 7.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5.25 18a5.25 5.25 0 0 1 10.5 0"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 8.25h3m-1.5-1.5v3"/></svg>
@@ -1142,7 +1147,7 @@
                     <div class="mt-6">
                         <p class="tenant-muted px-4 text-[11px] font-semibold uppercase tracking-[0.24em]">Insights</p>
                         <nav class="mt-3 space-y-1.5">
-                            @if($user?->hasTenantPermission(\App\Support\TenantPermissions::REPORTS_VIEW))
+                            @if($reportsFeatureEnabled && $user?->hasTenantPermission(\App\Support\TenantPermissions::REPORTS_VIEW))
                                 @php($reportsActive = request()->routeIs('reports.*'))
                                 <a href="{{ route('reports.index', $tenantParameter, false) }}" class="{{ $navItemClass($reportsActive) }}">
                                     <svg class="h-5 w-5 {{ $navIconClass($reportsActive) }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5h15"/><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 16.5v-4.5M12 16.5V9M16.5 16.5V6"/></svg>
@@ -1313,7 +1318,6 @@
 
     @include('partials.dialogs')
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')
 </body>
 </html>

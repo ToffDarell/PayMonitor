@@ -169,7 +169,7 @@ class TenantService
                 return $fallback;
             }
 
-            $databaseName = 'tenant_'.$tenant->id;
+            $databaseName = $tenant->database()->getName();
             $size = $connection->selectOne(
                 'SELECT
                     ROUND(COALESCE(SUM(data_length + index_length), 0) / 1024 / 1024, 2) AS size_mb,

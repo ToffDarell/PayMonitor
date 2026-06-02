@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
@@ -54,13 +55,13 @@ class AuthenticatedSessionController extends Controller
 
         $tenant = tenant();
 
-        if ($tenant instanceof Tenant && in_array($tenant->status, ['suspended', 'inactive'], true)) {
+        if ($tenant instanceof Tenant && $tenant->accessBlocked()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             return back()->withErrors([
-                'email' => 'This account has been suspended. Contact support.',
+                'email' => Str::finish($tenant->accessBlockedMessage(), ' Contact support.'),
             ])->onlyInput('email');
         }
 

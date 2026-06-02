@@ -13,7 +13,10 @@ class PayMongoService
 {
     private const BASE_URL = 'https://api.paymongo.com/v1';
 
-    public function createPaymentLink(BillingInvoice $invoice): array
+    /**
+     * @param  array{success_url?: string, cancel_url?: string}  $redirectUrls
+     */
+    public function createPaymentLink(BillingInvoice $invoice, array $redirectUrls = []): array
     {
         $secretKey = (string) config('paymongo.secret_key');
 
@@ -40,8 +43,8 @@ class PayMongoService
                         ],
                         'payment_method_types' => ['card', 'gcash', 'paymaya', 'qrph'],
                         'description' => $invoice->tenant->name ?? 'Tenant Subscription',
-                        'success_url' => route('billing.success', ['tenant' => $invoice->tenant_id, 'invoiceId' => $invoice->id], true),
-                        'cancel_url' => route('billing.index', ['tenant' => $invoice->tenant_id], true),
+                        'success_url' => $redirectUrls['success_url'] ?? route('billing.success', ['tenant' => $invoice->tenant_id, 'invoiceId' => $invoice->id], true),
+                        'cancel_url' => $redirectUrls['cancel_url'] ?? route('billing.index', ['tenant' => $invoice->tenant_id], true),
                     ],
                 ],
             ])

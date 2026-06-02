@@ -33,7 +33,7 @@ collect(config('tenancy.central_domains', ['localhost']))
     ->filter(static fn (string $domain): bool => ! in_array($domain, ['127.0.0.1'], true))
     ->each(function (string $domain): void {
         Route::domain("{tenant}.{$domain}")
-            ->where(['tenant' => '.*'])
+            ->where(['tenant' => '[a-z0-9-]+'])
             ->middleware([
                 'web',
                 InitializeTenancyByDomain::class,
@@ -53,6 +53,11 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/register', static fn (): RedirectResponse => redirect('/login')->with('error', 'Registration is closed.'))->name('tenant.register');
                 });
 
+                Route::get('/portal/pay-now', [BillingController::class, 'publicPayNow'])->name('billing.portal.pay-now');
+                Route::get('/portal/billing/{invoiceId}/success', [BillingController::class, 'publicPaymentSuccess'])->name('billing.portal.success');
+                Route::get('/portal/billing/{invoiceId}/failed', [BillingController::class, 'publicPaymentFailed'])->name('billing.portal.failed');
+                Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+
                 Route::match(['get', 'post'], '/logout', [TenantAuthenticatedSessionController::class, 'destroy'])
                     ->middleware('auth')
                     ->name('tenant.logout');
@@ -65,16 +70,32 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/billing/{invoiceId}/failed', [BillingController::class, 'paymentFailed'])->name('billing.failed');
                     Route::post('/billing/{invoiceId}/verify', [BillingController::class, 'verifyPayment'])->name('billing.verify');
                     Route::get('/billing/{invoiceId}/receipt', [BillingController::class, 'showReceipt'])->name('billing.receipt');
+                });
 
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:basic_members'])->group(function (): void {
                     Route::resource('members', MemberController::class);
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:loan_management'])->group(function (): void {
                     Route::post('/loans/compute-preview', [LoanController::class, 'computePreview'])->name('loans.compute-preview');
                     Route::resource('loans', LoanController::class);
+                    Route::get('/loans/{loan}/print', [LoanController::class, 'printReport'])->name('loans.print');
+                });
+
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:payment_tracking'])->group(function (): void {
                     Route::resource('loan-payments', LoanPaymentController::class)->only(['index', 'create', 'store']);
-                    Route::resource('modules', ModuleController::class);
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:basic_reports'])->group(function (): void {
                     Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
                     Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
                     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
                     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+                });
+
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required'])->group(function (): void {
+                    Route::resource('modules', ModuleController::class)->except(['index']);
                     Route::resource('samplexs', SampleXController::class)
                         ->parameters(['samplexs' => 'sampleX'])
                         ->names('tenant.samplexs');
@@ -121,11 +142,11 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('tenant.audit-logs');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::LOAN_TYPES_VIEW])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:loan_types', 'tenant.permission:'.TenantPermissions::LOAN_TYPES_VIEW])->group(function (): void {
                     Route::resource('loan-types', LoanTypeController::class);
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::BRANCHES_VIEW])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:branch_management', 'tenant.permission:'.TenantPermissions::BRANCHES_VIEW])->group(function (): void {
                     Route::resource('branches', BranchController::class);
                 });
 
@@ -138,7 +159,7 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::delete('/users/roles/{role}', [RoleController::class, 'destroy'])->name('users.roles.destroy');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::USERS_VIEW])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:multi_user', 'tenant.permission:'.TenantPermissions::USERS_VIEW])->group(function (): void {
                     Route::resource('users', UserController::class);
                     Route::post('/users/{user}/resend-credentials', [UserController::class, 'resendCredentials'])->name('users.resend-credentials');
                 });

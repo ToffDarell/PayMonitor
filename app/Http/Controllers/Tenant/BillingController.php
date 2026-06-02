@@ -71,8 +71,62 @@ class BillingController extends Controller
             return $this->billingRedirect('error', 'This invoice is not available for payment.');
         }
 
+        return $this->startPaymentCheckout($invoice);
+    }
+
+    public function publicPayNow(Request $request): RedirectResponse
+    {
+        $tenant = tenant();
+
+        if (! $tenant instanceof Tenant) {
+            return redirect('/login')->with('error', 'Tenant context could not be resolved.');
+        }
+
+        $invoice = BillingInvoice::syncOpenInvoiceForTenant(
+            $tenant->loadMissing('plan'),
+            'Auto-generated overdue invoice.',
+        );
+
+        if (! $invoice instanceof BillingInvoice) {
+            return redirect('/login')->with('error', 'No payable invoice is available for this tenant.');
+        }
+
+        if ($invoice->status === 'paid') {
+            return redirect('/login')->with('success', 'Your subscription is already paid. Please sign in.');
+        }
+
+        return $this->startPaymentCheckout($invoice, [
+            'success_url' => route('billing.portal.success', ['tenant' => $tenant->id, 'invoiceId' => $invoice->id], true),
+            'cancel_url' => route('billing.portal.pay-now', ['tenant' => $tenant->id], true),
+        ], true);
+    }
+
+    public function publicPaymentSuccess(Request $request, string $tenant, string $invoiceId): RedirectResponse
+    {
+        $invoice = $this->findInvoiceForCurrentTenant($invoiceId, $request);
+
+        if (! $invoice instanceof BillingInvoice) {
+            return redirect('/login')->with('error', 'The selected invoice could not be found for this tenant.');
+        }
+
+        return $this->completePaymentVerification($invoice, true);
+    }
+
+    public function publicPaymentFailed(Request $request, string $tenant, string $invoiceId): RedirectResponse
+    {
+        $invoice = $this->findInvoiceForCurrentTenant($invoiceId, $request);
+
+        if (! $invoice instanceof BillingInvoice) {
+            return redirect('/login')->with('error', 'The selected invoice could not be found for this tenant.');
+        }
+
+        return redirect('/login')->with('error', 'Payment was cancelled or failed. Please try again.');
+    }
+
+    protected function startPaymentCheckout(BillingInvoice $invoice, array $redirectUrls = [], bool $public = false): RedirectResponse
+    {
         try {
-            $paymentData = $this->payMongoService->createPaymentLink($invoice->loadMissing('tenant.plan'));
+            $paymentData = $this->payMongoService->createPaymentLink($invoice->loadMissing('tenant.plan'), $redirectUrls);
 
             $invoice->forceFill([
                 'paymongo_link_id' => $paymentData['link_id'],
@@ -83,6 +137,10 @@ class BillingController extends Controller
             return redirect()->away($paymentData['checkout_url']);
         } catch (Throwable $exception) {
             report($exception);
+
+            if ($public) {
+                return redirect('/login')->with('error', 'Unable to connect to PayMongo right now. Please try again.');
+            }
 
             return $this->billingRedirect('error', 'Unable to connect to PayMongo right now. Please try again.');
         }
@@ -208,10 +266,12 @@ class BillingController extends Controller
         return filled($tenantId) ? (string) $tenantId : null;
     }
 
-    protected function completePaymentVerification(BillingInvoice $invoice): RedirectResponse
+    protected function completePaymentVerification(BillingInvoice $invoice, bool $public = false): RedirectResponse
     {
         if (blank($invoice->paymongo_link_id)) {
-            return $this->billingRedirect('error', 'No PayMongo payment link was found for this invoice.');
+            return $public
+                ? redirect('/login')->with('error', 'No PayMongo payment link was found for this invoice.')
+                : $this->billingRedirect('error', 'No PayMongo payment link was found for this invoice.');
         }
 
         try {
@@ -219,11 +279,15 @@ class BillingController extends Controller
         } catch (Throwable $exception) {
             report($exception);
 
-            return $this->billingRedirect('error', 'Unable to verify the payment right now. Please try again.');
+            return $public
+                ? redirect('/login')->with('error', 'Unable to verify the payment right now. Please try again.')
+                : $this->billingRedirect('error', 'Unable to verify the payment right now. Please try again.');
         }
 
         if (! ($verificationData['is_paid'] ?? false)) {
-            return $this->billingRedirect('error', 'Payment not completed. Please try again.');
+            return $public
+                ? redirect('/login')->with('error', 'Payment not completed. Please try again.')
+                : $this->billingRedirect('error', 'Payment not completed. Please try again.');
         }
 
         $connection = config('tenancy.database.central_connection', config('database.default'));
@@ -281,7 +345,9 @@ class BillingController extends Controller
             ));
         }
 
-        return $this->billingRedirect('success', 'Payment successful! Your subscription has been renewed.');
+        return $public
+            ? redirect('/login')->with('success', 'Payment successful! Your subscription has been renewed. You can now sign in.')
+            : $this->billingRedirect('success', 'Payment successful! Your subscription has been renewed.');
     }
 
     protected function billingRedirect(string $key, string $message): RedirectResponse

@@ -57,15 +57,33 @@
 
 <div class="card border-0 shadow-sm" style="max-width: 760px;">
     <div class="card-body p-4">
-        <form action="{{ route('loan-payments.store', $tenantParameter) }}" method="POST" class="row g-3">
+        <form action="{{ route('loan-payments.store', $tenantParameter) }}" method="POST" class="row g-3" x-data="{
+            rawAmount: '',
+            fullAmount: '{{ number_format((float) $loan->outstanding_balance, 2, '.', '') }}',
+            format(n) {
+                if (!n) return '';
+                let num = n.replace(/,/g, '');
+                if (!num || isNaN(num)) return n;
+                let parts = num.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                return parts.join('.');
+            },
+            submitForm() {
+                document.getElementById('amount-hidden').value = this.rawAmount.replace(/,/g, '');
+            }
+        }" @submit="submitForm()">
             @csrf
             <input type="hidden" name="loan_id" value="{{ $loan->id }}">
+            <input type="hidden" id="amount-hidden" name="amount" value="{{ old('amount') }}">
 
             <div class="col-12">
                 <label for="amount" class="form-label fw-semibold">Amount *</label>
                 <div class="input-group">
                     <span class="input-group-text">P</span>
-                    <input type="number" step="0.01" min="0.01" max="{{ number_format((float) $loan->outstanding_balance, 2, '.', '') }}" id="amount" name="amount" value="{{ old('amount') }}" class="form-control @error('amount') is-invalid @enderror" required>
+                    <input type="text" id="amount" inputmode="decimal" class="form-control @error('amount') is-invalid @enderror" x-ref="amountInput" x-on:input="rawAmount = $event.target.value.replace(/[^0-9.]/g, ''); $refs.amountInput.value = format(rawAmount)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" required>
+                    <button type="button" class="btn btn-primary" @click="rawAmount = fullAmount; $refs.amountInput.value = format(fullAmount)" style="background: var(--pm-accent); border-color: var(--pm-accent);">
+                        <i class="bi bi-check-all me-1"></i>Full Payment
+                    </button>
                 </div>
                 @error('amount') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                 <div class="form-text">Remaining balance: P{{ number_format((float) $loan->outstanding_balance, 2) }}</div>

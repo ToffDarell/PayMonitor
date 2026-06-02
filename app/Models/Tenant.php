@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
@@ -97,6 +98,48 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return "{$scheme}://{$domain}";
     }
 
+    public function hashedDatabaseName(): string
+    {
+        $prefix = (string) config('tenancy.database.prefix', 'tenant_');
+        $suffix = (string) config('tenancy.database.suffix', '');
+        $appKey = (string) config('app.key', 'paymonitor');
+        $hash = substr(hash_hmac('sha256', (string) $this->getTenantKey(), $appKey), 0, 32);
+
+        return $prefix.$hash.$suffix;
+    }
+
+    public function legacyDatabaseName(): string
+    {
+        return (string) config('tenancy.database.prefix', 'tenant_')
+            .$this->getTenantKey()
+            .(string) config('tenancy.database.suffix', '');
+    }
+
+    public function preferredDatabaseName(): string
+    {
+        $hashedName = $this->hashedDatabaseName();
+
+        try {
+            if ($this->database()->manager()->databaseExists($hashedName)) {
+                return $hashedName;
+            }
+        } catch (Throwable) {
+            return $hashedName;
+        }
+
+        $legacyName = $this->legacyDatabaseName();
+
+        try {
+            if ($this->database()->manager()->databaseExists($legacyName)) {
+                return $legacyName;
+            }
+        } catch (Throwable) {
+            return $hashedName;
+        }
+
+        return $hashedName;
+    }
+
     public function isOverdue(): bool
     {
         if ($this->subscription_due_at === null) {
@@ -106,11 +149,44 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return $this->subscription_due_at->lt(today());
     }
 
-    public function supportsAuditLogs(): bool
+    public function resolvedPortalStatus(): string
+    {
+        if ($this->isOverdue() || $this->status === 'overdue') {
+            return 'overdue';
+        }
+
+        if (in_array($this->status, ['suspended', 'inactive'], true)) {
+            return (string) $this->status;
+        }
+
+        return 'active';
+    }
+
+    public function accessBlocked(): bool
+    {
+        return $this->resolvedPortalStatus() !== 'active';
+    }
+
+    public function accessBlockedMessage(): string
+    {
+        return match ($this->resolvedPortalStatus()) {
+            'overdue' => 'This cooperative portal is unavailable because the subscription plan is overdue.',
+            'suspended' => 'This cooperative portal is currently suspended.',
+            'inactive' => 'This cooperative portal is currently inactive.',
+            default => 'This cooperative portal is currently unavailable.',
+        };
+    }
+
+    public function hasPlanFeature(string $feature): bool
     {
         $this->loadMissing('plan');
 
-        return strcasecmp((string) ($this->plan?->name ?? ''), 'Premium') === 0;
+        return $this->plan?->hasFeature($feature) ?? false;
+    }
+
+    public function supportsAuditLogs(): bool
+    {
+        return $this->hasPlanFeature('audit_logs');
     }
 
     public function getUsage(): int
@@ -157,4 +233,3 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return $current?->appRelease?->tag ?? 'v0.0.0';
     }
 }
-

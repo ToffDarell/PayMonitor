@@ -5,35 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PayMonitor — Multi-Tenant Lending Cooperative SaaS</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet">
+    @vite(['resources/css/paymonitor-landing.css', 'resources/js/paymonitor-landing.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        heading: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    },
-                    colors: {
-                        navy: {
-                            base: '#0B1120',
-                            surface: 'rgba(255, 255, 255, 0.03)',
-                            border: 'rgba(255, 255, 255, 0.08)',
-                            muted: '#94a3b8',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     
     <style>
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; background-color: #0B1120; }
+        body { background-color: #0B1120; }
         
         .bg-grid {
             background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),

@@ -14,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Models\User;
 use App\Services\LoanService;
+use App\Services\RecaptchaService;
 use App\Support\Reports\TenantReportExcelExporter;
 use App\Support\TenantPermissions;
 use Illuminate\Support\Facades\Artisan;
@@ -31,6 +32,13 @@ uses(TestCase::class);
 
 beforeEach(function (): void {
     $this->tenantDatabasePaths = [];
+    app()->bind(RecaptchaService::class, static fn () => new class
+    {
+        public function verify(?string $token, ?string $ipAddress = null): bool
+        {
+            return filled($token);
+        }
+    });
 
     $centralMigrationPaths = collect(File::files(database_path('migrations')))
         ->map(static fn (SplFileInfo $file): string => $file->getPathname())
@@ -102,7 +110,61 @@ function provisionTenant(string $tenantId = 'alpha', string $status = 'active'):
         'price' => 999,
         'max_branches' => 0,
         'max_users' => 0,
+        'features' => array_keys(Plan::getAvailableFeatures()),
     ]);
+
+    $tenant = Tenant::withoutEvents(static fn (): Tenant => Tenant::query()->create([
+        'id' => $tenantId,
+        'name' => ucfirst($tenantId).' Cooperative',
+        'email' => "{$tenantId}@example.com",
+        'plan_id' => $plan->id,
+        'status' => $status,
+        'subscription_due_at' => today()->addMonth(),
+    ]));
+
+    Domain::query()->create([
+        'domain' => "{$tenantId}.localhost",
+        'tenant_id' => $tenant->id,
+    ]);
+
+    $databasePath = database_path($tenant->database()->getName());
+
+    if (File::exists($databasePath)) {
+        File::delete($databasePath);
+    }
+
+    if (! File::exists($databasePath)) {
+        File::put($databasePath, '');
+    }
+
+    test()->tenantDatabasePaths = [
+        ...test()->tenantDatabasePaths,
+        $databasePath,
+    ];
+
+    Artisan::call('tenants:migrate', [
+        '--tenants' => [$tenant->id],
+        '--path' => [database_path('migrations/tenant')],
+        '--realpath' => true,
+        '--force' => true,
+    ]);
+
+    $tenant->run(static function (): void {
+        TenantPermissions::ensureConfigured();
+    });
+
+    return $tenant;
+}
+
+function provisionTenantWithPlan(string $tenantId, array $planAttributes = [], string $status = 'active'): Tenant
+{
+    $plan = Plan::query()->create(array_merge([
+        'name' => "Plan {$tenantId}",
+        'price' => 999,
+        'max_branches' => 0,
+        'max_users' => 0,
+        'features' => array_keys(Plan::getAvailableFeatures()),
+    ], $planAttributes));
 
     $tenant = Tenant::withoutEvents(static fn (): Tenant => Tenant::query()->create([
         'id' => $tenantId,
@@ -170,11 +232,30 @@ test('tenant login rejects suspended accounts', function (): void {
         ->post(tenantUrl('suspended', '/login'), [
             'email' => 'suspended@example.com',
             'password' => 'password123',
+            'g-recaptcha-response' => 'test-token',
         ])
         ->assertRedirect('/login')
-        ->assertSessionHasErrors(['email' => 'This account has been suspended. Contact support.']);
+        ->assertSessionHasErrors(['email' => 'This cooperative portal is currently suspended. Contact support.']);
 
     $this->assertGuest();
+});
+
+test('tenant login rejects overdue subscriptions', function (): void {
+    $tenant = provisionTenant('overdue-login');
+    $tenant->forceFill([
+        'subscription_due_at' => today()->subDay(),
+    ])->save();
+
+    createTenantUser($tenant, 'tenant_admin', ['email' => 'overdue-login@example.com']);
+
+    $this->from(tenantUrl('overdue-login', '/login'))
+        ->post(tenantUrl('overdue-login', '/login'), [
+            'email' => 'overdue-login@example.com',
+            'password' => 'password123',
+            'g-recaptcha-response' => 'test-token',
+        ])
+        ->assertRedirect('/login')
+        ->assertSessionHasErrors(['email' => 'This cooperative portal is unavailable because the subscription plan is overdue. Contact support.']);
 });
 
 test('tenant login rejects inactive users', function (): void {
@@ -188,6 +269,7 @@ test('tenant login rejects inactive users', function (): void {
         ->post(tenantUrl('inactive-user', '/login'), [
             'email' => 'inactive-user@example.com',
             'password' => 'password123',
+            'g-recaptcha-response' => 'test-token',
         ])
         ->assertRedirect('/login')
         ->assertSessionHasErrors(['email' => 'This user account is inactive. Contact your tenant administrator.']);
@@ -291,6 +373,40 @@ test('branch pages render for authorized tenant users', function (): void {
         ->assertSee('Edit Branch');
 });
 
+test('branch creation is blocked when tenant reaches max branches', function (): void {
+    $tenant = provisionTenantWithPlan('branch-limit', [
+        'max_branches' => 2,
+    ]);
+    $user = createTenantUser($tenant, 'tenant_admin');
+
+    $tenant->run(static function (): void {
+        Branch::query()->create([
+            'name' => 'North Branch',
+            'address' => 'North Street',
+            'is_active' => true,
+        ]);
+
+        Branch::query()->create([
+            'name' => 'South Branch',
+            'address' => 'South Street',
+            'is_active' => true,
+        ]);
+    });
+
+    actingAs($user);
+
+    $this->get(tenantUrl('branch-limit', '/branches/create'))
+        ->assertRedirect('/branches')
+        ->assertSessionHas('error', 'Your current plan allows a maximum of 2 branches.');
+
+    $this->post(tenantUrl('branch-limit', '/branches'), [
+        'name' => 'East Branch',
+        'address' => 'East Street',
+        'is_active' => '1',
+    ])->assertRedirect('/branches')
+        ->assertSessionHas('error', 'Your current plan allows a maximum of 2 branches.');
+});
+
 test('tenant user store creates staff account and shows generated password', function (): void {
     $tenant = provisionTenant('staffing');
     $user = createTenantUser($tenant, 'tenant_admin');
@@ -354,6 +470,28 @@ test('tenant user store creates staff account and shows generated password', fun
         ->assertOk()
         ->assertSee('Edit User')
         ->assertSee('Active / Inactive');
+});
+
+test('user creation is blocked when tenant reaches max users', function (): void {
+    $tenant = provisionTenantWithPlan('user-limit', [
+        'max_users' => 2,
+    ]);
+    $admin = createTenantUser($tenant, 'tenant_admin', ['email' => 'admin@user-limit.test']);
+    createTenantUser($tenant, 'cashier', ['email' => 'cashier@user-limit.test']);
+
+    actingAs($admin);
+
+    $this->get(tenantUrl('user-limit', '/users/create'))
+        ->assertRedirect('/users')
+        ->assertSessionHas('error', 'Your current plan allows a maximum of 2 users.');
+
+    $this->post(tenantUrl('user-limit', '/users'), [
+        'name' => 'Viewer User',
+        'email' => 'viewer@user-limit.test',
+        'generated_password' => 'TEMP123ABC',
+        'role' => 'viewer',
+    ])->assertRedirect('/users')
+        ->assertSessionHas('error', 'Your current plan allows a maximum of 2 users.');
 });
 
 test('tenant user update can change email and active status', function (): void {
@@ -895,6 +1033,25 @@ test('report page renders computed tenant report data', function (): void {
         ->assertSee('Collections by Month')
         ->assertSee('Top 10 Borrowers by Outstanding Balance')
         ->assertSee('Fully Paid Loans');
+});
+
+test('report routes are blocked when the tenant plan does not include basic reports', function (): void {
+    $tenant = provisionTenantWithPlan('no-reports', [
+        'features' => [
+            'basic_members',
+            'loan_management',
+            'payment_tracking',
+        ],
+    ]);
+    $user = createTenantUser($tenant, 'viewer');
+
+    actingAs($user);
+
+    $this->get(tenantUrl('no-reports', '/reports'))
+        ->assertForbidden();
+
+    $this->get(tenantUrl('no-reports', '/reports/export'))
+        ->assertForbidden();
 });
 
 test('report export downloads csv for selected tenant filters', function (): void {

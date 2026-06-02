@@ -9,23 +9,27 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureTenantIsActive
 {
+    private const OVERDUE_ALLOWED_ROUTE_PATTERNS = [
+        'billing.portal.*',
+    ];
+
     public function handle(Request $request, Closure $next): Response
     {
         $tenant = tenant();
 
-        if ($tenant !== null && in_array($tenant->status, ['suspended', 'inactive'], true)) {
+        if ($tenant !== null && $tenant->resolvedPortalStatus() === 'overdue' && $request->routeIs(self::OVERDUE_ALLOWED_ROUTE_PATTERNS)) {
+            return $next($request);
+        }
+
+        if ($tenant !== null && $tenant->accessBlocked()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             $tenantHost = $tenant->domains()->value('domain') ?? $request->getHost();
             $tenantName = $tenant->name ?? 'Cooperative';
-            $portalStatus = $tenant->status;
-            $statusMessage = match ($portalStatus) {
-                'suspended' => 'This cooperative portal is currently suspended.',
-                'inactive' => 'This cooperative portal is currently inactive.',
-                default => 'This cooperative portal is currently unavailable.',
-            };
+            $portalStatus = $tenant->resolvedPortalStatus();
+            $statusMessage = $tenant->accessBlockedMessage();
 
             if ($request->expectsJson()) {
                 return response()->json([

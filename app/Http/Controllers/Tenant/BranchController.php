@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\StoreBranchRequest;
 use App\Models\Branch;
+use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -27,9 +28,13 @@ class BranchController extends Controller
         return view('branches.index', compact('branches'));
     }
 
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
         $this->authorize('create', Branch::class);
+
+        if ($limitRedirect = $this->ensureBranchLimitIsAvailable()) {
+            return $limitRedirect;
+        }
 
         return view('branches.create');
     }
@@ -37,6 +42,12 @@ class BranchController extends Controller
     public function store(StoreBranchRequest $request): RedirectResponse
     {
         $this->authorize('create', Branch::class);
+
+        $limitRedirect = $this->ensureBranchLimitIsAvailable();
+
+        if ($limitRedirect instanceof RedirectResponse) {
+            return $limitRedirect;
+        }
 
         $branch = Branch::query()->create($request->validated());
 
@@ -79,5 +90,22 @@ class BranchController extends Controller
         $branch->delete();
 
         return redirect('/branches')->with('success', 'Branch deleted successfully.');
+    }
+
+    protected function ensureBranchLimitIsAvailable(): ?RedirectResponse
+    {
+        $tenant = tenant();
+
+        if (! $tenant instanceof Tenant) {
+            return redirect('/branches')->with('error', 'Tenant context could not be resolved.');
+        }
+
+        $branchLimit = (int) ($tenant->plan?->max_branches ?? 0);
+
+        if ($branchLimit > 0 && Branch::query()->count() >= $branchLimit) {
+            return redirect('/branches')->with('error', "Your current plan allows a maximum of {$branchLimit} branches.");
+        }
+
+        return null;
     }
 }

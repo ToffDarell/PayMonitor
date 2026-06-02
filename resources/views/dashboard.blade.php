@@ -95,7 +95,7 @@
                     <span class="h-2 w-2 rounded-full {{ $metric['dot'] }}"></span>
                     <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{{ $metric['label'] }}</span>
                 </div>
-                <div class="font-heading text-2xl font-bold {!! $metric['value_class'] !!}">{!! $metric['value'] !!}</div>
+                <div class="font-heading text-2xl font-bold {{ $metric['value_class'] }}">{!! $metric['value'] !!}</div>
                 <p class="mt-2 text-xs text-slate-500">{{ $metric['detail'] }}</p>
             </div>
         @endforeach

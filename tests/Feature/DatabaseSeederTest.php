@@ -15,7 +15,8 @@ use Spatie\Permission\Models\Role;
 
 beforeEach(function (): void {
     foreach (['alpha', 'bravo'] as $tenantId) {
-        $databasePath = database_path("tenant_{$tenantId}");
+        $tenant = new Tenant(['id' => $tenantId]);
+        $databasePath = database_path($tenant->preferredDatabaseName());
 
         if (File::exists($databasePath)) {
             File::delete($databasePath);
@@ -25,7 +26,8 @@ beforeEach(function (): void {
 
 afterEach(function (): void {
     foreach (['alpha', 'bravo'] as $tenantId) {
-        $databasePath = database_path("tenant_{$tenantId}");
+        $tenant = new Tenant(['id' => $tenantId]);
+        $databasePath = database_path($tenant->preferredDatabaseName());
 
         if (File::exists($databasePath)) {
             File::delete($databasePath);

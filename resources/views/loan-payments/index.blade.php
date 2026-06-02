@@ -19,7 +19,7 @@
         <form method="GET" action="{{ route('loan-payments.index', $tenantParameter) }}" class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label for="branch_id" class="form-label fw-semibold">Branch</label>
-                <select name="branch_id" id="branch_id" class="form-select" onchange="this.form.requestSubmit()">
+                <select name="branch_id" id="branch_id" class="form-select" x-on:change="$el.form.requestSubmit()">
                     <option value="">All Branches</option>
                     @foreach($branches as $branch)
                         <option value="{{ $branch->id }}" @selected((string) ($filters['branch_id'] ?? '') === (string) $branch->id)>{{ $branch->name }}</option>
@@ -28,11 +28,11 @@
             </div>
             <div class="col-md-3">
                 <label for="date_from" class="form-label fw-semibold">Date From</label>
-                <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" onchange="this.form.requestSubmit()">
+                <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-3">
                 <label for="date_to" class="form-label fw-semibold">Date To</label>
-                <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" onchange="this.form.requestSubmit()">
+                <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-3">
                 <label for="member_search" class="form-label fw-semibold">Member Search</label>
@@ -76,7 +76,7 @@
                         <td>{{ $payment->loan?->member?->full_name ?? 'Unknown Member' }}</td>
                         <td>{{ $payment->loan?->loan_number ?? 'N/A' }}</td>
                         <td class="text-end">P{{ number_format((float) $payment->amount, 2) }}</td>
-                        <td>{{ $payment->period_covered ?: 'N/A' }}</td>
+                        <td>{{ $payment->period_covered }}</td>
                         <td>{{ $payment->user?->name ?? 'N/A' }}</td>
                         <td class="text-end">
                             @if($payment->loan)

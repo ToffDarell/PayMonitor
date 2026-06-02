@@ -39,6 +39,7 @@ class Loan extends Model
         'written_off_at',
         'restructured_at',
         'demand_letter_sent_at',
+        'last_reminder_sent_at',
     ];
 
     protected function casts(): array
@@ -59,6 +60,7 @@ class Loan extends Model
             'written_off_at' => 'datetime',
             'restructured_at' => 'datetime',
             'demand_letter_sent_at' => 'datetime',
+            'last_reminder_sent_at' => 'datetime',
         ];
     }
 
