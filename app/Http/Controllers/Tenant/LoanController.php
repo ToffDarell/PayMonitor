@@ -135,6 +135,13 @@ class LoanController extends Controller
         return view('loans.print', compact('loan'));
     }
 
+    public function computationReview(string $tenant, Loan $loan): View
+    {
+        $this->authorize('view', $loan);
+        $loan->loadMissing(['member', 'loanType', 'user', 'loanSchedules']);
+        return view('loans.computation-review', compact('loan'));
+    }
+
     public function edit(string $tenant, Loan $loan): View|RedirectResponse
     {
         $this->authorize('update', $loan);

@@ -189,7 +189,7 @@
 
                     <div class="col-md-6">
                         <label for="loan_type_id" class="form-label fw-semibold">Select Loan Type *</label>
-                        <select id="loan_type_id" name="loan_type_id" x-model="loanTypeId" @change="applyLoanType(); updatePreview()" class="form-select @error('loan_type_id') is-invalid @enderror" required>
+                        <select id="loan_type_id" name="loan_type_id" x-model="loanTypeId" @change="applyLoanType()" class="form-select @error('loan_type_id') is-invalid @enderror" required>
                             <option value="">Select loan type</option>
                             <template x-for="loanType in loanTypes" :key="loanType.id">
                                 <option :value="loanType.id" x-text="loanType.name"></option>
@@ -199,23 +199,28 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="principal_amount" class="form-label fw-semibold">Principal Amount *</label>
+                        <label for="principal_amount_display" class="form-label fw-semibold">Principal Amount *</label>
                         <div class="input-group">
                             <span class="input-group-text">P</span>
-                            <input type="number" step="0.01" min="1" id="principal_amount" name="principal_amount" x-model="principal" @input.debounce.300ms="updatePreview()" class="form-control @error('principal_amount') is-invalid @enderror" required>
+                            <input type="text" inputmode="numeric" id="principal_amount_display"
+                                x-model="principal"
+                                @blur="if (principal) $el.value = Number(principal).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"
+                                @focus="$el.value = principal"
+                                class="form-control @error('principal_amount') is-invalid @enderror" data-format-currency required>
+                            <input type="hidden" name="principal_amount" :value="principal">
                         </div>
                         @error('principal_amount') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                     </div>
 
                     <div class="col-md-6">
                         <label for="term_months" class="form-label fw-semibold">Term Months *</label>
-                        <input type="number" min="1" id="term_months" name="term_months" x-model="term" @input.debounce.300ms="updatePreview()" class="form-control @error('term_months') is-invalid @enderror" required>
+                        <input type="number" min="1" id="term_months" name="term_months" x-model="term" class="form-control @error('term_months') is-invalid @enderror" required>
                         @error('term_months') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
                     <div class="col-md-6">
                         <label for="release_date" class="form-label fw-semibold">Release Date *</label>
-                        <input type="date" id="release_date" name="release_date" x-model="releaseDate" class="form-control @error('release_date') is-invalid @enderror" required>
+                        <input type="text" data-datepicker id="release_date" name="release_date" x-model="releaseDate" class="form-control @error('release_date') is-invalid @enderror" required>
                         @error('release_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
@@ -324,6 +329,10 @@
                 this.syncMemberSelection(true);
                 this.applyLoanType();
                 this.updatePreview();
+
+                this.$watch('principal', () => this.updatePreview());
+                this.$watch('term', () => this.updatePreview());
+                this.$watch('rate', () => this.updatePreview());
             },
             handleMemberSearch() {
                 this.memberPickerOpen = true;

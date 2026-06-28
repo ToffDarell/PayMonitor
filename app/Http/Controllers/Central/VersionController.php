@@ -12,7 +12,6 @@ use App\Models\TenantSetting;
 use App\Services\AdminReleaseService;
 use App\Services\GitHubVersionService;
 use App\Services\ReleaseRegistryService;
-use App\Services\TenantUpdateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -115,28 +114,6 @@ class VersionController extends Controller
         return back()->with('error', "Sync failed: {$result['error']}");
     }
 
-    public function markRequired(Request $request, AppRelease $release): RedirectResponse
-    {
-        $request->validate([
-            'grace_days' => 'nullable|integer|min:0|max:90',
-        ]);
-
-        $gracePeriod = $request->input('grace_days')
-            ? now()->addDays($request->input('grace_days'))
-            : now()->addDays(7);
-
-        app(AdminReleaseService::class)->markAsRequired($release->id, $gracePeriod);
-
-        return back()->with('success', 'Release marked as required');
-    }
-
-    public function unmarkRequired(AppRelease $release): RedirectResponse
-    {
-        app(AdminReleaseService::class)->unmarkAsRequired($release->id);
-
-        return back()->with('success', 'Release unmarked as required');
-    }
-
     public function notifyAll(AppRelease $release): RedirectResponse
     {
         $count = app(AdminReleaseService::class)->notifyAllTenantsOfUpdate($release->id);
@@ -191,85 +168,4 @@ class VersionController extends Controller
         return back()->with('success', "Update notification sent to {$tenantAdminEmail}");
     }
 
-    public function toggleRequired(Tenant $tenant): RedirectResponse
-    {
-        if ($tenant->update_required) {
-            $tenant->update_required         = false;
-            $tenant->update_required_version = null;
-            $tenant->save();
-
-            return back()->with('success', "Update requirement removed for {$tenant->name}.");
-        }
-
-        $updateInfo = $this->versionService->getUpdateInfo();
-        $latestVersion = (string) ($updateInfo['latest_version'] ?? 'v1.0.0');
-        $latestTrackedRelease = AppRelease::query()
-            ->stable()
-            ->where('tag', $latestVersion)
-            ->first();
-
-        if ($latestTrackedRelease === null) {
-            $latestTrackedRelease = $this->resolveLatestStableRelease();
-        }
-
-        if (!preg_match('/^v?\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/', trim($latestVersion))) {
-            return back()->with('error', 'Unable to determine a valid required version. Please sync releases first.');
-        }
-
-        $tenant->update_required         = true;
-        $tenant->update_required_version = $latestVersion;
-        $tenant->save();
-
-        if ($latestTrackedRelease !== null) {
-            app(TenantUpdateService::class)->markUpdateAvailable((string) $tenant->id, $latestTrackedRelease->id);
-
-            \App\Models\TenantUpdate::updateOrCreate(
-                [
-                    'tenant_id' => (string) $tenant->id,
-                    'app_release_id' => $latestTrackedRelease->id,
-                ],
-                [
-                    'status' => \App\Models\TenantUpdate::STATUS_UPDATE_AVAILABLE,
-                    'is_current' => false,
-                    'notified_at' => now(),
-                    'required_at' => now(),
-                    'grace_until' => null,
-                ]
-            );
-        }
-
-        return back()->with('success', "Update marked as required for {$tenant->name}.");
-    }
-
-    private function resolveLatestStableRelease(): ?AppRelease
-    {
-        /** @var \Illuminate\Support\Collection<int, AppRelease> $stableReleases */
-        $stableReleases = AppRelease::query()->stable()->get();
-
-        if ($stableReleases->isEmpty()) {
-            return null;
-        }
-
-        return $stableReleases
-            ->sort(function (AppRelease $left, AppRelease $right): int {
-                $versionComparison = version_compare(
-                    ltrim((string) $left->tag, 'vV'),
-                    ltrim((string) $right->tag, 'vV')
-                );
-
-                if ($versionComparison !== 0) {
-                    return $versionComparison > 0 ? -1 : 1;
-                }
-
-                $leftPublishedAt = $left->published_at?->getTimestamp() ?? 0;
-                $rightPublishedAt = $right->published_at?->getTimestamp() ?? 0;
-
-                if ($leftPublishedAt !== $rightPublishedAt) {
-                    return $leftPublishedAt > $rightPublishedAt ? -1 : 1;
-                }
-
-                return strcmp((string) $right->tag, (string) $left->tag);
-            })
-            ->first();
-    }
 }

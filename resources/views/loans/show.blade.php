@@ -36,10 +36,10 @@
     $overdueFeatureEnabled = \App\Support\TenantFeatures::tenantHasFeature('overdue_loan_management');
     $openWriteOffModal = $errors->has('reason') || $errors->has('confirmation');
     $themeMode = \App\Models\TenantSetting::get('theme_mode', 'dark');
-    $summarySurfaceClasses = $themeMode === 'light' ? 'bg-white text-dark border border-dark border-opacity-10' : 'bg-dark text-white border border-secondary';
+    $summarySurfaceClasses = $themeMode === 'light' ? 'bg-light text-dark border border-dark border-opacity-10' : 'bg-dark text-white border border-secondary';
     $summaryMutedLabelClass = $themeMode === 'light' ? 'text-secondary' : 'text-muted';
     $summaryDividerClass = $themeMode === 'light' ? 'border-dark border-opacity-10' : 'border-secondary';
-    $neutralActionButtonClass = $themeMode === 'light' ? 'btn btn-light border shadow-sm' : 'btn btn-outline-secondary';
+    $neutralActionButtonClass = $themeMode === 'light' ? 'btn btn-outline-secondary shadow-sm' : 'btn btn-outline-secondary';
 @endphp
 
 <div
@@ -80,7 +80,10 @@
             @endcan
             <a href="{{ route('loans.print', [...$tenantParameter, 'loan' => $loan->id]) }}" target="_blank" class="btn btn-outline-secondary">
     <i class="bi bi-printer me-2"></i>Print
-</a>    
+</a>
+            <a href="{{ route('loans.computation-review', [...$tenantParameter, 'loan' => $loan->id]) }}" target="_blank" class="btn btn-outline-info">
+    <i class="bi bi-calculator me-2"></i>MDF-01
+</a>
         </div>
     </div>
 
@@ -122,13 +125,13 @@
                         @if($loan->is_delinquent && $loan->status !== 'fully_paid')
                             <div class="col-md-6">
                                 <div class="text-muted small text-uppercase fw-semibold">Delinquent Since</div>
-                                <div class="text-danger fw-semibold">{{ $loan->delinquent_at?->format('M d, Y h:i A') ?? 'Marked delinquent' }}</div>
+                                <div class="text-danger fw-semibold">{{ formatDate($loan->delinquent_at, true) ?? 'Marked delinquent' }}</div>
                             </div>
                         @endif
                         @if($loan->status === 'written_off')
                             <div class="col-md-6">
                                 <div class="text-muted small text-uppercase fw-semibold">Written Off On</div>
-                                <div class="text-dark fw-semibold">{{ $loan->written_off_at?->format('M d, Y h:i A') ?? 'Written off' }}</div>
+                                <div class="text-dark fw-semibold">{{ formatDate($loan->written_off_at, true) ?? 'Written off' }}</div>
                             </div>
                         @endif
                     </div>
@@ -188,7 +191,7 @@
                 </div>
                 <div class="text-md-end">
                     <div class="small text-muted">Written Off On</div>
-                    <div class="fw-semibold">{{ $loan->written_off_at?->format('M d, Y h:i A') ?? 'N/A' }}</div>
+                    <div class="fw-semibold">{{ formatDate($loan->written_off_at, true) ?? 'N/A' }}</div>
                 </div>
             </div>
         </div>
@@ -201,7 +204,7 @@
                 </div>
                 <div class="text-md-end">
                     <div class="small text-danger-emphasis">Delinquent Since</div>
-                    <div class="fw-semibold">{{ $loan->delinquent_at?->format('M d, Y h:i A') ?? 'N/A' }}</div>
+                    <div class="fw-semibold">{{ formatDate($loan->delinquent_at, true) ?? 'N/A' }}</div>
                 </div>
             </div>
         </div>
@@ -227,11 +230,11 @@
                 </div>
                 <div class="col-md-4">
                     <div class="text-muted small text-uppercase fw-semibold">Release Date</div>
-                    <div>{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</div>
+                    <div>{{ formatDate($loan->release_date) ?? 'N/A' }}</div>
                 </div>
                 <div class="col-md-4">
                     <div class="text-muted small text-uppercase fw-semibold">Due Date</div>
-                    <div>{{ $loan->due_date?->format('M d, Y') ?? 'N/A' }}</div>
+                    <div>{{ formatDate($loan->due_date) ?? 'N/A' }}</div>
                 </div>
                 <div class="col-md-4">
                     <div class="text-muted small text-uppercase fw-semibold">Monthly Payment</div>
@@ -246,7 +249,7 @@
     </div>
 
     @if($overdueFeatureEnabled && $loan->status !== 'written_off' && $loan->status !== 'fully_paid' && ($loan->status === 'overdue' || $loan->is_delinquent))
-        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-4 mb-4" x-data="{ applyPenaltyOpen: false, restructureOpen: false, writeOffOpen: {{ $openWriteOffModal ? 'true' : 'false' }}, writeOffConfirmText: '', showDangerZone: false }">
+        <div class="bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-4 mb-4" x-data="{ penaltyType: '{{ old('penalty_type', 'percentage') }}', applyPenaltyOpen: {{ $errors->has('penalty_type') || $errors->has('penalty_rate') ? 'true' : 'false' }}, restructureOpen: false, writeOffOpen: {{ $openWriteOffModal ? 'true' : 'false' }}, writeOffConfirmText: '', showDangerZone: false, sendReminderOpen: false, sendSmsOpen: false, smsDemandOpen: false }">
             <div class="d-flex align-items-center gap-2 mb-3">
                 <div class="spinner-grow spinner-grow-sm text-danger" role="status">
                     <span class="visually-hidden">Overdue</span>
@@ -275,20 +278,24 @@
 
             <div class="row g-3 mb-4">
                 <div class="col-md-6 col-lg-3 d-grid">
-                    <form action="{{ route('loans.send-reminder', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="{{ $neutralActionButtonClass }} w-100 text-start">
-                            <i class="bi bi-envelope me-2"></i>Send Reminder
-                        </button>
-                    </form>
+                    <button type="button" class="{{ $neutralActionButtonClass }} w-100 text-start" @click="sendReminderOpen = true">
+                        <i class="bi bi-envelope me-2"></i>Send Reminder
+                    </button>
                 </div>
+                @if($loan->member?->phone)
+                    <div class="col-md-6 col-lg-3 d-grid">
+                        <button type="button" class="{{ $neutralActionButtonClass }} w-100 text-start" @click="sendSmsOpen = true">
+                            <i class="bi bi-phone me-2"></i>Send SMS
+                        </button>
+                    </div>
+                @endif
                 <div class="col-md-6 col-lg-3 d-grid">
-                    <button type="button" class="btn btn-outline-warning text-start shadow-sm" @click="applyPenaltyOpen = true">
+                    <button type="button" class="btn btn-warning text-start shadow-sm" @click="applyPenaltyOpen = true">
                         <i class="bi bi-exclamation-triangle me-2"></i>Apply Penalty
                     </button>
                 </div>
                 <div class="col-md-6 col-lg-3 d-grid">
-                    <button type="button" class="btn btn-outline-info text-start shadow-sm" @click="restructureOpen = true">
+                    <button type="button" class="btn btn-primary text-start shadow-sm" @click="restructureOpen = true">
                         <i class="bi bi-arrow-repeat me-2"></i>Restructure
                     </button>
                 </div>
@@ -297,12 +304,23 @@
                         <i class="bi bi-file-earmark-pdf me-2"></i>Demand Letter
                     </a>
                 </div>
+                <div class="col-md-6 col-lg-3 d-grid">
+                    @if($loan->member?->phone)
+                        <button type="button" class="{{ $neutralActionButtonClass }} w-100 text-start" @click="smsDemandOpen = true">
+                            <i class="bi bi-file-earmark-text me-2"></i><i class="bi bi-phone me-1"></i>Send Demand SMS
+                        </button>
+                    @else
+                        <button type="button" class="{{ $neutralActionButtonClass }} w-100 text-start opacity-50" disabled title="Member has no phone number">
+                            <i class="bi bi-file-earmark-text me-2"></i><i class="bi bi-phone me-1"></i>Send Demand SMS
+                        </button>
+                    @endif
+                </div>
             </div>
 
             <hr class="my-4 border-secondary opacity-25">
 
             <div>
-                <button type="button" class="btn btn-link text-danger text-decoration-none p-0 mb-3" @click="showDangerZone = !showDangerZone">
+                <button type="button" class="btn btn-danger px-3 mb-3" @click="showDangerZone = !showDangerZone">
                     <i class="bi bi-shield-exclamation me-2"></i>Toggle Danger Zone
                 </button>
                 
@@ -329,6 +347,69 @@
                 </div>
             </div>
 
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <div class="small {{ $summaryMutedLabelClass }} text-uppercase fw-semibold mb-2">
+                        <i class="bi bi-clock-history me-1"></i>SMS History
+                    </div>
+                    <div class="d-flex flex-wrap gap-4">
+                        <div>
+                            <span class="small {{ $summaryMutedLabelClass }}">Last Reminder Sent:</span>
+                            <span class="fw-semibold ms-1">{{ formatDate($loan->last_reminder_sent_at, true) ?? 'Never' }}</span>
+                        </div>
+                        <div>
+                            <span class="small {{ $summaryMutedLabelClass }}">Demand Letter Sent:</span>
+                            <span class="fw-semibold ms-1">{{ formatDate($loan->demand_letter_sent_at, true) ?? 'Never' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send Reminder Confirmation -->
+            <div x-show="sendReminderOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-3 py-4" style="display: none;" x-cloak>
+                <div class="w-full max-w-md rounded-4 border border-white/10 bg-slate-950 shadow-2xl p-4" @click.away="sendReminderOpen = false">
+                    <h3 class="h5 text-white fw-bold mb-3">Send Reminder</h3>
+                    <p class="text-sm text-slate-400 mb-4">This will send an email to <span class="text-white fw-semibold">{{ $loan->member?->email ?? 'N/A' }}</span> with an overdue reminder. Proceed?</p>
+                    <form action="{{ route('loans.send-reminder', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
+                        @csrf
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-outline-secondary" @click="sendReminderOpen = false">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Send Reminder</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Send SMS Confirmation -->
+            <div x-show="sendSmsOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-3 py-4" style="display: none;" x-cloak>
+                <div class="w-full max-w-md rounded-4 border border-white/10 bg-slate-950 shadow-2xl p-4" @click.away="sendSmsOpen = false">
+                    <h3 class="h5 text-white fw-bold mb-3">Send SMS Reminder</h3>
+                    <p class="text-sm text-slate-400 mb-4">This will send an SMS to <span class="text-white fw-semibold">{{ $loan->member?->full_name ?? 'the member' }}</span> (<span class="text-white fw-semibold">{{ $loan->member?->phone }}</span>) with an overdue reminder. Proceed?</p>
+                    <form action="{{ route('loans.send-sms', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
+                        @csrf
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-outline-secondary" @click="sendSmsOpen = false">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Send SMS</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Send Demand Notice SMS Confirmation -->
+            <div x-show="smsDemandOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-3 py-4" style="display: none;" x-cloak>
+                <div class="w-full max-w-md rounded-4 border border-white/10 bg-slate-950 shadow-2xl p-4" @click.away="smsDemandOpen = false">
+                    <h3 class="h5 text-white fw-bold mb-3">Send Demand Notice SMS</h3>
+                    <p class="text-sm text-slate-400 mb-4">This will send an SMS to <span class="text-white fw-semibold">{{ $loan->member?->full_name ?? 'the member' }}</span> (<span class="text-white fw-semibold">{{ $loan->member?->phone }}</span>) informing them that a demand letter has been issued. Are you sure?</p>
+                    <form action="{{ route('loans.demand-letter-sms', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
+                        @csrf
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-outline-secondary" @click="smsDemandOpen = false">Cancel</button>
+                            <button type="submit" class="btn btn-warning">Send SMS</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Apply Penalty Modal -->
             <div x-show="applyPenaltyOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-3 py-4" style="display: none;" x-cloak>
                 <div class="w-full max-w-md rounded-4 border border-white/10 bg-slate-950 shadow-2xl p-4" @click.away="applyPenaltyOpen = false">
@@ -337,15 +418,24 @@
                         @csrf
                         <div class="mb-3">
                             <label class="form-label text-white">Penalty Type</label>
-                            <select name="penalty_type" class="form-select bg-dark text-white border-secondary">
+                            <select name="penalty_type" x-model="penaltyType" class="form-select bg-dark text-white border-secondary @error('penalty_type') is-invalid @enderror">
                                 <option value="percentage">Percentage (%)</option>
                                 <option value="fixed">Fixed Amount (₱)</option>
                                 <option value="daily">Daily Amount (₱)</option>
                             </select>
+                            @error('penalty_type')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label text-white">Rate / Amount</label>
-                            <input type="number" step="0.01" name="penalty_rate" class="form-control bg-dark text-white border-secondary" required>
+                            <input type="text" inputmode="decimal" name="penalty_rate"
+                                class="form-control bg-dark text-white border-secondary @error('penalty_rate') is-invalid @enderror"
+                                x-bind:placeholder="penaltyType === 'percentage' ? 'e.g. 5 (percent)' : penaltyType === 'fixed' ? 'e.g. 500' : 'e.g. 10'"
+                                data-format-currency required>
+                            @error('penalty_rate')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label text-white">Reason</label>
@@ -363,9 +453,9 @@
             <div x-show="restructureOpen" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-3 py-4" style="display: none;" x-cloak>
                 <div class="w-full max-w-md rounded-4 border border-white/10 bg-slate-950 shadow-2xl p-4" @click.away="restructureOpen = false">
                     <h3 class="h5 text-white fw-bold mb-3">Restructure Loan</h3>
-                    <div class="alert alert-info bg-info/10 border-info/20 text-info py-2 px-3 mb-4">
-                        Total amount to restructure (Balance + Penalties): <br>
-                        <strong>₱{{ number_format((float) $loan->outstanding_balance + (float) $loan->penalty_total, 2) }}</strong>
+                    <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 mb-4">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-amber-400/70 mb-1">Total amount to restructure (Balance + Penalties)</p>
+                        <strong class="text-lg text-amber-300">₱{{ number_format((float) $loan->outstanding_balance + (float) $loan->penalty_total, 2) }}</strong>
                     </div>
                     <form action="{{ route('loans.restructure', [...$tenantParameter, 'loan' => $loan]) }}" method="POST">
                         @csrf
@@ -379,7 +469,7 @@
                         </div>
                         <div class="d-flex justify-content-end gap-2 mt-4">
                             <button type="button" class="btn btn-outline-secondary" @click="restructureOpen = false">Cancel</button>
-                            <button type="submit" class="btn btn-info">Restructure</button>
+                            <button type="submit" class="btn btn-primary">Restructure</button>
                         </div>
                     </form>
                 </div>
@@ -447,7 +537,7 @@
                                     <div class="mt-3 small text-muted">
                                         <div>Size: {{ $document->file_size_formatted }}</div>
                                         <div>Uploaded by: {{ $document->uploadedBy?->name ?? 'System' }}</div>
-                                        <div>Date: {{ $document->created_at?->format('M d, Y h:i A') ?? 'N/A' }}</div>
+                                        <div>Date: {{ formatDate($document->created_at, true) ?? 'N/A' }}</div>
                                         @if($document->notes)
                                             <div class="mt-2">Notes: {{ $document->notes }}</div>
                                         @endif
@@ -508,7 +598,7 @@
                     @forelse($loan->loanSchedules->sortBy('period_number') as $schedule)
                         <tr>
                             <td>{{ $schedule->period_number }}</td>
-                            <td>{{ $schedule->due_date?->format('M d, Y') ?? 'N/A' }}</td>
+                            <td>{{ formatDate($schedule->due_date) ?? 'N/A' }}</td>
                             <td class="text-end">P{{ number_format((float) $schedule->amount_due, 2) }}</td>
                             <td class="text-end">P{{ number_format((float) $schedule->principal_portion, 2) }}</td>
                             <td class="text-end">P{{ number_format((float) $schedule->interest_portion, 2) }}</td>
@@ -568,7 +658,7 @@
                 <tbody>
                     @foreach($loan->penalties->sortByDesc('applied_at') as $penalty)
                         <tr>
-                            <td>{{ $penalty->applied_at?->format('M d, Y') ?? 'N/A' }}</td>
+                            <td>{{ formatDate($penalty->applied_at) ?? 'N/A' }}</td>
                             <td>{{ ucfirst($penalty->penalty_type) }}</td>
                             <td>{{ number_format((float) $penalty->penalty_rate, 2) }}</td>
                             <td class="text-end text-danger fw-semibold">P{{ number_format((float) $penalty->penalty_amount, 2) }}</td>
@@ -618,14 +708,14 @@
                                 <label for="amount" class="form-label fw-semibold">Amount</label>
                                 <div class="input-group">
                                     <span class="input-group-text">P</span>
-                                    <input type="text" id="amount" inputmode="decimal" class="form-control @error('amount') is-invalid @enderror" x-ref="amountInput" x-on:input="rawAmount = $event.target.value.replace(/[^0-9.]/g, ''); $refs.amountInput.value = format(rawAmount)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" required>
+                                    <input type="text" id="amount" inputmode="decimal" class="form-control @error('amount') is-invalid @enderror" x-ref="amountInput" x-on:input="rawAmount = $event.target.value.replace(/[^0-9.]/g, ''); $refs.amountInput.value = format(rawAmount)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" data-format-currency required>
                                 </div>
                                 @error('amount') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-12">
                                 <label for="payment_date" class="form-label fw-semibold">Payment Date</label>
-                                <input type="date" id="payment_date" name="payment_date" value="{{ now()->toDateString() }}" class="form-control @error('payment_date') is-invalid @enderror" required>
+                                <input type="text" data-datepicker id="payment_date" name="payment_date" value="{{ now()->toDateString() }}" class="form-control @error('payment_date') is-invalid @enderror" required>
                                 @error('payment_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
@@ -676,7 +766,7 @@
                             @forelse($loan->loanPayments as $payment)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $payment->payment_date?->format('M d, Y') ?? 'N/A' }}</td>
+                                    <td>{{ formatDate($payment->payment_date) ?? 'N/A' }}</td>
                                     <td class="text-end">P{{ number_format((float) $payment->amount, 2) }}</td>
                                     <td>{{ $payment->period_covered }}</td>
                                     <td>{{ $payment->user?->name ?? 'N/A' }}</td>

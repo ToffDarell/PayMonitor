@@ -208,74 +208,47 @@
 
     <!-- Pricing -->
     <section id="pricing" class="bg-[#0f1523] py-24">
-        @php
-            $featuredPlan = $plans->first(fn ($plan) => strtolower($plan->name) === 'standard')
-                ?? $plans->values()->get(1)
-                ?? $plans->first();
-        @endphp
         <div class="mx-auto max-w-7xl px-6">
             <div class="text-center mb-16">
                 <div class="mb-3 text-sm font-semibold uppercase tracking-widest text-emerald-400">PRICING</div>
                 <h2 class="font-heading mb-2 text-4xl font-bold text-white">Simple, transparent pricing</h2>
-                <p class="text-navy-muted">Choose the plan that fits your cooperative.</p>
+                <p class="text-navy-muted">Everything your cooperative needs in one plan.</p>
             </div>
 
-            @if ($plans->isNotEmpty())
-                <div class="mx-auto grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    @foreach ($plans as $plan)
-                        @php
-                            $isFeatured = $featuredPlan?->is($plan) ?? false;
-                            $priceLabel = rtrim(rtrim(number_format((float) $plan->price, 2), '0'), '.');
-                            $descriptionItems = collect(preg_split('/\r\n|\r|\n/', (string) $plan->description))
-                                ->map(fn ($item) => trim($item))
-                                ->filter();
-                            $limitItems = collect([
-                                $plan->max_branches === 0
-                                    ? 'Unlimited Branches'
-                                    : number_format($plan->max_branches) . ' ' . \Illuminate\Support\Str::plural('Branch', $plan->max_branches),
-                                $plan->max_users === 0
-                                    ? 'Unlimited Staff Users'
-                                    : number_format($plan->max_users) . ' Staff ' . \Illuminate\Support\Str::plural('User', $plan->max_users),
-                            ]);
-                            $allAvailable = \App\Models\Plan::getAvailableFeatures();
-                            $checkedFeatures = collect($plan->features ?? [])
-                                ->map(fn ($key) => $allAvailable[$key]['name'] ?? null)
-                                ->filter()
-                                ->values();
+            @if ($monthlyPlan && $yearlyPlan)
+                @php
+                    $allAvailable = \App\Models\Plan::getAvailableFeatures();
 
-                            $featureItems = $limitItems->concat($checkedFeatures);
-                        @endphp
+                    $features = $monthlyPlan->features ?? [];
+                    $limitItems = collect([
+                        $monthlyPlan->max_branches >= 9999 ? 'Unlimited Branches' : number_format($monthlyPlan->max_branches) . ' ' . \Illuminate\Support\Str::plural('Branch', $monthlyPlan->max_branches),
+                        $monthlyPlan->max_users >= 9999 ? 'Unlimited Staff Users' : number_format($monthlyPlan->max_users) . ' Staff ' . \Illuminate\Support\Str::plural('User', $monthlyPlan->max_users),
+                    ]);
+                    $checkedFeatures = collect($features)
+                        ->map(fn ($key) => $allAvailable[$key]['name'] ?? null)
+                        ->filter()
+                        ->values();
+                    $featureItems = $limitItems->concat($checkedFeatures);
+                @endphp
 
-                        <div @class([
-                            'rounded-3xl border p-8 backdrop-blur-sm',
-                            'border-navy-border bg-navy-surface' => ! $isFeatured,
-                            'relative border-emerald-500/50 bg-[#0A1628] shadow-[0_0_40px_rgba(16,185,129,0.1)]' => $isFeatured,
-                        ])>
-                            @if ($isFeatured)
-                                <div class="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-500 px-4 py-1 text-xs font-semibold text-white shadow-lg shadow-emerald-500/20">Most Popular</div>
-                            @endif
+                <div class="mx-auto max-w-5xl">
+                    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
 
-                            <div @class([
-                                'mb-2 text-sm font-medium uppercase tracking-wide',
-                                'text-navy-muted' => ! $isFeatured,
-                                'text-emerald-400' => $isFeatured,
-                            ])>{{ $plan->name }}</div>
+                        {{-- Monthly card --}}
+                        <div class="flex h-full flex-col rounded-2xl border border-navy-border bg-navy-surface p-8 shadow-md transition-all hover:shadow-lg">
+                            <div class="mb-2 text-sm font-medium uppercase tracking-wide text-emerald-400">Professional</div>
+                            <span class="inline-flex self-start rounded-full border border-navy-border bg-white/5 px-2.5 py-0.5 text-xs text-navy-muted">Monthly</span>
+                            <p class="mt-3 text-sm text-navy-muted">Complete lending management — billed monthly.</p>
 
-                            <div class="font-heading text-4xl font-black text-white">&#8369;{{ $priceLabel }}<span class="text-lg font-normal text-navy-muted">/mo</span></div>
-                            <hr class="my-6 border-navy-border" />
+                            <div class="my-6">
+                                <span class="text-4xl font-extrabold text-white">&#8369;1,999</span>
+                                <span class="text-lg font-medium text-navy-muted">/mo</span>
+                            </div>
 
-                            <ul class="space-y-4">
+                            <ul class="flex-grow space-y-4">
                                 @foreach ($featureItems as $feature)
-                                    <li @class([
-                                        'flex items-center gap-3 text-sm',
-                                        'text-slate-300' => ! $isFeatured,
-                                        'text-slate-200' => $isFeatured,
-                                    ])>
-                                        <span @class([
-                                            'mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-emerald-400',
-                                            'bg-emerald-500/15' => ! $isFeatured,
-                                            'bg-emerald-500/20' => $isFeatured,
-                                        ])>
+                                    <li class="flex items-center gap-3 text-sm text-slate-200">
+                                        <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
                                             <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
                                         </span>
                                         {{ $feature }}
@@ -283,13 +256,46 @@
                                 @endforeach
                             </ul>
 
-                            <a href="{{ route('apply.create', ['plan' => $plan->id], false) }}" @class([
-                                'mt-8 block w-full rounded-xl py-3 text-center transition-colors',
-                                'border border-navy-border bg-white/[0.02] font-medium text-white hover:bg-white/5' => ! $isFeatured,
-                                'bg-gradient-to-r from-emerald-500 to-emerald-600 font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 hover:brightness-110' => $isFeatured,
-                            ])>Apply for {{ $plan->name }}</a>
+                            <a href="{{ route('apply.create', ['cycle' => 'monthly']) }}"
+                               class="mt-8 block w-full rounded-xl border border-navy-border bg-white/5 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-white/10">
+                                Get Started
+                            </a>
                         </div>
-                    @endforeach
+
+                        {{-- Yearly card (recommended) --}}
+                        <div class="flex h-full flex-col rounded-2xl border border-emerald-500/30 bg-navy-surface p-8 shadow-md ring-2 ring-emerald-500/20 transition-all hover:shadow-lg">
+                            <div class="mb-4 self-start rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                                Best Value
+                            </div>
+
+                            <div class="mb-2 text-sm font-medium uppercase tracking-wide text-emerald-400">Professional</div>
+                            <span class="inline-flex self-start rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-400">Yearly</span>
+                            <p class="mt-3 text-sm text-navy-muted">Complete lending management — billed yearly. Save 20%!</p>
+
+                            <div class="my-6">
+                                <span class="text-4xl font-extrabold text-white">&#8369;1,599</span>
+                                <span class="text-lg font-medium text-navy-muted">/mo</span>
+                                <p class="mt-1 text-xs text-navy-muted line-through">&#8369;19,188 billed annually</p>
+                            </div>
+
+                            <ul class="flex-grow space-y-4">
+                                @foreach ($featureItems as $feature)
+                                    <li class="flex items-center gap-3 text-sm text-slate-200">
+                                        <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                                            <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.313a1 1 0 0 1-1.42-.003L4.79 10.75a1 1 0 1 1 1.42-1.41l2.54 2.56 6.54-6.604a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd"/></svg>
+                                        </span>
+                                        {{ $feature }}
+                                    </li>
+                                @endforeach
+                            </ul>
+
+                            <a href="{{ route('apply.create', ['cycle' => 'yearly']) }}"
+                               class="mt-8 block w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:shadow-emerald-500/30 hover:brightness-110">
+                                Get Started
+                            </a>
+                        </div>
+
+                    </div>
                 </div>
             @else
                 <div class="mx-auto max-w-3xl rounded-3xl border border-navy-border bg-navy-surface p-10 text-center text-navy-muted">

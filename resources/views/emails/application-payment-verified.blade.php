@@ -43,7 +43,7 @@
                                     </tr>
                                     <tr>
                                         <td style="padding:8px 0;color:#64748b;">Verified At</td>
-                                        <td style="padding:8px 0;text-align:right;font-weight:700;color:#0f172a;">{{ $application->payment_verified_at?->format('M d, Y h:i A') ?? now()->format('M d, Y h:i A') }}</td>
+                                        <td style="padding:8px 0;text-align:right;font-weight:700;color:#0f172a;">{{ formatDate($application->payment_verified_at, true) ?? formatDate(now(), true) }}</td>
                                     </tr>
                                     <tr>
                                         <td style="padding:8px 0;color:#64748b;">Status</td>

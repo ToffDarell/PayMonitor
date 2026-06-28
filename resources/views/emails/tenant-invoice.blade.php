@@ -48,7 +48,7 @@
                         <tr>
                             <td style="padding:8px 0;color:#475569;">Due Date</td>
                             <td style="padding:8px 0;text-align:right;font-weight:700;color:{{ $isOverdue ? '#dc2626' : '#0f172a' }};">
-                                {{ $invoice->due_date?->format('M d, Y') ?? 'N/A' }}
+                                {{ formatDate($invoice->due_date) ?? 'N/A' }}
                             </td>
                         </tr>
                         <tr>

@@ -10,6 +10,7 @@ use App\Models\Loan;
 use App\Models\TenantSetting;
 use App\Services\AuditService;
 use App\Services\LoanService;
+use App\Services\SmsService;
 use App\Support\TenantPermissions;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -25,6 +26,7 @@ class OverdueLoanController extends Controller
     public function __construct(
         private readonly LoanService $loanService,
         private readonly AuditService $auditService,
+        private readonly SmsService $smsService,
     ) {}
 
     public function sendReminder(Request $request, string $tenant, Loan $loan): RedirectResponse
@@ -48,6 +50,70 @@ class OverdueLoanController extends Controller
         ]);
 
         return back()->with('success', "Reminder sent to {$email}");
+    }
+
+    public function sendSmsReminder(Request $request, string $tenant, Loan $loan): RedirectResponse
+    {
+        $this->authorizeOverdueManagement($request);
+        $this->ensureLoanIsOverdue($loan);
+
+        $loan->loadMissing('member');
+        $member = $loan->member;
+
+        if (blank($member?->phone)) {
+            return back()->with('error', 'Member has no registered phone number.');
+        }
+
+        $message = $loan->isOverdue()
+            ? $this->smsService->overdueReminder($loan, $member)
+            : $this->smsService->upcomingDue($loan, $member);
+
+        $sent = $this->smsService->sendToMember($member, $message);
+
+        $this->logAudit('sms_reminder_sent', $loan, [], [
+            'recipient_phone' => $member->phone,
+            'sent_at' => now()->toDateTimeString(),
+        ]);
+
+        if (! $sent) {
+            $reason = $this->smsService->getLastError() ?? 'Unknown error';
+            $name = $member->full_name ?? 'Member';
+            $phone = $member->phone;
+
+            return back()->with('error', "Failed to send SMS to {$name} ({$phone}) — {$reason}");
+        }
+
+        return back()->with('success', 'SMS reminder sent to ' . $member->phone);
+    }
+
+    public function sendDemandLetterSms(Request $request, string $tenant, Loan $loan): RedirectResponse
+    {
+        $this->authorizeOverdueManagement($request);
+        $this->ensureLoanIsOverdue($loan);
+
+        $loan->loadMissing('member');
+        $member = $loan->member;
+
+        if (blank($member?->phone)) {
+            return back()->with('error', 'Member has no registered phone number.');
+        }
+
+        $sent = $this->smsService->sendToMember($member, $this->smsService->demandLetterAlert($loan, $member));
+
+        $this->logAudit('demand_letter_sms_sent', $loan, [], [
+            'recipient_phone' => $member->phone,
+            'sent_at' => now()->toDateTimeString(),
+        ]);
+
+        if (! $sent) {
+            $reason = $this->smsService->getLastError() ?? 'Unknown error';
+            $name = $member->full_name ?? 'Member';
+            $phone = $member->phone;
+
+            return back()->with('error', "Failed to send demand SMS to {$name} ({$phone}) — {$reason}");
+        }
+
+        return back()->with('success', 'Demand notice SMS sent to ' . $member->phone);
     }
 
     public function applyPenalty(Request $request, string $tenant, Loan $loan): RedirectResponse
@@ -140,6 +206,11 @@ class OverdueLoanController extends Controller
             $this->loanService->generateAmortizationSchedule($lockedLoan->fresh());
             $this->logAudit('restructured', $lockedLoan, $oldValues, $lockedLoan->fresh()->toArray());
         });
+
+        $member = $loan->member;
+        if (filled($member?->phone)) {
+            $this->smsService->sendToMember($member, $this->smsService->restructureConfirmed($loan, $member));
+        }
 
         return back()->with('success', 'Loan restructured. New term: '.$validated['new_term_months'].' months.');
     }

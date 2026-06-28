@@ -143,7 +143,7 @@
                                     {{ str_replace('_', ' ', $loan->status) }}
                                 </span>
                             </td>
-                            <td class="px-4 py-4 align-top text-slate-400">{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</td>
+                            <td class="px-4 py-4 align-top text-slate-400">{{ formatDate($loan->release_date) }}</td>
                         </tr>
                     @empty
                         <tr>
@@ -182,7 +182,7 @@
                                 </a>
                             </td>
                             <td class="px-4 py-4 align-top font-semibold text-red-300">&#8369;{{ number_format((float) $loan->outstanding_balance, 2) }}</td>
-                            <td class="px-4 py-4 align-top text-slate-400">{{ $loan->due_date?->format('M d, Y') ?? 'N/A' }}</td>
+                            <td class="px-4 py-4 align-top text-slate-400">{{ formatDate($loan->due_date) }}</td>
                             <td class="px-4 py-4 align-top text-slate-300">{{ $loan->due_date ? $loan->due_date->diffInDays(today()) : 'N/A' }}</td>
                         </tr>
                     @empty

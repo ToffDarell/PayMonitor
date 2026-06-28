@@ -74,7 +74,7 @@
 
                         <div class="mb-3">
                             <label for="birthdate" class="form-label fw-semibold">Birthdate</label>
-                            <input type="date" id="birthdate" name="birthdate" value="{{ old('birthdate', $member->birthdate?->toDateString()) }}" class="form-control @error('birthdate') is-invalid @enderror">
+                            <input type="text" data-datepicker id="birthdate" name="birthdate" value="{{ old('birthdate', $member->birthdate?->toDateString()) }}" class="form-control @error('birthdate') is-invalid @enderror">
                             @error('birthdate') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
@@ -99,6 +99,38 @@
                             </select>
                             @error('civil_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+
+                        <div class="mb-3 mt-3">
+                            <label for="valid_id_type" class="form-label fw-semibold">Valid ID Type</label>
+                            <select id="valid_id_type" name="valid_id_type" class="form-select @error('valid_id_type') is-invalid @enderror">
+                                <option value="">Select ID type</option>
+                                <option value="Driver's License" @selected(old('valid_id_type', $member->valid_id_type) === "Driver's License")>Driver's License</option>
+                                <option value="Passport" @selected(old('valid_id_type', $member->valid_id_type) === 'Passport')>Passport</option>
+                                <option value="UMID" @selected(old('valid_id_type', $member->valid_id_type) === 'UMID')>UMID (Unified Multi-Purpose ID)</option>
+                                <option value="SSS ID" @selected(old('valid_id_type', $member->valid_id_type) === 'SSS ID')>SSS ID</option>
+                                <option value="GSIS ID" @selected(old('valid_id_type', $member->valid_id_type) === 'GSIS ID')>GSIS ID</option>
+                                <option value="TIN ID" @selected(old('valid_id_type', $member->valid_id_type) === 'TIN ID')>TIN ID</option>
+                                <option value="PRC ID" @selected(old('valid_id_type', $member->valid_id_type) === 'PRC ID')>PRC ID</option>
+                                <option value="Voter's ID" @selected(old('valid_id_type', $member->valid_id_type) === "Voter's ID")>Voter's ID</option>
+                                <option value="PhilHealth ID" @selected(old('valid_id_type', $member->valid_id_type) === 'PhilHealth ID')>PhilHealth ID</option>
+                                <option value="Pag-IBIG ID" @selected(old('valid_id_type', $member->valid_id_type) === 'Pag-IBIG ID')>Pag-IBIG ID</option>
+                                <option value="Postal ID" @selected(old('valid_id_type', $member->valid_id_type) === 'Postal ID')>Postal ID</option>
+                                <option value="National ID" @selected(old('valid_id_type', $member->valid_id_type) === 'National ID')>National ID (PhilSys ID)</option>
+                                <option value="Senior Citizen ID" @selected(old('valid_id_type', $member->valid_id_type) === 'Senior Citizen ID')>Senior Citizen ID</option>
+                                <option value="PWD ID" @selected(old('valid_id_type', $member->valid_id_type) === 'PWD ID')>PWD ID</option>
+                                <option value="Barangay ID" @selected(old('valid_id_type', $member->valid_id_type) === 'Barangay ID')>Barangay ID</option>
+                                <option value="Police Clearance" @selected(old('valid_id_type', $member->valid_id_type) === 'Police Clearance')>Police Clearance</option>
+                                <option value="NBI Clearance" @selected(old('valid_id_type', $member->valid_id_type) === 'NBI Clearance')>NBI Clearance</option>
+                                <option value="Company ID" @selected(old('valid_id_type', $member->valid_id_type) === 'Company ID')>Company ID</option>
+                            </select>
+                            @error('valid_id_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-0">
+                            <label for="valid_id_number" class="form-label fw-semibold">Valid ID Number</label>
+                            <input type="text" id="valid_id_number" name="valid_id_number" value="{{ old('valid_id_number', $member->valid_id_number) }}" class="form-control @error('valid_id_number') is-invalid @enderror">
+                            @error('valid_id_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
                     </div>
                 </div>
 
@@ -119,7 +151,7 @@
                         <div class="mb-0">
                             <label for="monthly_salary" class="form-label fw-semibold">Monthly Salary</label>
                             <input type="hidden" id="monthly_salary_hidden" name="monthly_salary" value="{{ old('monthly_salary', $member->monthly_salary) }}">
-                            <input type="text" id="monthly_salary" inputmode="decimal" placeholder="0.00" class="form-control @error('monthly_salary') is-invalid @enderror" x-ref="salaryInput" x-init="$refs.salaryInput.value = formatSalary(monthlySalaryRaw)" x-on:input="monthlySalaryRaw = $event.target.value.replace(/[^0-9.]/g, ''); $refs.salaryInput.value = formatSalary(monthlySalaryRaw)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()">
+                            <input type="text" id="monthly_salary" inputmode="decimal" placeholder="0.00" class="form-control @error('monthly_salary') is-invalid @enderror" x-ref="salaryInput" x-init="$refs.salaryInput.value = formatSalary(monthlySalaryRaw)" x-on:input="monthlySalaryRaw = $event.target.value.replace(/[^0-9.]/g, ''); $refs.salaryInput.value = formatSalary(monthlySalaryRaw)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" data-format-currency>
                             @error('monthly_salary') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
@@ -164,7 +196,7 @@
 
                         <div class="mb-0">
                             <label for="joined_at" class="form-label fw-semibold">Joined Date</label>
-                            <input type="date" id="joined_at" name="joined_at" value="{{ old('joined_at', $member->joined_at?->toDateString()) }}" class="form-control @error('joined_at') is-invalid @enderror">
+                            <input type="text" data-datepicker id="joined_at" name="joined_at" value="{{ old('joined_at', $member->joined_at?->toDateString()) }}" class="form-control @error('joined_at') is-invalid @enderror">
                             @error('joined_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>

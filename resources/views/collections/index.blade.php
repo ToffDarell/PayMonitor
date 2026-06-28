@@ -95,7 +95,7 @@
                                 <td class="fw-semibold">{{ $overdueLoan->loan_number }}</td>
                                 <td>{{ $overdueLoan->branch?->name ?? 'N/A' }}</td>
                                 <td>
-                                    {{ $overdueLoan->due_date?->format('M d, Y') ?? 'N/A' }}
+                                    {{ formatDate($overdueLoan->due_date) }}
                                     @if($overdueLoan->due_date)
                                         <div class="small text-danger">{{ $overdueLoan->due_date->diffInDays(today()) }} day{{ $overdueLoan->due_date->diffInDays(today()) === 1 ? '' : 's' }} overdue</div>
                                     @endif
@@ -155,7 +155,7 @@
                     <tbody>
                         @forelse($recentCollections as $payment)
                             <tr>
-                                <td>{{ $payment->payment_date?->format('M d, Y') ?? 'N/A' }}</td>
+                                <td>{{ formatDate($payment->payment_date) }}</td>
                                 <td>{{ $payment->loan?->member?->full_name ?? 'N/A' }}</td>
                                 <td class="fw-semibold">{{ $payment->loan?->loan_number ?? 'N/A' }}</td>
                                 <td class="text-end text-success fw-semibold">P{{ number_format((float) $payment->amount, 2) }}</td>
@@ -206,7 +206,7 @@
                             <div class="text-sm-end">
                                 <div class="text-muted small">Due Date</div>
                                 <div class="fw-semibold {{ $dueLabelClass }}">
-                                    {{ $schedule->due_date?->format('M d, Y') ?? 'N/A' }}
+                                    {{ formatDate($schedule->due_date) }}
                                 </div>
                                 @can('create', \App\Models\LoanPayment::class)
                                     @if($schedule->loan)
@@ -262,11 +262,11 @@
             </div>
             <div class="col-md-6 col-xl-2">
                 <label for="date_from" class="form-label fw-semibold">Date From</label>
-                <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
+                <input type="text" data-datepicker id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-6 col-xl-2">
                 <label for="date_to" class="form-label fw-semibold">Date To</label>
-                <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
+                <input type="text" data-datepicker id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-6 col-xl-2 d-flex align-items-end gap-2">
                 <button type="submit" class="btn btn-primary flex-fill">Apply</button>

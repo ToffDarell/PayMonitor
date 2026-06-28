@@ -166,8 +166,9 @@ class BillingInvoice extends Model
                 ? $tenant->subscription_due_at
                 : today();
 
+            $days = $tenant->plan?->renewalDays() ?? 30;
             $tenant->forceFill([
-                'subscription_due_at' => $baseDate->copy()->addDays(30),
+                'subscription_due_at' => $baseDate->addDays($days),
                 'status' => 'active',
             ])->save();
 

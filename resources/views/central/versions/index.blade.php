@@ -182,19 +182,6 @@
                                             Notify
                                         </button>
                                     </form>
-                                    @endif
-                                    <form method="POST" action="{{ route('central.versions.toggle-required', ['tenant' => $tenant->id], false) }}">
-                                        @csrf
-                                        @if($tenant->update_required)
-                                        <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 transition">
-                                            Required ✓
-                                        </button>
-                                        @else
-                                        <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-[#21262d] text-[#8b949e] hover:border-yellow-500 hover:text-yellow-400 transition">
-                                            Set Required
-                                        </button>
-                                        @endif
-                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -260,32 +247,6 @@
                                     @csrf
                                     <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-[#2a3340] bg-[#111827] text-slate-200 hover:border-slate-500 hover:text-white transition">Notify All</button>
                                 </form>
-                                @if(!$release->is_required)
-                                <button type="button" class="text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-300 hover:bg-red-500/5 transition" data-bs-toggle="modal" data-bs-target="#markRequiredModal{{ $release->id }}">Mark Required</button>
-                                @else
-                                <form method="POST" action="{{ route('central.versions.unmark-required', ['release' => $release], false) }}">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-[#2a3340] bg-[#111827] text-slate-200 hover:border-slate-500 hover:text-white transition">Clear Required</button>
-                                </form>
-                                @endif
-                            </div>
-                            {{-- Mark Required Modal --}}
-                            <div class="modal fade" id="markRequiredModal{{ $release->id }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog"><div class="modal-content">
-                                    <form method="POST" action="{{ route('central.versions.mark-required', ['release' => $release], false) }}">
-                                        @csrf
-                                        <div class="modal-header"><h5 class="modal-title">Mark {{ $release->tag }} as required</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                                        <div class="modal-body">
-                                            <p class="mb-3">Tenants behind this version will be blocked after the grace period ends.</p>
-                                            <label class="form-label">Grace period (days)</label>
-                                            <input type="number" name="grace_days" value="7" min="0" max="90" class="form-control">
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-danger">Mark Required</button>
-                                        </div>
-                                    </form>
-                                </div></div>
                             </div>
                         </td>
                     </tr>

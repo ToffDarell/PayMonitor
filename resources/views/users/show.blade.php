@@ -57,7 +57,7 @@
             </div>
             <div class="col-md-6">
                 <div class="text-muted small text-uppercase fw-semibold">Created At</div>
-                <div>{{ $user->created_at?->format('M d, Y h:i A') ?? 'N/A' }}</div>
+                <div>{{ formatDate($user->created_at, true) ?? 'N/A' }}</div>
             </div>
             <div class="col-md-6">
                 <div class="text-muted small text-uppercase fw-semibold">Role</div>

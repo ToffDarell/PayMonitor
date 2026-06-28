@@ -1,0 +1,269 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e7]:
+          - img [ref=e9]
+          - generic [ref=e11]:
+            - paragraph [ref=e12]: Maramag Coop
+            - generic [ref=e14]: Tenant
+            - paragraph [ref=e15]: Your trusted lending cooperative
+        - generic [ref=e16]:
+          - paragraph [ref=e17]: Overview
+          - navigation [ref=e18]:
+            - link "Dashboard" [ref=e19] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e20]
+              - generic [ref=e22]: Dashboard
+            - link "Billing" [ref=e23] [cursor=pointer]:
+              - /url: /billing
+              - img [ref=e24]
+              - generic [ref=e26]: Billing
+        - generic [ref=e27]:
+          - paragraph [ref=e28]: Lending
+          - navigation [ref=e29]:
+            - link "Members" [ref=e30] [cursor=pointer]:
+              - /url: /members
+              - img [ref=e31]
+              - generic [ref=e33]: Members
+            - link "Loans" [ref=e34] [cursor=pointer]:
+              - /url: /loans
+              - img [ref=e35]
+              - generic [ref=e38]: Loans
+            - link "Loan Types" [ref=e39] [cursor=pointer]:
+              - /url: /loan-types
+              - img [ref=e40]
+              - generic [ref=e43]: Loan Types
+            - link "Payments" [ref=e44] [cursor=pointer]:
+              - /url: /loan-payments
+              - img [ref=e45]
+              - generic [ref=e48]: Payments
+            - link "Collections" [ref=e49] [cursor=pointer]:
+              - /url: /collections
+              - img [ref=e50]
+              - generic [ref=e52]: Collections
+        - generic [ref=e53]:
+          - paragraph [ref=e54]: Management
+          - navigation [ref=e55]:
+            - link "Branches" [ref=e56] [cursor=pointer]:
+              - /url: /branches
+              - img [ref=e57]
+              - generic [ref=e59]: Branches
+            - link "Users" [ref=e60] [cursor=pointer]:
+              - /url: /users
+              - img [ref=e61]
+              - generic [ref=e64]: Users
+            - link "Audit Logs" [ref=e65] [cursor=pointer]:
+              - /url: /audit-logs
+              - img [ref=e66]
+              - generic [ref=e69]: Audit Logs
+        - generic [ref=e70]:
+          - paragraph [ref=e71]: Insights
+          - navigation [ref=e72]:
+            - link "Reports" [ref=e73] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e74]
+              - generic [ref=e76]: Reports
+        - generic [ref=e77]:
+          - paragraph [ref=e78]: Workspace
+          - navigation [ref=e79]:
+            - link "Settings" [ref=e80] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e81]
+              - generic [ref=e84]: Settings
+      - button "Logout" [ref=e87] [cursor=pointer]:
+        - img [ref=e88]
+        - generic [ref=e91]: Logout
+  - generic [ref=e92]:
+    - banner [ref=e93]:
+      - generic [ref=e95]:
+        - generic "Maramag Coop" [ref=e96]
+        - generic [ref=e97]:
+          - paragraph [ref=e98]: Toff Vergara
+          - paragraph [ref=e99]: Administrator
+    - main [ref=e100]:
+      - generic [ref=e103]:
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - paragraph [ref=e106]: Tenant Workspace
+            - heading "Dashboard" [level=2] [ref=e107]
+            - paragraph [ref=e108]: Maramag Coop lending activity, collections, and portfolio visibility in one place.
+          - generic [ref=e109]:
+            - link " Members" [ref=e110] [cursor=pointer]:
+              - /url: /members
+              - generic [ref=e111]: 
+              - generic [ref=e112]: Members
+            - link " New Loan" [ref=e113] [cursor=pointer]:
+              - /url: /loans/create
+              - generic [ref=e114]: 
+              - generic [ref=e115]: New Loan
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - generic [ref=e120]: Active loans
+            - generic [ref=e121]: "1"
+            - paragraph [ref=e122]: Currently active loan accounts.
+          - generic [ref=e123]:
+            - generic [ref=e126]: Outstanding balance
+            - generic [ref=e127]: ₱10,800.03
+            - paragraph [ref=e128]: Remaining balance across active loans.
+          - generic [ref=e129]:
+            - generic [ref=e132]: Overdue loans
+            - generic [ref=e133]: "3"
+            - paragraph [ref=e134]: Loans already past their due date.
+          - generic [ref=e135]:
+            - generic [ref=e138]: Members count
+            - generic [ref=e139]: "8"
+            - paragraph [ref=e140]: Borrowers currently tracked in this tenant.
+          - generic [ref=e141]:
+            - generic [ref=e144]: Collections this month
+            - generic [ref=e145]: ₱2,000.05
+            - paragraph [ref=e146]: Payments recorded in the current month.
+          - generic [ref=e147]:
+            - generic [ref=e150]: Loan types available
+            - generic [ref=e151]: "1"
+            - paragraph [ref=e152]: Active loan products ready for use.
+        - generic [ref=e153]:
+          - generic [ref=e154]:
+            - generic [ref=e155]:
+              - heading "Recent Loans" [level=3] [ref=e156]
+              - paragraph [ref=e157]: Latest loan records released or updated in this workspace.
+            - link "View All" [ref=e158] [cursor=pointer]:
+              - /url: /loans
+              - img [ref=e159]
+              - text: View All
+          - table [ref=e162]:
+            - rowgroup [ref=e163]:
+              - row "Member Name Loan Type Amount Monthly Payment Balance Status Date Released" [ref=e164]:
+                - columnheader "Member Name" [ref=e165]
+                - columnheader "Loan Type" [ref=e166]
+                - columnheader "Amount" [ref=e167]
+                - columnheader "Monthly Payment" [ref=e168]
+                - columnheader "Balance" [ref=e169]
+                - columnheader "Status" [ref=e170]
+                - columnheader "Date Released" [ref=e171]
+            - rowgroup [ref=e172]:
+              - row "Vergara, Darel Baron Salary Loan ₱25,000.00 ₱5,750.00 ₱28,750.00 overdue Jun 02, 2026" [ref=e173]:
+                - cell "Vergara, Darel Baron" [ref=e174]:
+                  - link "Vergara, Darel Baron" [ref=e175] [cursor=pointer]:
+                    - /url: /loans/8
+                - cell "Salary Loan" [ref=e176]
+                - cell "₱25,000.00" [ref=e177]
+                - cell "₱5,750.00" [ref=e178]
+                - cell "₱28,750.00" [ref=e179]
+                - cell "overdue" [ref=e180]:
+                  - generic [ref=e181]: overdue
+                - cell "Jun 02, 2026" [ref=e182]
+              - row "Overdue, Juan Salary Loan ₱5,000.00 ₱1,816.67 ₱0.00 fully paid Jan 31, 2026" [ref=e183]:
+                - cell "Overdue, Juan" [ref=e184]:
+                  - link "Overdue, Juan" [ref=e185] [cursor=pointer]:
+                    - /url: /loans/2
+                - cell "Salary Loan" [ref=e186]
+                - cell "₱5,000.00" [ref=e187]
+                - cell "₱1,816.67" [ref=e188]
+                - cell "₱0.00" [ref=e189]
+                - cell "fully paid" [ref=e190]:
+                  - generic [ref=e191]: fully paid
+                - cell "Jan 31, 2026" [ref=e192]
+              - row "PartiallyPaid, Maria Salary Loan ₱10,000.00 ₱1,966.67 ₱9,833.33 overdue Oct 31, 2025" [ref=e193]:
+                - cell "PartiallyPaid, Maria" [ref=e194]:
+                  - link "PartiallyPaid, Maria" [ref=e195] [cursor=pointer]:
+                    - /url: /loans/3
+                - cell "Salary Loan" [ref=e196]
+                - cell "₱10,000.00" [ref=e197]
+                - cell "₱1,966.67" [ref=e198]
+                - cell "₱9,833.33" [ref=e199]
+                - cell "overdue" [ref=e200]:
+                  - generic [ref=e201]: overdue
+                - cell "Oct 31, 2025" [ref=e202]
+              - row "Delinquent, Pedro Salary Loan ₱20,000.00 ₱2,266.67 ₱0.00 fully paid Mar 31, 2025" [ref=e203]:
+                - cell "Delinquent, Pedro" [ref=e204]:
+                  - link "Delinquent, Pedro" [ref=e205] [cursor=pointer]:
+                    - /url: /loans/4
+                - cell "Salary Loan" [ref=e206]
+                - cell "₱20,000.00" [ref=e207]
+                - cell "₱2,266.67" [ref=e208]
+                - cell "₱0.00" [ref=e209]
+                - cell "fully paid" [ref=e210]:
+                  - generic [ref=e211]: fully paid
+                - cell "Mar 31, 2025" [ref=e212]
+              - row "Demanded, Ana Darell Salary Loan ₱8,000.00 ₱2,240.00 ₱6,959.95 overdue Dec 01, 2025" [ref=e213]:
+                - cell "Demanded, Ana Darell" [ref=e214]:
+                  - link "Demanded, Ana Darell" [ref=e215] [cursor=pointer]:
+                    - /url: /loans/5
+                - cell "Salary Loan" [ref=e216]
+                - cell "₱8,000.00" [ref=e217]
+                - cell "₱2,240.00" [ref=e218]
+                - cell "₱6,959.95" [ref=e219]
+                - cell "overdue" [ref=e220]:
+                  - generic [ref=e221]: overdue
+                - cell "Dec 01, 2025" [ref=e222]
+              - row "WrittenOff, Rizal Salary Loan ₱15,000.00 ₱2,950.00 ₱0.00 written off May 31, 2025" [ref=e223]:
+                - cell "WrittenOff, Rizal" [ref=e224]:
+                  - link "WrittenOff, Rizal" [ref=e225] [cursor=pointer]:
+                    - /url: /loans/6
+                - cell "Salary Loan" [ref=e226]
+                - cell "₱15,000.00" [ref=e227]
+                - cell "₱2,950.00" [ref=e228]
+                - cell "₱0.00" [ref=e229]
+                - cell "written off" [ref=e230]:
+                  - generic [ref=e231]: written off
+                - cell "May 31, 2025" [ref=e232]
+              - row "Restructured, Luz Salary Loan ₱12,000.00 ₱1,360.00 ₱16,320.00 restructured Aug 31, 2025" [ref=e233]:
+                - cell "Restructured, Luz" [ref=e234]:
+                  - link "Restructured, Luz" [ref=e235] [cursor=pointer]:
+                    - /url: /loans/7
+                - cell "Salary Loan" [ref=e236]
+                - cell "₱12,000.00" [ref=e237]
+                - cell "₱1,360.00" [ref=e238]
+                - cell "₱16,320.00" [ref=e239]
+                - cell "restructured" [ref=e240]:
+                  - generic [ref=e241]: restructured
+                - cell "Aug 31, 2025" [ref=e242]
+              - row "Vergara, Toff Darell Salary Loan ₱15,000.00 ₱3,450.00 ₱10,800.03 active May 31, 2026" [ref=e243]:
+                - cell "Vergara, Toff Darell" [ref=e244]:
+                  - link "Vergara, Toff Darell" [ref=e245] [cursor=pointer]:
+                    - /url: /loans/1
+                - cell "Salary Loan" [ref=e246]
+                - cell "₱15,000.00" [ref=e247]
+                - cell "₱3,450.00" [ref=e248]
+                - cell "₱10,800.03" [ref=e249]
+                - cell "active" [ref=e250]:
+                  - generic [ref=e251]: active
+                - cell "May 31, 2026" [ref=e252]
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - heading "Overdue Loans" [level=3] [ref=e255]
+            - paragraph [ref=e256]: Loans requiring immediate collection follow-up.
+          - table [ref=e258]:
+            - rowgroup [ref=e259]:
+              - 'row "Member Loan # Balance Due Date Days Overdue" [ref=e260]':
+                - columnheader "Member" [ref=e261]
+                - 'columnheader "Loan #" [ref=e262]'
+                - columnheader "Balance" [ref=e263]
+                - columnheader "Due Date" [ref=e264]
+                - columnheader "Days Overdue" [ref=e265]
+            - rowgroup [ref=e266]:
+              - row "Demanded, Ana Darell LN-20260531-1309 ₱6,959.95 Apr 16, 2026 47" [ref=e267]:
+                - cell "Demanded, Ana Darell" [ref=e268]
+                - cell "LN-20260531-1309" [ref=e269]:
+                  - link "LN-20260531-1309" [ref=e270] [cursor=pointer]:
+                    - /url: /loans/5
+                - cell "₱6,959.95" [ref=e271]
+                - cell "Apr 16, 2026" [ref=e272]
+                - cell "47" [ref=e273]
+              - row "PartiallyPaid, Maria LN-20260531-4308 ₱9,833.33 May 01, 2026 32" [ref=e274]:
+                - cell "PartiallyPaid, Maria" [ref=e275]
+                - cell "LN-20260531-4308" [ref=e276]:
+                  - link "LN-20260531-4308" [ref=e277] [cursor=pointer]:
+                    - /url: /loans/3
+                - cell "₱9,833.33" [ref=e278]
+                - cell "May 01, 2026" [ref=e279]
+                - cell "32" [ref=e280]
+              - row "Vergara, Darel Baron LN-20260602-2334 ₱28,750.00 Nov 02, 2026 -153" [ref=e281]:
+                - cell "Vergara, Darel Baron" [ref=e282]
+                - cell "LN-20260602-2334" [ref=e283]:
+                  - link "LN-20260602-2334" [ref=e284] [cursor=pointer]:
+                    - /url: /loans/8
+                - cell "₱28,750.00" [ref=e285]
+                - cell "Nov 02, 2026" [ref=e286]
+                - cell "-153" [ref=e287]

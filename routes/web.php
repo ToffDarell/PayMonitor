@@ -19,17 +19,14 @@ use Illuminate\Support\Facades\Route;
 foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
     Route::domain($domain)->group(function (): void {
         Route::get('/', static function () {
-            $plans = Plan::query()
-                ->orderBy('price')
-                ->orderBy('name')
-                ->get();
-
-            return view('welcome', compact('plans'));
+            $monthlyPlan = Plan::where('name', 'Professional Monthly')->firstOrFail();
+            $yearlyPlan = Plan::where('name', 'Professional Yearly')->firstOrFail();
+            return view('welcome', compact('monthlyPlan', 'yearlyPlan'));
         })->name('welcome');
 
         Route::get('/apply', [ApplicationController::class, 'create'])->name('apply.create');
         Route::post('/apply', [ApplicationController::class, 'store'])->name('apply.store');
-        Route::view('/apply/thank-you', 'apply-thankyou')->name('apply.thank-you');
+        Route::get('/apply/thank-you', [ApplicationController::class, 'thankYou'])->name('apply.thank-you');
 
         // PayMongo payment flow
         Route::get('/apply/payment/callback', [ApplicationController::class, 'paymentCallback'])->name('apply.payment-callback');
@@ -80,13 +77,10 @@ foreach (config('tenancy.central_domains', ['localhost']) as $domain) {
                 Route::get('/versions', [CentralVersionController::class, 'index'])->name('versions.index');
                 Route::post('/versions/sync', [CentralVersionController::class, 'syncReleases'])->name('versions.sync');
                 Route::post('/versions/backfill-tracking', [CentralVersionController::class, 'backfillTracking'])->name('versions.backfill-tracking');
-                Route::post('/versions/{release}/mark-required', [CentralVersionController::class, 'markRequired'])->name('versions.mark-required');
-                Route::delete('/versions/{release}/unmark-required', [CentralVersionController::class, 'unmarkRequired'])->name('versions.unmark-required');
                 Route::post('/versions/{release}/notify-all', [CentralVersionController::class, 'notifyAll'])->name('versions.notify-all');
                 Route::post('/versions/{release}/force-mark-all', [CentralVersionController::class, 'forceMarkAll'])->name('versions.force-mark-all');
                 Route::post('/versions/check', [CentralVersionController::class, 'checkForUpdates'])->name('versions.check');
                 Route::post('/versions/{tenant}/notify', [CentralVersionController::class, 'notifyTenant'])->name('versions.notify');
-                Route::post('/versions/{tenant}/toggle-required', [CentralVersionController::class, 'toggleRequired'])->name('versions.toggle-required');
 
                 Route::get('/support', [CentralSupportController::class, 'index'])->name('support.index');
                 Route::get('/support/{supportRequest}', [CentralSupportController::class, 'show'])->name('support.show');

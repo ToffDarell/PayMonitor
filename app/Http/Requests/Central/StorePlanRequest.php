@@ -24,6 +24,7 @@ class StorePlanRequest extends FormRequest
                 Rule::unique('plans', 'name')->ignore($this->route('plan')),
             ],
             'price' => ['required', 'numeric', 'min:0'],
+            'billing_cycle' => ['required', 'string', Rule::in(['monthly', 'yearly'])],
             'max_branches' => ['required', 'integer', 'min:0'],
             'max_users' => ['required', 'integer', 'min:0'],
             'description' => ['nullable', 'string', 'max:1000'],

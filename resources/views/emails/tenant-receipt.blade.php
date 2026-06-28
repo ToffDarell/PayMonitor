@@ -41,13 +41,13 @@
                         <tr>
                             <td style="padding:8px 0;color:#475569;">Date Paid</td>
                             <td style="padding:8px 0;text-align:right;font-weight:700;color:#0f172a;">
-                                {{ $invoice->paid_at?->format('M d, Y h:i A') ?? now()->format('M d, Y h:i A') }}
+                                {{ formatDate($invoice->paid_at, true) ?? formatDate(now(), true) }}
                             </td>
                         </tr>
                         <tr>
                             <td style="padding:8px 0;color:#475569;">Next Billing Date</td>
                             <td style="padding:8px 0;text-align:right;font-weight:700;color:#0f172a;">
-                                {{ $nextBillingDate?->format('M d, Y') ?? 'To be announced' }}
+                                {{ formatDate($nextBillingDate) ?? 'To be announced' }}
                             </td>
                         </tr>
                     </table>

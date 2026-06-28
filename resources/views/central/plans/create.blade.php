@@ -73,8 +73,7 @@ if (isset($availableFeatures['overdue_loan_management']) && ! array_key_exists('
                 <select id="billing_cycle" name="billing_cycle"
                     class="block w-full rounded-xl border border-[#21262d] bg-[#0d1117] px-4 py-3 text-sm text-slate-100 transition focus:border-emerald-500/60 focus:outline-none focus:ring-1 focus:ring-emerald-500/20">
                     <option value="monthly" class="bg-[#0d1117] text-white">Monthly</option>
-                    <option value="quarterly" class="bg-[#0d1117] text-white">Quarterly</option>
-                    <option value="annual" class="bg-[#0d1117] text-white">Annual</option>
+                    <option value="yearly" class="bg-[#0d1117] text-white">Yearly</option>
                 </select>
             </div>
         </div>

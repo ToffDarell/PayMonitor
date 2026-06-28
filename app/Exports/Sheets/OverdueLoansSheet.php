@@ -51,7 +51,7 @@ class OverdueLoansSheet implements FromArray, WithColumnWidths, WithEvents, With
                     $loan->member?->full_name ?? 'N/A',
                     $loan->loan_number,
                     $this->currencySymbol.number_format((float) $loan->outstanding_balance, 2),
-                    $loan->due_date?->format('M d, Y') ?? 'N/A',
+                    formatDate($loan->due_date) ?? 'N/A',
                     (string) ($loan->due_date?->diffInDays(now()) ?? 0),
                 ];
             }

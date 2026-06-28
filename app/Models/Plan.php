@@ -17,6 +17,7 @@ class Plan extends Model
     protected $fillable = [
         'name',
         'price',
+        'billing_cycle',
         'max_branches',
         'max_users',
         'description',
@@ -29,7 +30,13 @@ class Plan extends Model
         return [
             'price' => 'decimal:2',
             'features' => 'array',
+            'billing_cycle' => 'string',
         ];
+    }
+
+    public function renewalDays(): int
+    {
+        return $this->billing_cycle === 'yearly' ? 365 : 30;
     }
 
     public function tenants(): HasMany

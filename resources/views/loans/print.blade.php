@@ -22,7 +22,7 @@
         .summary-box { flex: 1; border: 1px solid #ccc; padding: 6px 8px; text-align: center; }
         .summary-box .label { font-size: 7pt; text-transform: uppercase; color: #555; letter-spacing: 0.3px; }
         .summary-box .value { font-size: 11pt; font-weight: bold; margin-top: 2px; }
-        table.data { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 6px; }
+        table.data { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 6px; page-break-inside: avoid; }
         table.data th { background: #e0e0e0; padding: 4px 6px; text-align: left; font-weight: bold; font-size: 8pt; text-transform: uppercase; }
         table.data td { padding: 3px 6px; border-bottom: 1px solid #ddd; }
         table.data tr:nth-child(even) td { background: #f5f5f5; }
@@ -41,9 +41,7 @@
 </head>
 <body>
     @php
-        $settings = \App\Models\TenantSetting::allKeyed();
-        $coopName = tenant()?->name ?? ($settings['cooperative_name'] ?? 'Cooperative');
-        $coopAddress = $settings['address'] ?? (tenant()?->address ?? '');
+        $coopName = tenant()?->name ?? 'Cooperative';
     @endphp
 
     <div class="header">
@@ -57,21 +55,20 @@
     </div>
     <hr>
 
-    {{-- Show co-maker name as a section heading above the member info if set --}}
-    @if ($loan->member?->co_maker_name)
-        <div class="section-title">Co-maker: {{ $loan->member->co_maker_name }}</div>
-    @endif
-
     <div class="two-col">
         <div>
+            <div class="section-title" style="margin-bottom:4px;">MAKER</div>
             <table class="info-table">
-                <tr><td class="label">Member:</td><td>{{ $loan->member?->full_name ?? 'N/A' }}</td></tr>
-                <tr><td class="label">Member ID:</td><td>{{ $loan->member?->member_number ?? 'N/A' }}</td></tr>
-                {{-- Employment & Financial Information --}}
+                <tr><td class="label">Name:</td><td>{{ $loan->member?->full_name ?? 'N/A' }}</td></tr>
                 <tr><td class="label">Occupation:</td><td>{{ $loan->member?->occupation ?? 'N/A' }}</td></tr>
                 <tr><td class="label">Monthly Salary:</td><td>&#8369;{{ number_format((float) ($loan->member?->monthly_salary ?? 0), 2) }}</td></tr>
                 <tr><td class="label">Address:</td><td>{{ $loan->member?->address ?? 'N/A' }}</td></tr>
-                <tr><td class="label">Contact:</td><td>{{ $loan->member?->phone ?? 'N/A' }}</td></tr>
+                <tr><td class="label">Contact Number:</td><td>{{ $loan->member?->phone ?? 'N/A' }}</td></tr>
+            </table>
+            <div class="section-title" style="margin:8px 0 4px;">CO-MAKER</div>
+            <table class="info-table">
+                <tr><td class="label">Name:</td><td>{{ $loan->member?->co_maker_name ?? '—' }}</td></tr>
+                <tr><td class="label">Contact Number:</td><td>{{ $loan->member?->co_maker_contact_number ?? '—' }}</td></tr>
             </table>
         </div>
         <div>

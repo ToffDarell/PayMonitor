@@ -9,7 +9,6 @@ use App\Http\Requests\Tenant\StoreUserRequest;
 use App\Http\Requests\Tenant\UpdateUserRequest;
 use App\Mail\TenantWelcomeMail;
 use App\Models\Branch;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Support\TenantPermissions;
 use Illuminate\Http\RedirectResponse;
@@ -56,14 +55,10 @@ class UserController extends Controller
         return view('users.index', compact('users', 'branches', 'filters', 'roles'));
     }
 
-    public function create(): View|RedirectResponse
+    public function create(): View
     {
         $this->authorize('create', User::class);
         TenantPermissions::ensureConfigured();
-
-        if ($limitRedirect = $this->ensureUserLimitIsAvailable()) {
-            return $limitRedirect;
-        }
 
         $branches = Branch::query()->orderBy('name')->get();
         $generatedPassword = old('generated_password', Str::upper(Str::random(10)));
@@ -83,14 +78,10 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(StoreUserRequest $request): View|RedirectResponse
+    public function store(StoreUserRequest $request): View
     {
         $this->authorize('create', User::class);
         TenantPermissions::ensureConfigured();
-
-        if ($limitRedirect = $this->ensureUserLimitIsAvailable()) {
-            return $limitRedirect;
-        }
 
         $validated = $request->validated();
         $password = $validated['generated_password'] ?? Str::upper(Str::random(10));
@@ -289,20 +280,4 @@ class UserController extends Controller
         return $map;
     }
 
-    protected function ensureUserLimitIsAvailable(): ?RedirectResponse
-    {
-        $tenant = tenant();
-
-        if (! $tenant instanceof Tenant) {
-            return redirect('/users')->with('error', 'Tenant context could not be resolved.');
-        }
-
-        $userLimit = (int) ($tenant->plan?->max_users ?? 0);
-
-        if ($userLimit > 0 && User::query()->count() >= $userLimit) {
-            return redirect('/users')->with('error', "Your current plan allows a maximum of {$userLimit} users.");
-        }
-
-        return null;
-    }
 }

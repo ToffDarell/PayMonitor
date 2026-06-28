@@ -45,11 +45,11 @@
         <form method="GET" action="{{ route('reports.index', $tenantParameter) }}" class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label for="date_from" class="form-label fw-semibold">Date From</label>
-                <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
+                <input type="text" data-datepicker id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-3">
                 <label for="date_to" class="form-label fw-semibold">Date To</label>
-                <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
+                <input type="text" data-datepicker id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-4">
                 <label for="branch_id" class="form-label fw-semibold">Branch</label>
@@ -206,7 +206,7 @@
                                 <td>{{ $loan->member?->full_name ?? 'Unknown Member' }}</td>
                                 <td>{{ $loan->loan_number }}</td>
                                 <td class="text-end text-danger">P{{ number_format((float) $loan->outstanding_balance, 2) }}</td>
-                                <td>{{ $loan->due_date?->format('M d, Y') ?? 'N/A' }}</td>
+                                <td>{{ formatDate($loan->due_date) }}</td>
                                 <td class="text-end">{{ $loan->due_date ? $loan->due_date->diffInDays(today()) : 'N/A' }}</td>
                             </tr>
                         @empty

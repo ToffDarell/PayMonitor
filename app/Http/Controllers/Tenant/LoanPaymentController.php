@@ -11,6 +11,7 @@ use App\Models\Loan;
 use App\Models\LoanPayment;
 use App\Models\LoanSchedule;
 use App\Services\AuditService;
+use App\Services\SmsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,10 @@ use Illuminate\View\View;
 
 class LoanPaymentController extends Controller
 {
-    public function __construct(private AuditService $auditService) {}
+    public function __construct(
+        private readonly AuditService $auditService,
+        private readonly SmsService $smsService,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -142,6 +146,11 @@ class LoanPaymentController extends Controller
 
             return $loan;
         });
+
+        $member = $loan->member;
+        if (filled($member?->phone)) {
+            $this->smsService->sendToMember($member, $this->smsService->paymentConfirmation($loan, (float) $validated['amount'], $member));
+        }
 
         return redirect('/loans/'.$loan->id)->with('success', 'Payment recorded successfully.');
     }

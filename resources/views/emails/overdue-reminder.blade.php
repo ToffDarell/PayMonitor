@@ -40,7 +40,7 @@
                     <tr>
                         <td style="padding:12px 16px; color:#6b7280;">Due Date</td>
                         <td style="padding:12px 16px; text-align:right;">
-                            {{ $loan->due_date?->format('M d, Y') ?? 'N/A' }}
+                            {{ formatDate($loan->due_date) ?? 'N/A' }}
                             @if($daysOverdue > 0)
                                 <span style="display:block; color:#b91c1c; font-size:12px; font-weight:700;">{{ $daysOverdue }} day{{ $daysOverdue === 1 ? '' : 's' }} overdue</span>
                             @endif

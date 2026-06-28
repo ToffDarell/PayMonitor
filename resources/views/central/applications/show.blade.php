@@ -311,11 +311,14 @@
                     </div>
                     <div class="p-6">
                         @if($application->plan)
+                            @php
+                                $planFeatureCatalog = \App\Models\Plan::getAvailableFeatures();
+                            @endphp
                             <div class="text-center">
                                 <h4 class="text-lg font-bold text-indigo-400">{{ $application->plan->name }}</h4>
                                 <div class="mt-2 flex items-baseline justify-center text-3xl font-extrabold text-white">
                                     &#8369;{{ number_format($application->plan->price, 2) }}
-                                    <span class="ml-1 text-sm font-medium text-gray-500">/mo</span>
+                                    <span class="ml-1 text-sm font-medium text-gray-500">/{{ $application->plan->billing_cycle === 'yearly' ? 'yr' : 'mo' }}</span>
                                 </div>
                                 <p class="mt-4 text-sm text-gray-400">{{ $application->plan->description }}</p>
                             </div>
@@ -324,7 +327,7 @@
                                 @foreach($application->plan->features ?? [] as $feature)
                                     <li class="flex gap-x-2">
                                         <svg class="h-5 w-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
-                                        {{ $feature }}
+                                        {{ $planFeatureCatalog[$feature]['name'] ?? str($feature)->replace('_', ' ')->title()->toString() }}
                                     </li>
                                 @endforeach
                             </ul>

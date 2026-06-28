@@ -58,19 +58,19 @@
             </div>
             <div class="col-md-3">
                 <label for="date_from" class="form-label fw-semibold">Date From</label>
-                <input type="date" id="date_from" name="date_from" value="{{ request('date_from') }}" class="form-control" x-on:change="$el.form.requestSubmit()">
+                <input type="text" data-datepicker id="date_from" name="date_from" value="{{ request('date_from') }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-3">
                 <label for="date_to" class="form-label fw-semibold">Date To</label>
-                <input type="date" id="date_to" name="date_to" value="{{ request('date_to') }}" class="form-control" x-on:change="$el.form.requestSubmit()">
+                <input type="text" data-datepicker id="date_to" name="date_to" value="{{ request('date_to') }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-3 d-grid">
-                <button type="submit" class="btn btn-outline-primary">
+                <button type="submit" class="btn btn-primary shadow-sm">
                     <i class="bi bi-funnel-fill me-1"></i>Apply Filters
                 </button>
             </div>
             <div class="col-md-3 d-grid">
-                <a href="{{ route('loans.index', $tenantParameter) }}" class="btn btn-light border">Reset</a>
+                <a href="{{ route('loans.index', $tenantParameter) }}" class="btn btn-outline-secondary shadow-sm">Reset</a>
             </div>
         </form>
     </div>
@@ -119,7 +119,7 @@
                                 </span>
                             @endif
                         </td>
-                        <td>{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</td>
+                        <td>{{ formatDate($loan->release_date) }}</td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ route('loans.show', [...$tenantParameter, 'loan' => $loan]) }}" class="btn btn-outline-primary">

@@ -28,26 +28,26 @@
             </div>
             <div class="col-md-3">
                 <label for="date_from" class="form-label fw-semibold">Date From</label>
-                <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
+                <input type="text" data-datepicker id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-3">
                 <label for="date_to" class="form-label fw-semibold">Date To</label>
-                <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
+                <input type="text" data-datepicker id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control" x-on:change="$el.form.requestSubmit()">
             </div>
             <div class="col-md-3">
                 <label for="member_search" class="form-label fw-semibold">Member Search</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" id="member_search" name="member_search" value="{{ $filters['member_search'] ?? '' }}" class="form-control" placeholder="Member no. or name">
+                    <input type="text" id="member_search" name="member_search" value="{{ $filters['member_search'] ?? '' }}" class="form-control" placeholder="Member no. or name" x-on:input.debounce.500ms="$el.form.requestSubmit()">
                 </div>
             </div>
             <div class="col-md-3 d-grid">
-                <button type="submit" class="btn btn-outline-primary">
+                <button type="submit" class="btn btn-primary shadow-sm">
                     <i class="bi bi-funnel-fill me-1"></i>Apply Filters
                 </button>
             </div>
             <div class="col-md-3 d-grid">
-                <a href="{{ route('loan-payments.index', $tenantParameter) }}" class="btn btn-light border">Reset</a>
+                <a href="{{ route('loan-payments.index', $tenantParameter) }}" class="btn btn-outline-secondary shadow-sm">Reset</a>
             </div>
         </form>
     </div>
@@ -63,7 +63,7 @@
                     <th>Member Name</th>
                     <th>Loan No.</th>
                     <th class="text-end">Amount Paid</th>
-                    <th>Period Covered</th>
+                    <th style="max-width: 220px;">Period Covered</th>
                     <th>Recorded By</th>
                     <th class="text-end">Actions</th>
                 </tr>
@@ -72,11 +72,11 @@
                 @forelse($payments as $payment)
                     <tr>
                         <td>{{ $payments->firstItem() + $loop->index }}</td>
-                        <td>{{ $payment->payment_date?->format('M d, Y') ?? 'N/A' }}</td>
+                        <td>{{ formatDate($payment->payment_date) }}</td>
                         <td>{{ $payment->loan?->member?->full_name ?? 'Unknown Member' }}</td>
                         <td>{{ $payment->loan?->loan_number ?? 'N/A' }}</td>
                         <td class="text-end">P{{ number_format((float) $payment->amount, 2) }}</td>
-                        <td>{{ $payment->period_covered }}</td>
+                        <td title="{{ $payment->period_covered }}">{{ \Illuminate\Support\Str::limit($payment->period_covered, 30) }}</td>
                         <td>{{ $payment->user?->name ?? 'N/A' }}</td>
                         <td class="text-end">
                             @if($payment->loan)

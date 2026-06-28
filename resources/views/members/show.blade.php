@@ -98,7 +98,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="text-muted small text-uppercase fw-semibold">Joined Date</div>
-                            <div>{{ $member->joined_at?->format('M d, Y') ?? 'N/A' }}</div>
+                            <div>{{ formatDate($member->joined_at) ?? 'N/A' }}</div>
                         </div>
                         <div class="col-12">
                             <div class="text-muted small text-uppercase fw-semibold">Address</div>
@@ -109,9 +109,12 @@
                 <div class="col-lg-4">
                     <div class="border rounded-3 p-3 bg-light">
                         <div class="text-muted small text-uppercase fw-semibold mb-2">Borrower Snapshot</div>
-                        <div class="mb-2"><strong>Birthdate:</strong> {{ $member->birthdate?->format('M d, Y') ?? 'N/A' }}</div>
+                        <div class="mb-2"><strong>Birthdate:</strong> {{ formatDate($member->birthdate) ?? 'N/A' }}</div>
                         <div class="mb-2"><strong>Gender:</strong> {{ $member->gender ? ucfirst($member->gender) : 'N/A' }}</div>
                         <div class="mb-2"><strong>Civil Status:</strong> {{ $member->civil_status ? ucfirst($member->civil_status) : 'N/A' }}</div>
+                        @if($member->valid_id_type)
+                            <div class="mb-2"><strong>Valid ID:</strong> {{ $member->valid_id_type }} @if($member->valid_id_number)({{ $member->valid_id_number }})@endif</div>
+                        @endif
                         <div class="mb-0"><strong>Occupation:</strong> {{ $member->occupation ?: 'N/A' }}</div>
                     </div>
                 </div>
@@ -222,7 +225,7 @@
                                     <div class="mt-3 small text-muted">
                                         <div>Size: {{ $document->file_size_formatted }}</div>
                                         <div>Uploaded by: {{ $document->uploadedBy?->name ?? 'System' }}</div>
-                                        <div>Date: {{ $document->created_at?->format('M d, Y h:i A') ?? 'N/A' }}</div>
+                                        <div>Date: {{ formatDate($document->created_at, true) ?? 'N/A' }}</div>
                                         @if($document->notes)
                                             <div class="mt-2">Notes: {{ $document->notes }}</div>
                                         @endif
@@ -298,7 +301,7 @@
                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1">Delinquent</span>
                                 @endif
                             </td>
-                            <td>{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</td>
+                            <td>{{ formatDate($loan->release_date) ?? 'N/A' }}</td>
                             <td class="text-end">
                                 <a href="{{ route('loans.show', [...$tenantParameter, 'loan' => $loan]) }}" class="btn btn-outline-primary btn-sm">
                                     <i class="bi bi-eye me-1"></i>View

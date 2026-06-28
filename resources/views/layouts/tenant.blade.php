@@ -947,82 +947,7 @@
 </head>
 <body class="tenant-theme-{{ $themeMode }} min-h-screen antialiased" x-data="{ sidebarOpen: false }">
 
-    @php
-    try {
-        $currentTenant = \App\Models\Tenant::find(tenant()?->id);
-        $updateRequired = (bool) ($currentTenant?->update_required ?? false);
-        $requiredVersion = $currentTenant?->update_required_version;
-        $tenantId = (string) (tenant()?->id ?? request()->route('tenant'));
-        $trackedCurrentRelease = app(\App\Services\TenantUpdateService::class)->getCurrentRelease($tenantId);
-        $tenantCurrentVersion = (string) (
-            $trackedCurrentRelease?->appRelease?->tag
-            ?? \App\Models\TenantSetting::get('current_version', 'v1.0.0')
-        );
 
-        $normalizedTenantVersion = ltrim((string) $tenantCurrentVersion, 'vV');
-        $normalizedRequiredVersion = ltrim((string) ($requiredVersion ?? ''), 'vV');
-        $hasComparableRequiredVersion = preg_match('/^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/', $normalizedRequiredVersion) === 1;
-
-        $isAlreadyOnRequired = !$updateRequired || (
-            $requiredVersion && $hasComparableRequiredVersion && version_compare(
-                $normalizedTenantVersion,
-                $normalizedRequiredVersion,
-                '>='
-            )
-        );
-        // Don't block if the user is already on the updates page itself
-        $currentRouteName = request()->route()?->getName() ?? '';
-        $isOnUpdatePage = in_array($currentRouteName, ['settings.updates', 'settings.updates.apply'], true);
-    } catch (\Exception $e) {
-        $updateRequired = false;
-        $isAlreadyOnRequired = true;
-        $isOnUpdatePage = false;
-    }
-    @endphp
-
-    @if($updateRequired && !$isAlreadyOnRequired && !$isOnUpdatePage)
-    <div class="fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm"
-         style="background-color: rgba(0, 0, 0, 0.5);">
-        <div class="max-w-md w-full mx-4 rounded-2xl border p-8 shadow-2xl"
-             style="background-color: var(--pm-card-bg); border-color: rgba(234, 179, 8, 0.35); color: var(--pm-text-primary);">
-
-            {{-- Warning icon --}}
-            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border"
-                 style="background-color: rgba(234, 179, 8, 0.12); border-color: rgba(234, 179, 8, 0.35);">
-                <svg class="w-8 h-8" fill="none" stroke="#eab308" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-            </div>
-
-            <h2 class="mb-2 text-center text-xl font-bold" style="color: var(--pm-text-primary);">Update Required</h2>
-            <p class="mb-1 text-center text-sm" style="color: var(--pm-text-muted);">Your administrator requires you to update to version</p>
-            <p class="text-2xl font-black text-center font-mono mb-4" style="color: #eab308;">{{ $requiredVersion }}</p>
-            <p class="mb-6 text-center text-xs" style="color: var(--pm-text-muted);">You must update your portal before continuing. This update includes important improvements and security fixes.</p>
-
-            {{-- Version comparison box --}}
-            <div class="mb-6 flex items-center justify-between rounded-xl border p-4"
-                 style="background-color: var(--pm-surface-bg); border-color: var(--pm-border);">
-                <div class="text-center">
-                    <p class="mb-1 text-xs" style="color: var(--pm-text-muted);">Your Version</p>
-                    <p class="font-mono font-bold" style="color: var(--pm-text-primary);">{{ $tenantCurrentVersion }}</p>
-                </div>
-                <div style="color: var(--pm-text-muted); font-size: 1.125rem;">→</div>
-                <div class="text-center">
-                    <p class="mb-1 text-xs" style="color: var(--pm-text-muted);">Required Version</p>
-                    <p class="font-mono font-bold" style="color: #eab308;">{{ $requiredVersion }}</p>
-                </div>
-            </div>
-
-            {{-- Update Now button — links to the tenant Updates settings page --}}
-                <a href="{{ route('settings.updates', array_merge($tenantParameter, ['autostart' => 1]), false) }}"
-               class="block w-full rounded-xl py-3 text-center text-sm font-bold transition-opacity hover:opacity-90"
-               style="background-color: #eab308; color: #1a1a1a;">
-                Update Now →
-            </a>
-            <p class="mt-3 text-center text-xs" style="color: var(--pm-text-subtle);">You cannot dismiss this dialog until your portal is updated.</p>
-        </div>
-    </div>
-    @endif
 
     <div class="relative min-h-screen">
         <div x-cloak x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-black/70 md:hidden" x-on:click="sidebarOpen = false"></div>
@@ -1168,9 +1093,7 @@
                                     </svg>
                                     <span class="inline-flex items-center gap-2">
                                         <span>Settings</span>
-                                        @if($updateInfo['update_available'] ?? false)
-                                            <span class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">New</span>
-                                        @endif
+
                                     </span>
                                 </a>
                             @endif
@@ -1215,36 +1138,7 @@
 
             <main class="tenant-main-surface min-h-screen p-6 pt-24">
                 <div class="mx-auto max-w-7xl">
-                    @if($updateInfo['update_available'] ?? false)
-                        <div
-                            class="mb-4 flex flex-col gap-3 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sky-100 lg:flex-row lg:items-center lg:justify-between"
-                            x-data="{ show: localStorage.getItem('dismissed_update') !== '{{ $updateInfo['latest_version'] ?? '' }}' }"
-                            x-show="show"
-                            x-transition
-                        >
-                            <div class="flex items-start gap-3">
-                                <span class="mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-sky-400/30 text-sky-300">
-                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
-                                </span>
-                                <div>
-                                    <p class="text-sm font-semibold text-sky-200">New update available</p>
-                                    <p class="mt-1 text-sm text-sky-100/85">{{ $updateInfo['latest_version'] ?? 'Unknown' }} - {{ $updateInfo['release_name'] ?? 'Unable to check' }}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <a href="{{ route('settings.updates', $tenantParameter, false) }}" class="inline-flex items-center rounded-lg border border-sky-400/30 bg-transparent px-3 py-1.5 text-xs font-semibold text-sky-200 transition hover:border-sky-300 hover:bg-sky-500/10 hover:text-white">
-                                    View updates
-                                </a>
-                                <button
-                                    type="button"
-                                    @click="show = false; localStorage.setItem('dismissed_update', '{{ $updateInfo['latest_version'] ?? '' }}')"
-                                    class="text-xs font-medium text-sky-200/70 transition hover:text-sky-100"
-                                >
-                                    Dismiss
-                                </button>
-                            </div>
-                        </div>
-                    @endif
+
 
                     @if($subscriptionAlert !== null)
                         <?php
@@ -1319,5 +1213,37 @@
     @include('partials.dialogs')
 
     @stack('scripts')
+    <script>
+        document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="date"]):not([type="month"]):not([type="week"]):not([type="time"]):not([type="color"]):not([type="range"]):not([type="search"]):not([type="tel"]):not([type="url"]):not([type="email"]):not([type="password"]):not([type="number"]), textarea').forEach(el => {
+            if (!el.placeholder && el.labels.length) {
+                el.placeholder = el.labels[0].textContent.trim();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.target.matches('[data-format-currency]') && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+                if (!'0123456789.'.includes(e.key)) {
+                    e.preventDefault();
+                }
+            }
+        });
+
+        document.addEventListener('focusout', function (e) {
+            const el = e.target;
+            if (el.matches('[data-format-currency]')) {
+                const raw = el.value.replace(/,/g, '');
+                if (raw && !isNaN(raw)) {
+                    el.value = Number(raw).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            }
+        });
+
+        document.addEventListener('focusin', function (e) {
+            const el = e.target;
+            if (el.matches('[data-format-currency]')) {
+                el.value = el.value.replace(/,/g, '');
+            }
+        });
+    </script>
 </body>
 </html>

@@ -43,18 +43,13 @@
                 </div>
             </div>
 
-            {{-- Plan --}}
+            {{-- Plan (read-only) --}}
             <div>
-                <label for="plan_id" class="mb-2 block text-sm font-medium text-slate-200">Plan <span class="text-red-400">*</span></label>
-                <select id="plan_id" name="plan_id" required
-                    class="block w-full rounded-xl border @error('plan_id') border-red-500/50 @else border-white/10 @enderror bg-white/[0.03] px-4 py-3 text-sm text-slate-100 transition focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
-                    @foreach($plans as $plan)
-                        <option value="{{ $plan->id }}" class="bg-[#0F1729]" @selected(old('plan_id', $tenant->plan_id) == $plan->id)>
-                            {{ $plan->name }} — &#8369;{{ number_format((float) $plan->price, 2) }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('plan_id') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                <label class="mb-2 block text-sm font-medium text-slate-400">Plan (read-only)</label>
+                <div class="flex w-full items-center rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm text-slate-500">
+                    {{ $tenant?->plan?->name ?? 'Professional' }}
+                </div>
+                <input type="hidden" name="plan_id" value="{{ $tenant->plan_id }}">
             </div>
 
             {{-- Admin Name (read-only) --}}

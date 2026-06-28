@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Models\TenantUpdate;
 use App\Models\SupportRequest;
 use App\Models\TenantSetting;
 use App\Mail\TenantSupportRequestMail;
-use App\Services\TenantUpdateService;
-use App\Services\TenantSelfUpdateService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\Support\MessageBag;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,29 +30,20 @@ class SettingsController extends Controller
         TenantSetting::ensureDefaults();
 
         $settings = TenantSetting::allKeyed();
-        $activeTab = (string) ($request->query('tab', $request->routeIs('settings.updates') ? 'updates' : 'general'));
+        $activeTab = (string) ($request->query('tab', 'general'));
         $passwordErrors = $this->passwordErrorBag($request);
 
         if ($passwordErrors !== null && $passwordErrors->isNotEmpty()) {
             $activeTab = 'security';
         }
 
-        $updateData = $this->resolveUpdateData();
         $supportData = $this->resolveSupportData($request);
 
         return view('settings.index', [
             'settings' => $settings,
-            'activeTab' => in_array($activeTab, ['general', 'appearance', 'security', 'updates', 'support'], true) ? $activeTab : 'general',
-            ...$updateData,
+            'activeTab' => in_array($activeTab, ['general', 'appearance', 'security', 'support'], true) ? $activeTab : 'general',
             ...$supportData,
         ]);
-    }
-
-    public function updates(Request $request): View
-    {
-        $request->query->set('tab', 'updates');
-
-        return $this->index($request);
     }
 
     public function update(Request $request): RedirectResponse
@@ -70,7 +57,7 @@ class SettingsController extends Controller
             'contact_email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
             'currency_symbol' => ['required', 'string', 'max:10'],
-            'date_format' => ['required', Rule::in(['M d, Y', 'd/m/Y', 'Y-m-d'])],
+            'date_format' => ['required', Rule::in(['M d, Y', 'm/d/Y', 'd/m/Y', 'Y-m-d'])],
             'items_per_page' => ['required', 'integer', Rule::in([10, 15, 25, 50])],
             'accent_color' => ['required', Rule::in(['green', 'blue', 'indigo', 'purple', 'teal'])],
             'theme_mode' => ['required', Rule::in(['dark', 'light'])],
@@ -188,135 +175,7 @@ class SettingsController extends Controller
         return redirect('/settings?tab=support')->with('success', 'Support request submitted successfully.');
     }
 
-    public function applyUpdate(Request $request): RedirectResponse|JsonResponse
-    {
-        // app_releases lives in the central DB, not the tenant DB.
-        // Use the central connection explicitly so the exists rule works.
-        $centralConnection = (string) config('tenancy.database.central_connection', config('database.default'));
-        $expectsJson = $request->expectsJson() || $request->ajax();
 
-        $request->validate([
-            'release_id' => [
-                'required',
-                Rule::exists("$centralConnection.app_releases", 'id'),
-            ],
-        ]);
-
-        $tenantId = (string) (tenant()?->id ?? $request->route('tenant'));
-        $releaseId = (int) $request->input('release_id');
-
-        $selfUpdateService = app(TenantSelfUpdateService::class);
-        $result = $selfUpdateService->applyUpdate($tenantId, $releaseId);
-
-        if ($result['success']) {
-            $details = $result['details'] ?? [];
-            $version = $result['release']?->tag ?? 'v1.0.0';
-            $migrations = $details['migrations_run'] ?? 0;
-            $codeDeployed = ($details['code_deployed'] ?? false) ? ' with code deployment' : '';
-
-            $message = "Successfully updated to {$version}{$codeDeployed}.";
-            if ($migrations > 0) {
-                $message .= " {$migrations} migration(s) applied.";
-            }
-
-            if ($expectsJson) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $message,
-                    'version' => $version,
-                    'details' => $details,
-                ]);
-            }
-
-            return redirect('/settings?tab=updates')->with('success', $message);
-        }
-
-        $errorMessage = 'Update failed: ' . ($result['error'] ?? 'Unknown error');
-
-        if ($expectsJson) {
-            return response()->json([
-                'success' => false,
-                'message' => $errorMessage,
-                'error' => (string) ($result['error'] ?? 'Unknown error'),
-            ], 422);
-        }
-
-        return back()->with('error', $errorMessage);
-    }
-
-    public function createBackup(Request $request): RedirectResponse
-    {
-        $tenantId = (string) (tenant()?->id ?? $request->route('tenant'));
-        $tenant = \App\Models\Tenant::findOrFail($tenantId);
-
-        $backupService = app(\App\Services\TenantBackupService::class);
-        $result = $backupService->createBackup($tenant, 'manual');
-
-        if ($result['success']) {
-            return redirect('/settings?tab=updates')->with('success', 'Backup created successfully.');
-        }
-
-        return back()->with('error', 'Backup failed: ' . ($result['error'] ?? 'Unknown error'));
-    }
-
-    public function syncReleases(): RedirectResponse
-    {
-        $result = app(\App\Services\ReleaseRegistryService::class)->syncFromGitHub();
-
-        if ($result['success']) {
-            return redirect('/settings?tab=updates')->with('success', 'Successfully checked and synced latest releases from GitHub.');
-        }
-
-        return redirect('/settings?tab=updates')->with('error', 'Failed to sync updates: ' . $result['error']);
-    }
-
-    /**
-     * @return array{
-     *     updateInfo: array<string, mixed>,
-     *     changelogItems: array<int, string>,
-     *     availableUpdates: array<int, array<string, mixed>>,
-     *     updateHistory: Collection<int, TenantUpdate>,
-     *     updateHistoryCount: int
-     * }
-     */
-    protected function resolveUpdateData(): array
-    {
-        $tenantId = (string) (tenant()?->id ?? request()->route('tenant'));
-        $tenantUpdateService = app(TenantUpdateService::class);
-        $currentRelease = $tenantUpdateService->getCurrentRelease($tenantId);
-        $updateHistoryQuery = TenantUpdate::query()
-            ->forTenant($tenantId)
-            ->with('appRelease')
-            ->where('status', '!=', TenantUpdate::STATUS_UPDATE_AVAILABLE);
-        $availableUpdates = array_map(function (array $update): array {
-            $update['changelog_items'] = $this->parseChangelog((string) ($update['changelog'] ?? ''));
-
-            return $update;
-        }, $tenantUpdateService->getAvailableUpdates($tenantId));
-        $latestAvailable = $availableUpdates[0] ?? [];
-        $changelogText = (string) ($latestAvailable['changelog'] ?? '');
-
-        $updateInfo = [
-            'current_version' => (string) ($currentRelease?->appRelease?->tag ?? 'v1.0.0'),
-            'latest_version' => (string) ($latestAvailable['tag'] ?? $currentRelease?->appRelease?->tag ?? 'v1.0.0'),
-            'release_name' => (string) ($latestAvailable['title'] ?? ($currentRelease?->appRelease?->title ?? 'No published release')),
-            'release_url' => (string) ($latestAvailable['release_url'] ?? ''),
-            'published_at' => $latestAvailable['published_at'] ?? null,
-            'changelog' => $changelogText,
-            'update_available' => ! empty($availableUpdates),
-        ];
-
-        return [
-            'updateInfo' => $updateInfo,
-            'changelogItems' => $latestAvailable['changelog_items'] ?? $this->parseChangelog($changelogText),
-            'availableUpdates' => $availableUpdates,
-            'updateHistory' => (clone $updateHistoryQuery)
-                ->orderByDesc('created_at')
-                ->limit(20)
-                ->get(),
-            'updateHistoryCount' => (clone $updateHistoryQuery)->count(),
-        ];
-    }
 
     /**
      * @return array{
@@ -369,24 +228,5 @@ class SettingsController extends Controller
         }
 
         return $errors->getBag('updatePassword');
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function parseChangelog(string $raw): array
-    {
-        $lines = preg_split('/\r\n|\r|\n/', trim($raw)) ?: [];
-
-        $items = collect($lines)
-            ->map(static fn (string $line): string => trim($line))
-            ->filter(static fn (string $line): bool => $line !== '')
-            ->map(static function (string $line): string {
-                return trim((string) preg_replace('/^[-*]\s+/', '', $line));
-            })
-            ->values()
-            ->all();
-
-        return $items;
     }
 }

@@ -45,7 +45,7 @@
                 </tr>
                 <tr>
                     <td style="padding:8px 0;font-weight:700;">Submitted</td>
-                    <td style="padding:8px 0;">{{ $supportRequest->created_at?->format('M d, Y h:i A') }}</td>
+                    <td style="padding:8px 0;">{{ formatDate($supportRequest->created_at, true) }}</td>
                 </tr>
             </table>
 

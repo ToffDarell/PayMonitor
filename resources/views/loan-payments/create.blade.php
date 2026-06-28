@@ -80,7 +80,7 @@
                 <label for="amount" class="form-label fw-semibold">Amount *</label>
                 <div class="input-group">
                     <span class="input-group-text">P</span>
-                    <input type="text" id="amount" inputmode="decimal" class="form-control @error('amount') is-invalid @enderror" x-ref="amountInput" x-on:input="rawAmount = $event.target.value.replace(/[^0-9.]/g, ''); $refs.amountInput.value = format(rawAmount)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" required>
+                    <input type="text" id="amount" inputmode="decimal" class="form-control @error('amount') is-invalid @enderror" x-ref="amountInput" x-on:input="rawAmount = $event.target.value.replace(/[^0-9.]/g, ''); $refs.amountInput.value = format(rawAmount)" x-on:keydown="if ($event.ctrlKey || $event.metaKey) return; if (!'0123456789.'.includes($event.key) && $event.key.length === 1) $event.preventDefault()" data-format-currency required>
                     <button type="button" class="btn btn-primary" @click="rawAmount = fullAmount; $refs.amountInput.value = format(fullAmount)" style="background: var(--pm-accent); border-color: var(--pm-accent);">
                         <i class="bi bi-check-all me-1"></i>Full Payment
                     </button>
@@ -91,7 +91,7 @@
 
             <div class="col-md-6">
                 <label for="payment_date" class="form-label fw-semibold">Payment Date *</label>
-                <input type="date" id="payment_date" name="payment_date" value="{{ old('payment_date', now()->toDateString()) }}" class="form-control @error('payment_date') is-invalid @enderror" required>
+                <input type="text" data-datepicker id="payment_date" name="payment_date" value="{{ old('payment_date', now()->toDateString()) }}" class="form-control @error('payment_date') is-invalid @enderror" required>
                 @error('payment_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 

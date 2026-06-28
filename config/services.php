@@ -54,4 +54,8 @@ return [
         'verify_url' => env('RECAPTCHA_VERIFY_URL', 'https://www.google.com/recaptcha/api/siteverify'),
     ],
 
+    'unisms' => [
+        'secret' => env('UNISMS_SECRET'),
+    ],
+
 ];

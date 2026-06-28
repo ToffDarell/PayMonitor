@@ -1,0 +1,53 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - img [ref=e11]
+          - generic [ref=e13]: PayMonitor
+        - paragraph [ref=e14]:
+          - text: Maramag Coop
+          - text: Portal
+        - paragraph [ref=e15]: Welcome back to your cooperative portal.
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - img [ref=e19]
+            - generic [ref=e21]: Your data is completely isolated
+          - generic [ref=e22]:
+            - img [ref=e24]
+            - generic [ref=e26]: Secure domain-based login
+          - generic [ref=e27]:
+            - img [ref=e29]
+            - generic [ref=e31]: Role-based staff access
+      - generic [ref=e32]: © 2026 Maramag Coop Portal
+  - main [ref=e33]:
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - paragraph [ref=e36]: MARAMAGCOOP.PAYMONITOR.TEST
+        - heading "Maramag Coop Portal" [level=1] [ref=e37]
+        - paragraph [ref=e38]: Sign in to manage loans and members.
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]: Email
+          - textbox "Email" [active] [ref=e42]:
+            - /placeholder: name@maramagcoop.paymonitor.test
+        - generic [ref=e43]:
+          - generic [ref=e44]: Password
+          - generic [ref=e45]:
+            - textbox "Password" [ref=e46]:
+              - /placeholder: Enter your password
+            - button "Show password" [ref=e47] [cursor=pointer]:
+              - img [ref=e48]
+        - generic [ref=e51]:
+          - checkbox "Remember me" [ref=e52]
+          - generic [ref=e53]: Remember me
+        - link "Forgot password?" [ref=e55] [cursor=pointer]:
+          - /url: /forgot-password
+        - iframe [ref=e60]:
+          - generic [ref=f1e2]:
+            - generic [ref=f1e3]:
+              - checkbox "I'm not a robot" [ref=f1e7]
+              - generic [ref=f1e11]: I'm not a robot
+            - generic [ref=f1e15]: reCAPTCHA
+        - button "Log In" [ref=e61] [cursor=pointer]
+      - paragraph [ref=e62]: Having trouble? Contact your administrator.

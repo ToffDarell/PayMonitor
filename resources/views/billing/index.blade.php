@@ -40,43 +40,7 @@
         background-color: var(--pm-table-hover-bg) !important;
     }
 
-    .billing-upgrade-card {
-        border-color: rgba(245, 158, 11, 0.25);
-        background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.08));
-    }
 
-    .billing-upgrade-title {
-        color: var(--pm-text-primary);
-    }
-
-    .billing-upgrade-copy {
-        color: var(--pm-text-secondary);
-    }
-
-    .billing-upgrade-subcard {
-        background-color: var(--pm-surface-bg);
-        border-color: var(--pm-border);
-    }
-
-    .billing-upgrade-primary {
-        background-color: #f59e0b;
-        color: #111827 !important;
-    }
-
-    .billing-upgrade-primary:hover {
-        background-color: #d97706;
-        color: #111827 !important;
-    }
-
-    .billing-upgrade-secondary {
-        border-color: var(--pm-border);
-        background-color: var(--pm-surface-bg);
-        color: var(--pm-text-primary) !important;
-    }
-
-    .billing-upgrade-secondary:hover {
-        background-color: var(--pm-nav-hover-bg);
-    }
 </style>
 @endpush
 
@@ -85,15 +49,9 @@
     $invoices = $invoices ?? collect();
     $tenantParameter = ['tenant' => tenant()?->id ?? request()->route('tenant')];
     $currentPlan = $currentPlan ?? null;
-    $suggestedUpgradePlan = $suggestedUpgradePlan ?? null;
     $upgradeSupportUrl = $upgradeSupportUrl ?? route('settings.index', array_merge($tenantParameter, ['tab' => 'support']), false);
-    $canViewSettings = auth()->user()?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_VIEW) ?? false;
-    $canManageSupportRequest = auth()->user()?->hasTenantPermission(\App\Support\TenantPermissions::SETTINGS_UPDATE) ?? false;
     $currentPlanPriceLabel = $currentPlan !== null
         ? rtrim(rtrim(number_format((float) ($currentPlan['price'] ?? 0), 2), '0'), '.')
-        : '0';
-    $suggestedPlanPriceLabel = $suggestedUpgradePlan !== null
-        ? rtrim(rtrim(number_format((float) ($suggestedUpgradePlan['price'] ?? 0), 2), '0'), '.')
         : '0';
     $currentPlanFeatures = collect($currentPlan['features'] ?? [])->take(4);
 @endphp
@@ -145,7 +103,7 @@
             </div>
             @if($currentPlan !== null)
                 <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-right">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">Monthly Rate</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">{{ ($currentPlan['billing_cycle'] ?? 'monthly') === 'yearly' ? 'Yearly Rate' : 'Monthly Rate' }}</p>
                     <p class="mt-2 text-2xl font-bold text-white">P{{ $currentPlanPriceLabel }}</p>
                 </div>
             @endif
@@ -180,49 +138,7 @@
         @endif
     </div>
 
-    <div class="billing-upgrade-card rounded-2xl border p-6">
-        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">Upgrade Options</p>
-        <h3 class="billing-upgrade-title mt-2 font-heading text-xl font-bold">
-            {{ $suggestedUpgradePlan['name'] ?? 'Need more features?' }}
-        </h3>
-        <p class="billing-upgrade-copy mt-2 text-sm leading-6">
-            @if($suggestedUpgradePlan !== null)
-                Move to {{ $suggestedUpgradePlan['name'] }} for broader limits and more tenant features. We will open a prefilled support request so your team can submit the upgrade safely.
-            @else
-                If you need additional modules or higher limits, send a billing request and the support team can recommend the best available plan.
-            @endif
-        </p>
 
-        @if($suggestedUpgradePlan !== null)
-            <div class="billing-upgrade-subcard mt-4 rounded-xl border p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm font-semibold text-white">{{ $suggestedUpgradePlan['name'] }}</p>
-                        <p class="mt-1 text-xs text-slate-500">Suggested next plan</p>
-                    </div>
-                    <p class="text-lg font-bold text-white">P{{ $suggestedPlanPriceLabel }}/mo</p>
-                </div>
-            </div>
-        @endif
-
-        <div class="mt-5 flex flex-col gap-3">
-            @if($canViewSettings && $canManageSupportRequest)
-                <a href="{{ $upgradeSupportUrl }}" class="billing-upgrade-primary inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition">
-                    Request Plan Upgrade
-                </a>
-                <a href="{{ route('settings.index', array_merge($tenantParameter, ['tab' => 'support']), false) }}" class="billing-upgrade-secondary inline-flex items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold transition">
-                    Contact Support
-                </a>
-            @elseif($canViewSettings)
-                <a href="{{ route('settings.index', array_merge($tenantParameter, ['tab' => 'support']), false) }}" class="billing-upgrade-secondary inline-flex items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold transition">
-                    View Support Details
-                </a>
-                <p class="text-xs leading-5 text-slate-400">Your account can review support details, but only tenant administrators can submit upgrade requests.</p>
-            @else
-                <p class="billing-upgrade-secondary rounded-xl border px-4 py-3 text-sm">Please contact your tenant administrator to request a subscription upgrade.</p>
-            @endif
-        </div>
-    </div>
 </div>
 
 <div class="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.02]">
@@ -272,7 +188,7 @@
                         <td class="px-4 py-3 font-semibold text-white">{{ $invoice->invoice_number }}</td>
                         <td class="px-4 py-3 text-slate-300">{{ $invoice->due_date?->format('M Y') }}</td>
                         <td class="px-4 py-3 text-slate-200">P{{ number_format((float) $invoice->amount, 2) }}</td>
-                        <td class="px-4 py-3 text-slate-300">{{ $invoice->due_date?->format('M d, Y') }}</td>
+                        <td class="px-4 py-3 text-slate-300">{{ formatDate($invoice->due_date) }}</td>
                         <td class="px-4 py-3">
                             <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $statusClass }}">{{ $statusLabel }}</span>
                         </td>

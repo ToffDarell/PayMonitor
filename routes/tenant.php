@@ -80,6 +80,7 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::post('/loans/compute-preview', [LoanController::class, 'computePreview'])->name('loans.compute-preview');
                     Route::resource('loans', LoanController::class);
                     Route::get('/loans/{loan}/print', [LoanController::class, 'printReport'])->name('loans.print');
+                    Route::get('/loans/{loan}/computation-review', [LoanController::class, 'computationReview'])->name('loans.computation-review');
                 });
 
 
@@ -131,6 +132,8 @@ collect(config('tenancy.central_domains', ['localhost']))
 
                 Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.feature:overdue_loan_management', 'tenant.permission:'.TenantPermissions::OVERDUE_LOANS_MANAGE])->group(function (): void {
                     Route::post('/loans/{loan}/send-reminder', [OverdueLoanController::class, 'sendReminder'])->name('loans.send-reminder');
+                    Route::post('/loans/{loan}/send-sms', [OverdueLoanController::class, 'sendSmsReminder'])->name('loans.send-sms');
+                    Route::post('/loans/{loan}/demand-letter-sms', [OverdueLoanController::class, 'sendDemandLetterSms'])->name('loans.demand-letter-sms');
                     Route::post('/loans/{loan}/apply-penalty', [OverdueLoanController::class, 'applyPenalty'])->name('loans.apply-penalty');
                     Route::post('/loans/{loan}/mark-delinquent', [OverdueLoanController::class, 'markDelinquent'])->name('loans.mark-delinquent');
                     Route::post('/loans/{loan}/restructure', [OverdueLoanController::class, 'restructureLoan'])->name('loans.restructure');
@@ -168,17 +171,13 @@ collect(config('tenancy.central_domains', ['localhost']))
                     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required'])->group(function (): void {
-                    Route::get('/settings/updates', [SettingsController::class, 'updates'])->name('settings.updates');
+                Route::middleware(['auth', 'tenant.context'])->group(function (): void {
                     Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
                 });
 
-                Route::middleware(['auth', 'tenant.context', 'tenant.update.required', 'tenant.permission:'.TenantPermissions::SETTINGS_UPDATE])->group(function (): void {
+                Route::middleware(['auth', 'tenant.context', 'tenant.permission:'.TenantPermissions::SETTINGS_UPDATE])->group(function (): void {
                     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
                     Route::post('/settings/support', [SettingsController::class, 'submitSupport'])->name('settings.support');
-                    Route::post('/settings/updates/sync', [SettingsController::class, 'syncReleases'])->name('settings.updates.sync');
-                    Route::post('/settings/updates/apply', [SettingsController::class, 'applyUpdate'])->name('settings.updates.apply');
-                    Route::post('/settings/updates/backup', [SettingsController::class, 'createBackup'])->name('settings.updates.backup');
                 });
 
                 Route::fallback(static function (): void {

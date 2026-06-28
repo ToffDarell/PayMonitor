@@ -36,6 +36,9 @@ class StoreMemberRequest extends FormRequest
             'co_maker_name' => ['nullable', 'string', 'max:255'],
             'co_maker_address' => ['nullable', 'string', 'max:500'],
             'co_maker_contact_number' => ['nullable', 'string', 'max:20'],
+            // Valid ID Information
+            'valid_id_type' => ['nullable', 'string', 'max:100'],
+            'valid_id_number' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

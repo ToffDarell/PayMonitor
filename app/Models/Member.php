@@ -35,6 +35,9 @@ class Member extends Model
         'co_maker_name',
         'co_maker_address',
         'co_maker_contact_number',
+        // Valid ID Information
+        'valid_id_type',
+        'valid_id_number',
     ];
 
     protected function casts(): array

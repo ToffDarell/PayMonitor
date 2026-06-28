@@ -56,12 +56,12 @@
                 </select>
             </div>
             <div class="col-md-2 d-grid">
-                <button type="submit" class="btn btn-outline-primary">
+                <button type="submit" class="btn btn-primary shadow-sm">
                     <i class="bi bi-funnel-fill me-1"></i>Filter
                 </button>
             </div>
             <div class="col-md-2 d-grid">
-                <a href="{{ route('users.index', $tenantParameter) }}" class="btn btn-light border">Reset</a>
+                <a href="{{ route('users.index', $tenantParameter) }}" class="btn btn-outline-secondary shadow-sm">Reset</a>
             </div>
         </form>
     </div>

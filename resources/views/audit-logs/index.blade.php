@@ -54,11 +54,11 @@
                 </div>
                 <div class="col-md-6 col-xl-2">
                     <label for="date_from" class="form-label fw-semibold">Date From</label>
-                    <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control">
+                    <input type="text" data-datepicker id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control">
                 </div>
                 <div class="col-md-6 col-xl-2">
                     <label for="date_to" class="form-label fw-semibold">Date To</label>
-                    <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control">
+                    <input type="text" data-datepicker id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control">
                 </div>
                 <div class="col-md-6 col-xl-1 d-grid d-xl-flex align-items-end gap-2">
                     <button type="submit" class="btn btn-primary w-100">Apply</button>
@@ -90,7 +90,7 @@
                             <td>{{ $auditLogs->firstItem() + $loop->index }}</td>
                             <td>
                                 <span title="{{ $auditLog->created_at?->diffForHumans() }}">
-                                    {{ $auditLog->created_at?->format('M d, Y h:i A') ?? 'N/A' }}
+                                    {{ formatDate($auditLog->created_at, true) ?? 'N/A' }}
                                 </span>
                             </td>
                             <td>
@@ -114,7 +114,7 @@
                                         x-on:click="selectedLog = @js([
                                             'title' => $auditLog->module_label.' '.$auditLog->record_reference,
                                             'action' => ucfirst($auditLog->action),
-                                            'created_at' => $auditLog->created_at?->format('M d, Y h:i A') ?? 'N/A',
+                                            'created_at' => formatDate($auditLog->created_at, true) ?? 'N/A',
                                             'changes' => $auditLog->changes,
                                         ])"
                                     >

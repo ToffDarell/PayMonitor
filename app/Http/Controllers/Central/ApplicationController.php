@@ -51,7 +51,8 @@ class ApplicationController extends Controller
 
         // Setup domain name based on cooperative name
         $domainStr = $application->domain;
-        $subscriptionDueAt = now()->addDays(30)->toDateString();
+        $days = $application->plan?->renewalDays() ?? 30;
+        $subscriptionDueAt = now()->addDays($days)->toDateString();
 
         // Create the tenant
         $tenantService->createTenant([

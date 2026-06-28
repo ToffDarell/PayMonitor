@@ -6,13 +6,12 @@
 <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
     <div>
         <h2 class="font-heading text-2xl font-bold tracking-tight text-white">Plans</h2>
-        <p class="mt-1 text-sm text-slate-400">Manage subscription tiers for lending cooperative tenants.</p>
+        <p class="mt-1 text-sm text-slate-400">Manage subscription plans. Each plan has a billing cycle (monthly or yearly).</p>
     </div>
-    <a href="{{ route('central.plans.create', absolute: false) }}" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        Add Plan
-    </a>
 </div>
+
+
+
 
 <?php
 $featureNames = [
@@ -32,33 +31,19 @@ $featureNames = [
     'custom_roles' => 'Custom Roles',
     'advanced_analytics' => 'Advanced Analytics',
 ];
-
-// Determine the most popular plan by tenant count
-$mostPopularPlanId = null;
-if ($plans->count() > 0) {
-    $mostPopularPlanId = $plans->sortByDesc('tenants_count')->first()->id;
-}
 ?>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     @forelse($plans as $plan)
     <?php $hasTenants = $plan->tenants_count > 0; ?>
     <div class="bg-[#161b22] border border-[#21262d] rounded-2xl p-6 flex flex-col relative">
-        
+
         <!-- TOP SECTION -->
         <div class="mb-4">
-            @if($plan->id === $mostPopularPlanId && $hasTenants)
-            <div class="absolute top-6 right-6">
-                <span class="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-green-400 border border-green-500/20">
-                    Most Popular
-                </span>
-            </div>
-            @endif
-            
             <h3 class="text-xl font-bold text-white">{{ $plan->name }}</h3>
             <div class="mt-4 flex items-baseline gap-1">
                 <span class="text-3xl font-black text-white">&#8369;{{ number_format((float) $plan->price, 0) }}</span>
-                <span class="text-sm font-medium text-[#8b949e]">/monthly</span>
+                <span class="text-sm font-medium text-[#8b949e]">/{{ $plan->billing_cycle ?? 'monthly' }}</span>
             </div>
             <p class="text-sm text-[#8b949e] mt-2 min-h-[40px]">{{ $plan->description }}</p>
         </div>
@@ -110,7 +95,7 @@ if ($plans->count() > 0) {
                 <a href="{{ route('central.plans.edit', $plan, false) }}" class="inline-flex items-center rounded border border-[#21262d] bg-[#161b22] px-2.5 py-1.5 text-xs font-medium text-[#8b949e] transition hover:bg-[#1f2937] hover:text-white">
                     Edit
                 </a>
-                
+
                 @if($hasTenants)
                     <button type="button" disabled class="inline-flex items-center rounded border border-red-900/30 bg-[#161b22] px-2.5 py-1.5 text-xs font-medium text-red-900/50 cursor-not-allowed" title="Cannot delete plan with active tenants">
                         Delete

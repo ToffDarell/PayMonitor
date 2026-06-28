@@ -43,11 +43,11 @@
             </div>
             <div class="col-md-6 col-xl-3">
                 <div class="text-muted small text-uppercase fw-semibold">Release Date</div>
-                <div>{{ $loan->release_date?->format('M d, Y') ?? 'N/A' }}</div>
+                <div>{{ formatDate($loan->release_date) }}</div>
             </div>
             <div class="col-md-6 col-xl-3">
                 <div class="text-muted small text-uppercase fw-semibold">Due Date</div>
-                <div>{{ $loan->due_date?->format('M d, Y') ?? 'N/A' }}</div>
+                <div>{{ formatDate($loan->due_date) }}</div>
             </div>
             <div class="col-md-6 col-xl-3">
                 <div class="text-muted small text-uppercase fw-semibold">Payments Recorded</div>

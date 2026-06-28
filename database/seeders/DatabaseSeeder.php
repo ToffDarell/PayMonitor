@@ -30,7 +30,7 @@ class DatabaseSeeder extends Seeder
     {
         Role::findOrCreate('super_admin', 'web');
 
-        $plans = $this->seedPlans();
+        $professionalPlan = $this->seedProfessionalPlan();
 
         $superAdmin = User::query()->updateOrCreate(
             ['email' => 'superadmin@paymonitor.com'],
@@ -50,7 +50,7 @@ class DatabaseSeeder extends Seeder
             'domain' => 'alpha',
             'admin_name' => 'Juan Dela Cruz',
             'admin_email' => 'juan@alpha.com',
-            'plan_id' => $plans['Basic']->id,
+            'plan_id' => $professionalPlan->id,
             'subscription_due_at' => now()->addDays(30)->toDateString(),
         ]);
 
@@ -62,7 +62,7 @@ class DatabaseSeeder extends Seeder
             'domain' => 'bravo',
             'admin_name' => 'Maria Santos',
             'admin_email' => 'maria@bravo.com',
-            'plan_id' => $plans['Premium']->id,
+            'plan_id' => $professionalPlan->id,
             'subscription_due_at' => now()->addDays(45)->toDateString(),
         ]);
 
@@ -76,7 +76,7 @@ class DatabaseSeeder extends Seeder
             'domain' => 'charlie',
             'admin_name' => 'Carlos Ramos',
             'admin_email' => 'carlos@charlie.com',
-            'plan_id' => $plans['Standard']->id,
+            'plan_id' => $professionalPlan->id,
             'subscription_due_at' => now()->subDays(5)->toDateString(), // 5 days OVERDUE
         ]);
 
@@ -84,47 +84,35 @@ class DatabaseSeeder extends Seeder
         $this->seedAlphaTenant($charlieTenant);
     }
 
-    /**
-     * @return array<string, Plan>
-     */
-    private function seedPlans(): array
+    private function seedProfessionalPlan(): Plan
     {
-        $plans = [
-            [
-                'name' => 'Basic',
-                'price' => 499,
-                'max_branches' => 2,
-                'max_users' => 10,
-                'description' => 'Starter plan for small lending cooperatives.',
+        Plan::query()->truncate();
+
+        return Plan::query()->create([
+            'name' => 'Professional',
+            'price' => 0,
+            'max_branches' => 9999,
+            'max_users' => 9999,
+            'description' => 'Complete lending management system — all features included.',
+            'is_active' => true,
+            'features' => [
+                'basic_members',
+                'loan_management',
+                'loan_types',
+                'payment_tracking',
+                'basic_reports',
+                'branch_management',
+                'multi_user',
+                'collections_dashboard',
+                'overdue_loan_management',
+                'advanced_reports',
+                'member_documents',
+                'loan_documents',
+                'custom_roles',
+                'advanced_analytics',
+                'audit_logs',
             ],
-            [
-                'name' => 'Standard',
-                'price' => 999,
-                'max_branches' => 5,
-                'max_users' => 30,
-                'description' => 'Growing cooperative plan with wider staffing limits.',
-            ],
-            [
-                'name' => 'Premium',
-                'price' => 1999,
-                'max_branches' => 0,
-                'max_users' => 0,
-                'description' => 'Unlimited plan for established lending cooperatives.',
-            ],
-        ];
-
-        $seededPlans = [];
-
-        foreach ($plans as $planData) {
-            $plan = Plan::query()->updateOrCreate(
-                ['name' => $planData['name']],
-                $planData,
-            );
-
-            $seededPlans[$plan->name] = $plan;
-        }
-
-        return $seededPlans;
+        ]);
     }
 
     private function deleteExistingTenantDatabase(string $tenantId): void
@@ -286,8 +274,12 @@ class DatabaseSeeder extends Seeder
     ): void {
         $loanService = $this->loanService;
 
-        $tenant->run(static function () use ($branchName, $loanData, $loanService, $loanTypes, $members): void {
+        $initialVersion = 'v1.1.0';
+
+        $tenant->run(static function () use ($branchName, $initialVersion, $loanData, $loanService, $loanTypes, $members): void {
             TenantPermissions::ensureConfigured();
+
+            \App\Models\TenantSetting::set('current_version', $initialVersion);
 
             $branch = Branch::query()->create([
                 'name' => $branchName,

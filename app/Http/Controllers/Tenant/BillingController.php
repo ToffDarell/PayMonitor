@@ -326,7 +326,7 @@ class BillingController extends Controller
 
             if ($shouldSendReceipt) {
                 $lockedTenant->forceFill([
-                    'subscription_due_at' => now()->addDays(30),
+                    'subscription_due_at' => now()->addDays($lockedTenant->plan?->renewalDays() ?? 30),
                     'status' => 'active',
                 ])->save();
             }
@@ -362,7 +362,7 @@ class BillingController extends Controller
     /**
      * @return array{
      *     currentPlan: array<string, mixed>|null,
-     *     suggestedUpgradePlan: array<string, mixed>|null,
+     *     suggestedUpgradePlan: null,
      *     upgradeSupportUrl: string
      * }
      */
@@ -371,41 +371,21 @@ class BillingController extends Controller
         $centralConnection = (string) config('tenancy.database.central_connection', config('database.default'));
         $planCatalog = Plan::getAvailableFeatures();
 
-        $planRows = DB::connection($centralConnection)
+        $planRow = DB::connection($centralConnection)
             ->table('plans')
-            ->select(['id', 'name', 'price', 'max_branches', 'max_users', 'description', 'features'])
-            ->orderBy('price')
-            ->get();
+            ->select(['id', 'name', 'price', 'billing_cycle', 'max_branches', 'max_users', 'description', 'features'])
+            ->where('id', $tenant->plan_id)
+            ->first();
 
-        $currentPlanRow = $planRows->firstWhere('id', $tenant->plan_id);
-        $currentPlan = $this->mapPlanSummary($currentPlanRow, $planCatalog);
+        $currentPlan = $this->mapPlanSummary($planRow, $planCatalog);
 
-        $suggestedUpgradeRow = null;
-
-        if ($currentPlanRow !== null) {
-            $suggestedUpgradeRow = $planRows->first(static function (object $planRow) use ($currentPlanRow): bool {
-                return (float) ($planRow->price ?? 0) > (float) ($currentPlanRow->price ?? 0);
-            });
-        }
-
-        $suggestedUpgradePlan = $this->mapPlanSummary($suggestedUpgradeRow, $planCatalog);
         $tenantParameter = ['tenant' => $tenant->id];
-        $upgradeSubject = 'Plan upgrade request';
-        $upgradeMessage = sprintf(
-            "Hello Support Team,\n\nWe would like to request a plan upgrade for %s.\n\nCurrent plan: %s\nRequested plan: %s\nReason: We need access to additional features for our operations.\n\nPlease advise us on the next steps.\n",
-            $tenant->name ?? 'this tenant',
-            $currentPlan['name'] ?? 'Unknown plan',
-            $suggestedUpgradePlan['name'] ?? 'Please recommend the next available plan'
-        );
 
         return [
             'currentPlan' => $currentPlan,
-            'suggestedUpgradePlan' => $suggestedUpgradePlan,
+            'suggestedUpgradePlan' => null,
             'upgradeSupportUrl' => route('settings.index', array_merge($tenantParameter, [
                 'tab' => 'support',
-                'support_subject' => $upgradeSubject,
-                'support_category' => 'billing',
-                'support_message' => $upgradeMessage,
             ]), false),
         ];
     }
@@ -432,6 +412,7 @@ class BillingController extends Controller
             'id' => (int) $planRow->id,
             'name' => (string) ($planRow->name ?? 'Unknown Plan'),
             'price' => (float) ($planRow->price ?? 0),
+            'billing_cycle' => (string) ($planRow->billing_cycle ?? 'monthly'),
             'max_branches' => (int) ($planRow->max_branches ?? 0),
             'max_users' => (int) ($planRow->max_users ?? 0),
             'description' => (string) ($planRow->description ?? ''),

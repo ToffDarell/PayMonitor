@@ -6,47 +6,18 @@ use App\Models\Plan;
 use App\Models\TenantApplication;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Arr;
+use Illuminate\View\View;
 
 class ApplicationController extends Controller
 {
-    public function create(Request $request)
+    public function create(Request $request): View
     {
-        $plans = Plan::query()
-            ->orderBy('price')
-            ->orderBy('name')
-            ->get();
-
-        $requestedPlan = trim((string) $request->query('plan', ''));
-        $selectedPlan = null;
-
-        if ($requestedPlan !== '') {
-            $selectedPlan = $plans->firstWhere('id', (int) $requestedPlan)?->id;
-
-            if ($selectedPlan === null) {
-                $normalizedPlan = strtolower(str_replace('-', ' ', $requestedPlan));
-
-                $selectedPlan = $plans->first(function (Plan $plan) use ($normalizedPlan): bool {
-                    return strtolower($plan->name) === $normalizedPlan;
-                })?->id;
-            }
-        }
-
-        if ($selectedPlan === null) {
-            $defaultPlan = $plans->first(function (Plan $plan): bool {
-                return strtolower($plan->name) === 'standard';
-            }) ?? $plans->values()->get(1) ?? $plans->first();
-
-            $selectedPlan = $defaultPlan?->id;
-        }
-
-        return view('apply', [
-            'plans'        => $plans,
-            'selectedPlan' => $selectedPlan,
-        ]);
+        $monthlyPlan = Plan::where('name', 'Professional Monthly')->firstOrFail();
+        $yearlyPlan = Plan::where('name', 'Professional Yearly')->firstOrFail();
+        $cycle = in_array($request->query('cycle'), ['monthly', 'yearly']) ? $request->query('cycle') : 'monthly';
+        return view('apply', compact('monthlyPlan', 'yearlyPlan', 'cycle'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -63,7 +34,6 @@ class ApplicationController extends Controller
 
         $plan = Plan::query()->findOrFail((int) $validated['plan']);
 
-        // Create application record first (unpaid)
         $application = TenantApplication::create([
             'cooperative_name'        => $validated['cooperative_name'],
             'cda_registration_number' => $validated['cda_registration_number'] ?? null,
@@ -77,160 +47,134 @@ class ApplicationController extends Controller
             'status'                  => 'pending',
         ]);
 
-        // If plan is free (price = 0), skip payment
+        // Free plan — auto-verify, no payment needed
         if ((float) $plan->price === 0.0) {
-            $application->update(['payment_status' => 'verified']);
+            $application->update([
+                'payment_status' => 'verified',
+                'paid_at'        => now(),
+            ]);
 
             return redirect()->route('apply.thank-you')
-                ->with('success', 'Application submitted successfully! No payment required for this plan.');
+                ->with('message_type', 'free');
         }
 
-        // Create PayMongo checkout session
-        $amount = (int) round($plan->price * 100); // centavos
+        // Paid plan — create PayMongo checkout session
+        $amount = (int) round($plan->price * 100);
 
-        $response = Http::withBasicAuth(config('paymongo.secret_key'), '')
+        $response = Http::acceptJson()
+            ->withBasicAuth(config('paymongo.secret_key'), '')
             ->post('https://api.paymongo.com/v1/checkout_sessions', [
                 'data' => [
                     'attributes' => [
                         'line_items' => [
                             [
-                                'amount' => $amount,
-                                'currency' => 'PHP',
-                                'name' => 'PayMonitor Application Fee — ' . $plan->name . ' Plan',
-                                'quantity' => 1,
-                            ]
+                                'amount'      => $amount,
+                                'currency'    => 'PHP',
+                                'name'        => 'PayMonitor — ' . $plan->name,
+                                'quantity'    => 1,
+                            ],
                         ],
                         'payment_method_types' => ['card', 'gcash', 'paymaya', 'qrph'],
-                        'description' => 'Application Fee for ' . $application->cooperative_name,
-                        'success_url' => route('apply.payment-callback', ['applicationId' => $application->id], true),
-                        'cancel_url' => route('apply.payment-pending', ['applicationId' => $application->id], true),
-                        'send_email_receipt' => true,
+                        'description'          => 'Application Fee for ' . $application->cooperative_name,
+                        'success_url'          => route('apply.payment-callback', ['applicationId' => $application->id], true),
+                        'cancel_url'           => route('apply.payment-pending', ['applicationId' => $application->id], true),
                     ],
                 ],
             ]);
 
         if ($response->failed()) {
-            // Payment link creation failed — still save application, admin handles manually
-            return redirect()->route('apply.thank-you')
-                ->with('warning', 'Application submitted. Payment link will be sent to your email shortly.');
+            return redirect()->route('apply.create')
+                ->withInput()
+                ->with('error', 'Could not initiate payment. Please try again.');
         }
 
-        $data        = $response->json();
-        $linkId      = $data['data']['id']; // this is now checkout session id
-        $checkoutUrl = $data['data']['attributes']['checkout_url'];
+        $data = $response->json();
 
-        // Save payment link to application
         $application->update([
-            'paymongo_link_id' => $linkId,
-            'payment_url'      => $checkoutUrl,
-            'amount_paid'      => $plan->price,
+            'paymongo_link_id' => Arr::get($data, 'data.id'),
+            'payment_url'      => Arr::get($data, 'data.attributes.checkout_url'),
         ]);
 
-        // Store application ID in session for callback
-        session(['pending_application_id' => $application->id]);
-
-        // Redirect applicant to PayMongo checkout
-        return redirect($checkoutUrl);
+        return redirect()->away(Arr::get($data, 'data.attributes.checkout_url'));
     }
 
-    /**
-     * Handle the return redirect from PayMongo after successful payment.
-     */
     public function paymentCallback(Request $request): RedirectResponse
     {
-        $applicationId = $request->query('applicationId') ?? session('pending_application_id');
+        $applicationId = $request->query('applicationId');
+        $application   = TenantApplication::findOrFail($applicationId);
 
-        if (! $applicationId) {
-            return redirect()->route('apply.create')
-                ->with('error', 'Session expired. Please apply again.');
-        }
+        if ($application->paymongo_link_id) {
+            $response = Http::acceptJson()
+                ->withBasicAuth(config('paymongo.secret_key'), '')
+                ->get('https://api.paymongo.com/v1/checkout_sessions/' . $application->paymongo_link_id);
 
-        $application = TenantApplication::find($applicationId);
+            if ($response->successful()) {
+                $payments = Arr::get($response->json(), 'data.attributes.payments', []);
+                $payment  = $payments[0] ?? null;
+                $status   = $payment ? Arr::get($payment, 'attributes.status') : 'unpaid';
 
-        if (! $application) {
-            return redirect()->route('apply.create')
-                ->with('error', 'Application not found. Please apply again.');
-        }
+                if ($status === 'paid') {
+                    $application->update([
+                        'payment_status'      => 'verified',
+                        'paymongo_payment_id' => Arr::get($payment, 'id'),
+                        'paid_at'             => now(),
+                        'payment_method'      => Arr::get($payment, 'attributes.source.type'),
+                    ]);
 
-        // Verify payment with PayMongo
-        $response = Http::withBasicAuth(config('paymongo.secret_key'), '')
-            ->get('https://api.paymongo.com/v1/checkout_sessions/' . $application->paymongo_link_id);
-
-        if ($response->successful()) {
-            $data     = $response->json();
-            $payments = $data['data']['attributes']['payments'] ?? [];
-            $payment  = $payments[0] ?? null;
-
-            if ($payment && $payment['attributes']['status'] === 'paid') {
-                $application->update([
-                    'payment_status'      => 'verified',
-                    'paymongo_payment_id' => $payment['id'],
-                    'paid_at'             => now(),
-                    'payment_method'      => $payment['attributes']['source']['type'] ?? null,
-                ]);
-
-                // Clear session
-                session()->forget('pending_application_id');
-
-                return redirect()->route('apply.thank-you')
-                    ->with('success', 'Payment successful! Your application has been submitted. We will review and send your credentials within 24 hours.');
+                    return redirect()->route('apply.thank-you')
+                        ->with('message_type', 'paid');
+                }
             }
         }
 
-        // Payment not confirmed yet — send to pending page
-        return redirect()->route('apply.payment-pending', $application->id);
+        return redirect()->route('apply.payment-pending', ['applicationId' => $application->id]);
     }
 
-    /**
-     * Show payment pending page.
-     */
-    public function paymentPending(int $applicationId)
+    public function paymentPending(int $applicationId): View
     {
-        $application = TenantApplication::findOrFail($applicationId);
-
+        $application = TenantApplication::with('plan')->findOrFail($applicationId);
         return view('apply-payment-pending', compact('application'));
     }
 
-    /**
-     * Verify payment status manually (called by applicant from pending page).
-     */
     public function verifyPayment(int $applicationId): RedirectResponse
     {
         $application = TenantApplication::findOrFail($applicationId);
 
-        if (! $application->paymongo_link_id) {
-            return back()->with('error', 'No payment link found for this application.');
-        }
-
-        // Already verified — skip API call
         if ($application->payment_status === 'verified') {
             return redirect()->route('apply.thank-you')
-                ->with('success', 'Your payment has already been confirmed!');
+                ->with('message_type', 'paid');
         }
 
-        $response = Http::withBasicAuth(config('paymongo.secret_key'), '')
-            ->get('https://api.paymongo.com/v1/checkout_sessions/' . $application->paymongo_link_id);
+        if ($application->paymongo_link_id) {
+            $response = Http::acceptJson()
+                ->withBasicAuth(config('paymongo.secret_key'), '')
+                ->get('https://api.paymongo.com/v1/checkout_sessions/' . $application->paymongo_link_id);
 
-        if ($response->successful()) {
-            $data     = $response->json();
-            $payments = $data['data']['attributes']['payments'] ?? [];
-            $payment  = $payments[0] ?? null;
+            if ($response->successful()) {
+                $payments = Arr::get($response->json(), 'data.attributes.payments', []);
+                $payment  = $payments[0] ?? null;
+                $status   = $payment ? Arr::get($payment, 'attributes.status') : 'unpaid';
 
-            if ($payment && $payment['attributes']['status'] === 'paid') {
-                $application->update([
-                    'payment_status'      => 'verified',
-                    'paymongo_payment_id' => $payment['id'],
-                    'paid_at'             => now(),
-                    'payment_method'      => $payment['attributes']['source']['type'] ?? null,
-                ]);
+                if ($status === 'paid') {
+                    $application->update([
+                        'payment_status'      => 'verified',
+                        'paymongo_payment_id' => Arr::get($payment, 'id'),
+                        'paid_at'             => now(),
+                        'payment_method'      => Arr::get($payment, 'attributes.source.type'),
+                    ]);
 
-                session()->forget('pending_application_id');
-
-                return redirect()->route('apply.thank-you')
-                    ->with('success', 'Payment verified! Your application is now under review.');
+                    return redirect()->route('apply.thank-you')
+                        ->with('message_type', 'paid');
+                }
             }
         }
 
-        return back()->with('error', 'Payment not yet confirmed. Please try again in a few moments.');
+        return redirect()->route('apply.payment-pending', ['applicationId' => $application->id])
+            ->with('error', 'Payment has not been completed yet. Please try again or contact support.');
+    }
+
+    public function thankYou(Request $request): View
+    {
+        return view('apply-thankyou');
     }
 }

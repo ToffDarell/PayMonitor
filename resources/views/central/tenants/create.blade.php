@@ -14,6 +14,10 @@
         @csrf
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
 
+            @php $defaultPlan = $plans->first(); @endphp
+
+            <input type="hidden" name="plan_id" value="{{ $defaultPlan?->id }}">
+
             {{-- Cooperative Name --}}
             <div>
                 <label for="name" class="mb-2 block text-sm font-medium text-slate-200">Business / Cooperative Name <span class="text-red-400">*</span></label>
@@ -39,19 +43,11 @@
                 @error('domain') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Plan --}}
             <div>
-                <label for="plan_id" class="mb-2 block text-sm font-medium text-slate-200">Plan <span class="text-red-400">*</span></label>
-                <select id="plan_id" name="plan_id" required
-                    class="block w-full rounded-xl border @error('plan_id') border-red-500/50 @else border-white/10 @enderror bg-white/[0.03] px-4 py-3 text-sm text-slate-100 transition focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
-                    <option value="" class="bg-[#0F1729]">Select a plan</option>
-                    @foreach($plans as $plan)
-                        <option value="{{ $plan->id }}" class="bg-[#0F1729]" @selected(old('plan_id') == $plan->id)>
-                            {{ $plan->name }} — &#8369;{{ number_format((float) $plan->price, 2) }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('plan_id') <p class="mt-2 text-xs text-red-400">{{ $message }}</p> @enderror
+                <label class="mb-2 block text-sm font-medium text-slate-200">Plan</label>
+                <div class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+                    {{ $defaultPlan?->name ?? 'Professional' }} — &#8369;{{ number_format((float) ($defaultPlan?->price ?? 0), 2) }}
+                </div>
             </div>
 
             {{-- Admin Name --}}
