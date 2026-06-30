@@ -23,3 +23,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Agent skills & tooling
+.agents/
+.medusa/
+.playwright-mcp/
+skills-lock.json
+gstack/
+.swarm/
+ruvector.db
